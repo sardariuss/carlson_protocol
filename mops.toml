@@ -1,0 +1,5 @@
+[dependencies]
+base = "0.10.3"
+test = "1.2.0"
+icrc-fungible = "0.0.1"
+map = "9.0.1"
