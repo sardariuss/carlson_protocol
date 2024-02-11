@@ -1,25 +1,25 @@
-import Types "Types";
-import Decay "Decay";
-import Account "Account";
-import Protocol "Protocol";
-import Duration "Duration";
+import Types     "Types";
+import Decay     "Decay";
+import Account   "Account";
+import Locks     "Locks";
+import Duration  "Duration";
 
-import Map "mo:map/Map";
+import Map       "mo:map/Map";
 
-import Deque "mo:base/Deque";
-import List "mo:base/List";
-import Nat "mo:base/Nat";
-import Float "mo:base/Float";
-import Int "mo:base/Int";
-import Time "mo:base/Time";
+import Deque     "mo:base/Deque";
+import List      "mo:base/List";
+import Nat       "mo:base/Nat";
+import Float     "mo:base/Float";
+import Int       "mo:base/Int";
+import Time      "mo:base/Time";
 import Principal "mo:base/Principal";
-import Nat64 "mo:base/Nat64";
-import Array "mo:base/Array";
-import Option "mo:base/Option";
-import Buffer "mo:base/Buffer";
+import Nat64     "mo:base/Nat64";
+import Array     "mo:base/Array";
+import Option    "mo:base/Option";
+import Buffer    "mo:base/Buffer";
 
-import ICRC1 "mo:icrc1-mo/ICRC1/service";
-import ICRC2 "mo:icrc2-mo/ICRC2/service";
+import ICRC1     "mo:icrc1-mo/ICRC1/service";
+import ICRC2     "mo:icrc2-mo/ICRC2/service";
 
 shared actor class GodwinProtocol({
         deposit_ledger: Principal;
@@ -46,7 +46,7 @@ shared actor class GodwinProtocol({
         time_init = Time.now();
     });
 
-    let _protocol = Protocol.Protocol({ ns_per_sat = _ns_per_sat; decay_params = _decay_params;});
+    let _protocol = Locks.Locks({ ns_per_sat = _ns_per_sat; decay_params = _decay_params;});
 
     public shared({caller}) func lock({
         from: ICRC1.Account; 
@@ -120,7 +120,7 @@ shared actor class GodwinProtocol({
         Buffer.toArray(reimbursed);
     };
 
-    public func find_lock(id: Nat) : async ?Protocol.TokensLock {
+    public func find_lock(id: Nat) : async ?Locks.TokensLock {
         _protocol.find_lock(id);
     };
 

@@ -1,21 +1,19 @@
-import Types "Types";
-import Decay "Decay";
-import Account "Account";
+import Types     "Types";
+import Decay     "Decay";
+import Account   "Account";
 
-import Map "mo:map/Map";
+import Map       "mo:map/Map";
 
-import Deque "mo:base/Deque";
-import List "mo:base/List";
-import Nat "mo:base/Nat";
-import Float "mo:base/Float";
-import Int "mo:base/Int";
-import Time "mo:base/Time";
+import Nat       "mo:base/Nat";
+import Float     "mo:base/Float";
+import Int       "mo:base/Int";
+import Time      "mo:base/Time";
 import Principal "mo:base/Principal";
-import Nat64 "mo:base/Nat64";
-import Buffer "mo:base/Buffer";
-import Debug "mo:base/Debug";
+import Nat64     "mo:base/Nat64";
+import Buffer    "mo:base/Buffer";
+import Debug     "mo:base/Debug";
 
-import ICRC1 "mo:icrc1-mo/ICRC1/service";
+import ICRC1     "mo:icrc1-mo/ICRC1/service";
 
 module {
 
@@ -30,12 +28,12 @@ module {
         rates: { growth: Float; decay: Float; };
     };
 
-    public type ProtocolParams = {
+    public type LocksParams = {
         ns_per_sat: Nat;
         decay_params: Types.DecayParameters;
     };
 
-    public class Protocol(_params: ProtocolParams){
+    public class Locks(_params: LocksParams){
 
         var _map_locked: Map.Map<Nat, TokensLock> = Map.new();
 

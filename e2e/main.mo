@@ -1,19 +1,19 @@
-import GodwinProtocol "../src/main";
-import Account "../src/Account";
-import Types "../src/Types";
-import Duration "../src/Duration";
+import GodwinProtocol     "../src/main";
+import Account            "../src/Account";
+import Types              "../src/Types";
+import Duration           "../src/Duration";
 
-import Token "mo:icrc2-mo/ICRC2/Canisters/Token";
-import ICRC1 "mo:icrc1-mo/ICRC1";
-import ICRC2 "mo:icrc2-mo/ICRC2";
+import Token              "mo:icrc2-mo/ICRC2/Canisters/Token";
+import ICRC1              "mo:icrc1-mo/ICRC1";
+import ICRC2              "mo:icrc2-mo/ICRC2";
 
-import Principal "mo:base/Principal";
-import Debug "mo:base/Debug";
+import Principal          "mo:base/Principal";
+import Debug              "mo:base/Debug";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
-import Int "mo:base/Int";
-import Time "mo:base/Time";
-import Nat64 "mo:base/Nat64";
-import Float "mo:base/Float";
+import Int                "mo:base/Int";
+import Time               "mo:base/Time";
+import Nat64              "mo:base/Nat64";
+import Float              "mo:base/Float";
 
 shared actor class Main() = this {
 

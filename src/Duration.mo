@@ -1,7 +1,7 @@
 import Types "Types";
 
 import Float "mo:base/Float";
-import Int "mo:base/Int";
+import Int   "mo:base/Int";
 
 module {
   // For convenience: from base module
