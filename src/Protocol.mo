@@ -2,6 +2,8 @@ import Types "Types";
 import Decay "Decay";
 import Account "Account";
 
+import Map "mo:map/Map";
+
 import Deque "mo:base/Deque";
 import List "mo:base/List";
 import Nat "mo:base/Nat";
@@ -20,7 +22,7 @@ module {
     type Time = Time.Time;
 
     public type TokensLock = {
-        tx_id: Nat;
+        id: Nat;
         from: ICRC1.Account;
         amount : Nat;
         timestamp: Int;
@@ -35,15 +37,18 @@ module {
 
     public class Protocol(_params: ProtocolParams){
 
-        // The oldest locks are at the front of the deque (sorted by timestamp)
-        var _deque_locked: Deque.Deque<TokensLock> = Deque.empty();
+        var _map_locked: Map.Map<Nat, TokensLock> = Map.new();
 
-        public func get_locks() : [TokensLock] {
-            List.toArray(_deque_locked.0);
+        public func find_lock(id: Nat) : ?TokensLock {
+            Map.get(_map_locked, Map.nhash, id);
+        };
+
+        public func num_locks() : Nat {
+            Map.size(_map_locked);
         };
 
         public func lock({
-            tx_id: Nat;
+            id: Nat;
             from: ICRC1.Account;
             timestamp: Time;
             amount: Nat;
@@ -59,7 +64,7 @@ module {
                 // Accumulate the increasing decays
                 var accumulation = growth * Float.fromInt(amount);
                 // Consider all the previous locks to the time left
-                for (lock in List.toIter(_deque_locked.0)) {
+                for (lock in Map.vals(_map_locked)) {
                     accumulation += lock.rates.growth * Float.fromInt(lock.amount);
                 };
                 
@@ -67,7 +72,7 @@ module {
                 let time_left = Float.fromInt(_params.ns_per_sat) * accumulation / growth;
 
                 {
-                    tx_id;
+                    id;
                     from;
                     amount;
                     timestamp;
@@ -78,17 +83,15 @@ module {
             };
 
             // Update the time left for all the previous locks
-            var list_locked = List.map(_deque_locked.0, func(lock: TokensLock) : TokensLock {
+            _map_locked := Map.map(_map_locked, Map.nhash, func(id: Nat, lock: TokensLock) : TokensLock {
                 let time_left = lock.time_left + (new_lock.rates.decay * Float.fromInt(new_lock.amount) * Float.fromInt(_params.ns_per_sat)) / lock.rates.decay;
                 { lock with time_left; };
             });
 
-            // Add the new lock to the list
-            list_locked := List.push(new_lock, list_locked);
-
-            // Update the deque
-            // Note: it seems that the list that is reversed (where the head is considered the tail) is the first one
-            _deque_locked := (List.reverse(list_locked), list_locked);
+            // @todo: if it is already in the map, should not update time left for previous locks
+            if (Map.addFront(_map_locked, Map.nhash, new_lock.id, new_lock) != null) {
+                Debug.trap("Lock " # debug_show(new_lock.id) # " already exists in the map");
+            };
         };
 
         // Unlock the tokens if the duration is reached
@@ -97,32 +100,32 @@ module {
             let locks : Buffer.Buffer<TokensLock> = Buffer.Buffer(0);
 
             label endless while true {
-                let (lock, deque) = switch(Deque.popFront(_deque_locked)){
-                    // Deque is empty
+                let lock = switch(Map.peek(_map_locked)){
+                    // the map is empty
                     case(null) {
                         break endless;
                     };
-                    // Deque is not empty
-                    case(?pop_front) {
-                        pop_front;
+                    // The map is not empty
+                    case(?(_, lock)) {
+                        lock;
                     };
                 };
 
-                Debug.print("There is a candidate lock with tx_id=" # debug_show(lock.tx_id));
+                Debug.print("There is a candidate lock with id=" # debug_show(lock.id));
 
-                // Stop the loop if the duration is not reached yet (the queue is sorted by timestamp)
+                // Stop the loop if the duration is not reached yet (the map is sorted by timestamp)
                 if (lock.timestamp + Float.toInt(lock.time_left) > time) {
                     Debug.print("The lock is not expired yet");
                     break endless;
                 };
 
                 Debug.print("The lock is expired");
+               
+                // Remove the lock from the map
+                Map.delete(_map_locked, Map.nhash, lock.id);
 
-                // Unlock the tokens
+                // Add the lock to the list to return
                 locks.add(lock);
-                
-                // Do not forget to update the queue!
-                _deque_locked := deque;
             };
 
             Buffer.toArray(locks);

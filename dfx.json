@@ -3,6 +3,10 @@
     "godwin_protocol": {
       "main": "src/main.mo",
       "type": "motoko"
+    },
+    "e2e": {
+      "main": "e2e/main.mo",
+      "type": "motoko"
     }
   },
   "defaults": {
