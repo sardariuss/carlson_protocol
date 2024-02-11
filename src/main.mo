@@ -1,5 +1,6 @@
 import Types     "Types";
 import Decay     "Decay";
+import Ballot    "Ballot";
 import Account   "Account";
 import Locks     "Locks";
 import Duration  "Duration";
@@ -46,11 +47,17 @@ shared actor class GodwinProtocol({
         time_init = Time.now();
     });
 
-    let _protocol = Locks.Locks({ ns_per_sat = _ns_per_sat; decay_params = _decay_params;});
+    let _protocol = Locks.Locks({
+        lock_params = { 
+            ns_per_sat = _ns_per_sat; 
+            decay_params = _decay_params; 
+        };
+        locks = Map.new<Nat, Types.TokensLock>();
+    });
 
-    public shared({caller}) func lock({
-        from: ICRC1.Account; 
-        amount: Nat;
+    public shared({caller}) func vote({
+        from: ICRC1.Account;
+        ballot: Types.Ballot;
     }) : async { #Ok : Nat; #Err : ICRC2.TransferFromError or { #NotAuthorized } } {
 
         if (from.owner != caller) {
@@ -66,7 +73,7 @@ shared actor class GodwinProtocol({
                 owner = Principal.fromActor(this);
                 subaccount = ?Account.pSubaccount(from.owner);
             };
-            amount;
+            amount = Ballot.get_amount(ballot);
             fee = null; // Use default fee
             memo = null;
             created_at_time = ?Nat64.fromNat(Int.abs(timestamp));
@@ -79,7 +86,7 @@ shared actor class GodwinProtocol({
             };
         };
 
-        _protocol.lock({id = tx_id; timestamp; amount; from;});
+        _protocol.add_lock({ tx_id; timestamp; ballot; from;});
 
         #Ok(tx_id);
     };
@@ -91,12 +98,12 @@ shared actor class GodwinProtocol({
 
         let reimbursed = Buffer.Buffer<Nat>(0);
 
-        for ({id; amount; from;} in Array.vals(to_reimburse)) {
+        for ({tx_id; ballot; from;} in Array.vals(to_reimburse)) {
 
             let args = {
                 to = from;
                 from_subaccount = ?Account.pSubaccount(from.owner);
-                amount = amount - 10; // @todo: need to remove the fee and fix warning
+                amount = Ballot.get_amount(ballot) - 10; // @todo: need to remove hard-coded fee and fix warning
                 fee = null; // Use default fee
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
@@ -107,7 +114,7 @@ shared actor class GodwinProtocol({
             switch(await _deposit_ledger.icrc1_transfer(args)){
                 case (#Err(error)) {
                     let inner = Option.get(Map.get(_failed_reimbursements, Map.phash, from.owner), Map.new<Nat, FailedReimbursement>());
-                    Map.set(inner, Map.nhash, id, {args; error;});
+                    Map.set(inner, Map.nhash, tx_id, {args; error;});
                     Map.set(_failed_reimbursements, Map.phash, from.owner, inner);
                 };
                 case (#Ok(tx_id)) {
@@ -120,7 +127,7 @@ shared actor class GodwinProtocol({
         Buffer.toArray(reimbursed);
     };
 
-    public func find_lock(id: Nat) : async ?Locks.TokensLock {
+    public func find_lock(id: Nat) : async ?Types.TokensLock {
         _protocol.find_lock(id);
     };
 

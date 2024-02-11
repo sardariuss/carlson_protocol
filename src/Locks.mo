@@ -1,6 +1,7 @@
 import Types     "Types";
 import Decay     "Decay";
 import Account   "Account";
+import Ballot    "Ballot";
 
 import Map       "mo:map/Map";
 
@@ -13,66 +14,54 @@ import Nat64     "mo:base/Nat64";
 import Buffer    "mo:base/Buffer";
 import Debug     "mo:base/Debug";
 
-import ICRC1     "mo:icrc1-mo/ICRC1/service";
-
 module {
 
     type Time = Time.Time;
 
-    public type TokensLock = {
-        id: Nat;
-        from: ICRC1.Account;
-        amount : Nat;
-        timestamp: Int;
-        time_left: Float; // Floating point to avoid accumulating rounding errors
-        rates: { growth: Float; decay: Float; };
-    };
+    type TokensLock = Types.TokensLock;
+    type LocksParams = Types.LocksParams;
 
-    public type LocksParams = {
-        ns_per_sat: Nat;
-        decay_params: Types.DecayParameters;
-    };
+    public class Locks({
+        lock_params: LocksParams;
+        locks: Map.Map<Nat, TokensLock>;
+    }){
 
-    public class Locks(_params: LocksParams){
-
-        var _map_locked: Map.Map<Nat, TokensLock> = Map.new();
-
-        public func find_lock(id: Nat) : ?TokensLock {
-            Map.get(_map_locked, Map.nhash, id);
+        public func find_lock(tx_id: Nat) : ?TokensLock {
+            Map.get(locks, Map.nhash, tx_id);
         };
 
         public func num_locks() : Nat {
-            Map.size(_map_locked);
+            Map.size(locks);
         };
 
-        public func lock({
-            id: Nat;
-            from: ICRC1.Account;
+        public func add_lock({
+            tx_id: Nat;
+            from: Types.Account;
             timestamp: Time;
-            amount: Nat;
+            ballot: Types.Ballot;
         }) {
 
             // Update the total locked
             let new_lock = do {
 
                 // Compute the decays
-                let growth = Decay.computeDecay(_params.decay_params, timestamp);
-                let decay = Decay.computeDecay(_params.decay_params, -timestamp);
+                let growth = Decay.computeDecay(lock_params.decay_params, timestamp);
+                let decay = Decay.computeDecay(lock_params.decay_params, -timestamp);
 
                 // Accumulate the increasing decays
-                var accumulation = growth * Float.fromInt(amount);
+                var accumulation = growth * Float.fromInt(Ballot.get_amount(ballot));
                 // Consider all the previous locks to the time left
-                for (lock in Map.vals(_map_locked)) {
-                    accumulation += lock.rates.growth * Float.fromInt(lock.amount);
+                for (lock in Map.vals(locks)) {
+                    accumulation += lock.rates.growth * Float.fromInt(Ballot.get_amount(lock.ballot));
                 };
                 
                 // Deduce the time left (in nanoseconds)
-                let time_left = Float.fromInt(_params.ns_per_sat) * accumulation / growth;
+                let time_left = Float.fromInt(lock_params.ns_per_sat) * accumulation / growth;
 
                 {
-                    id;
+                    tx_id;
                     from;
-                    amount;
+                    ballot;
                     timestamp;
                     time_left;
                     rates = { growth; decay; };
@@ -80,25 +69,30 @@ module {
 
             };
 
-            // Update the time left for all the previous locks
-            _map_locked := Map.map(_map_locked, Map.nhash, func(id: Nat, lock: TokensLock) : TokensLock {
-                let time_left = lock.time_left + (new_lock.rates.decay * Float.fromInt(new_lock.amount) * Float.fromInt(_params.ns_per_sat)) / lock.rates.decay;
-                { lock with time_left; };
-            });
+            // Add the lock to the map
+            if (Map.addFront(locks, Map.nhash, new_lock.tx_id, new_lock) != null) {
+                Debug.trap("Lock " # debug_show(new_lock.tx_id) # " already exists in the map");
+            };
 
-            // @todo: if it is already in the map, should not update time left for previous locks
-            if (Map.addFront(_map_locked, Map.nhash, new_lock.id, new_lock) != null) {
-                Debug.trap("Lock " # debug_show(new_lock.id) # " already exists in the map");
+            // Update the time left for all the previous locks
+            for (lock in Map.vals(locks)) {
+                if (lock.tx_id != new_lock.tx_id){
+                    let time_left = lock.time_left 
+                        + (new_lock.rates.decay * Float.fromInt(Ballot.get_amount(new_lock.ballot)) 
+                            * Float.fromInt(lock_params.ns_per_sat)) 
+                            / lock.rates.decay;
+                    Map.set(locks, Map.nhash, lock.tx_id, { lock with time_left; });
+                };
             };
         };
 
         // Unlock the tokens if the duration is reached
         public func try_unlock(time: Time) : [TokensLock] {
 
-            let locks : Buffer.Buffer<TokensLock> = Buffer.Buffer(0);
+            let unlocks : Buffer.Buffer<TokensLock> = Buffer.Buffer(0);
 
             label endless while true {
-                let lock = switch(Map.peek(_map_locked)){
+                let lock = switch(Map.peek(locks)){
                     // the map is empty
                     case(null) {
                         break endless;
@@ -109,7 +103,7 @@ module {
                     };
                 };
 
-                Debug.print("There is a candidate lock with id=" # debug_show(lock.id));
+                Debug.print("There is a candidate lock with id=" # debug_show(lock.tx_id));
 
                 // Stop the loop if the duration is not reached yet (the map is sorted by timestamp)
                 if (lock.timestamp + Float.toInt(lock.time_left) > time) {
@@ -120,13 +114,13 @@ module {
                 Debug.print("The lock is expired");
                
                 // Remove the lock from the map
-                Map.delete(_map_locked, Map.nhash, lock.id);
+                Map.delete(locks, Map.nhash, lock.tx_id);
 
                 // Add the lock to the list to return
-                locks.add(lock);
+                unlocks.add(lock);
             };
 
-            Buffer.toArray(locks);
+            Buffer.toArray(unlocks);
         };
 
     };

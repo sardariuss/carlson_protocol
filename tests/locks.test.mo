@@ -1,24 +1,28 @@
-import Decay "../src/Decay";
-import Duration "../src/Duration";
-import Locks "../src/Locks";
+import Types            "../src/Types";
+import Decay            "../src/Decay";
+import Ballot           "../src/Ballot";
+import Duration         "../src/Duration";
+import Locks            "../src/Locks";
 
 import { test; suite; } "mo:test";
-import Time "mo:base/Time";
-import Int "mo:base/Int";
-import Debug "mo:base/Debug";
-import Float "mo:base/Float";
-import Buffer "mo:base/Buffer";
-import Iter "mo:base/Iter";
-import Array "mo:base/Array";
-import Option "mo:base/Option";
-import Principal "mo:base/Principal";
+import Time             "mo:base/Time";
+import Int              "mo:base/Int";
+import Debug            "mo:base/Debug";
+import Float            "mo:base/Float";
+import Buffer           "mo:base/Buffer";
+import Iter             "mo:base/Iter";
+import Array            "mo:base/Array";
+import Option           "mo:base/Option";
+import Principal        "mo:base/Principal";
+
+import Map              "mo:map/Map";
 
 suite("Locks suite", func(){
 
     type Time = Time.Time;
 
-    func try_repetitive_unlock(protocol: Locks.Locks, time_now: Time, target_time: Time) : [Locks.TokensLock] {
-        let buffer = Buffer.Buffer<Locks.TokensLock>(0);
+    func try_repetitive_unlock(protocol: Locks.Locks, time_now: Time, target_time: Time) : [Types.TokensLock] {
+        let buffer = Buffer.Buffer<Types.TokensLock>(0);
         // Arbirarily take 10 timestamps between time_now and target_time
         for (i in Iter.range(0, 9)) {
             let t = time_now + (target_time - time_now) * i / 10;
@@ -30,16 +34,16 @@ suite("Locks suite", func(){
         Buffer.toArray(buffer);
     };
     
-    func print_lock(lock: Locks.TokensLock) {
-        Debug.print("id = " # debug_show(lock.id));
-        Debug.print("amount = " # debug_show(lock.amount));
+    func print_lock(lock: Types.TokensLock) {
+        Debug.print("tx_id = " # debug_show(lock.tx_id));
+        Debug.print("amount = " # debug_show(Ballot.get_amount(lock.ballot)));
         Debug.print("timestamp = " # debug_show(lock.timestamp));
         Debug.print("growth = " # debug_show(lock.rates.growth));
         Debug.print("decay = " # debug_show(lock.rates.decay));
         Debug.print("time_left = " # debug_show(lock.time_left));
     };
 
-    func unwrap_lock(lock: ?Locks.TokensLock) : Locks.TokensLock {
+    func unwrap_lock(lock: ?Types.TokensLock) : Types.TokensLock {
         switch(lock) {
             case (?l) { l; };
             case (null) { Debug.trap("Failed to unwrap lock"); };
@@ -52,18 +56,25 @@ suite("Locks suite", func(){
 
         let ns_per_sat = Int.abs(Duration.toTime(#MINUTES(5))); // 5 minutes per sat
         let decay_params = Decay.getDecayParameters({ half_life = #HOURS(1); time_init = t0; });
-        let protocol = Locks.Locks({ ns_per_sat; decay_params; });
+        
+        let protocol = Locks.Locks({
+            lock_params = { 
+                ns_per_sat;
+                decay_params;
+            };
+            locks = Map.new<Nat, Types.TokensLock>();
+        });
 
         assert(protocol.num_locks() == 0);
 
         // Tx0, at t=0, lock 4 sats:
         // -> Lock0 shall be locked for 20 minutes
-        protocol.lock({ from = account; id = 0; timestamp = t0; amount = 4 });
+        protocol.add_lock({ from = account; tx_id = 0; timestamp = t0; ballot = #AYE(4); });
 
         assert(protocol.num_locks() == 1);
         var lock0 = unwrap_lock(protocol.find_lock(0));
-        assert(lock0.id == 0);
-        assert(lock0.amount == 4);
+        assert(lock0.tx_id == 0);
+        assert(lock0.ballot == #AYE(4));
         assert(lock0.timestamp == t0);
         Debug.print("Lock 0 growth = " # debug_show(lock0.rates.growth));
         Debug.print("Lock 0 decay = " # debug_show(lock0.rates.decay));
@@ -80,13 +91,13 @@ suite("Locks suite", func(){
 
         let t1 = t0 + Duration.toTime(#MINUTES(10));
 
-        protocol.lock({ from = account; id = 1; timestamp = t1; amount = 6 });
+        protocol.add_lock({ from = account; tx_id = 1; timestamp = t1; ballot = #NAY(6); });
         assert(protocol.num_locks() == 2);
 
         // Test lock0
         lock0 := unwrap_lock(protocol.find_lock(0));
-        assert(lock0.id == 0);
-        assert(lock0.amount == 4);
+        assert(lock0.tx_id == 0);
+        assert(lock0.ballot == #AYE(4));
         assert(lock0.timestamp == t0);
         Debug.print("Lock 0 time left = " # debug_show(Float.toInt(lock0.time_left)));
         assert(Float.toInt(Float.nearest(lock0.time_left)) > Duration.toTime(#MINUTES(20)));
@@ -94,8 +105,8 @@ suite("Locks suite", func(){
 
         // Test lock1
         var lock1 = unwrap_lock(protocol.find_lock(1));
-        assert(lock1.id == 1);
-        assert(lock1.amount == 6);
+        assert(lock1.tx_id == 1);
+        assert(lock1.ballot == #NAY(6));
         assert(lock1.timestamp == t1);
         Debug.print("Lock 1 growth = " # debug_show(lock1.rates.growth));
         Debug.print("Lock 1 decay = " # debug_show(lock1.rates.decay));

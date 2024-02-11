@@ -26,6 +26,8 @@ shared actor class Main() = this {
 
     public shared func run() : async () {
 
+        let owner = Principal.fromActor(this);
+
         // Fee to create token canister
         ExperimentalCycles.add(50_000_000_000);
 
@@ -36,7 +38,7 @@ shared actor class Main() = this {
                 logo : ?Text = ?"deposit_ledger_logo";
                 decimals : Nat8 = 8;
                 fee : ?ICRC1.Fee = ?#Fixed(10);
-                minting_account : ?ICRC1.Account = ?{ owner = Principal.fromActor(this); subaccount = null; };
+                minting_account : ?ICRC1.Account = ?{ owner; subaccount = null; };
                 max_supply : ?ICRC1.Balance = ?2_100_000_000_000_000;
                 min_burn_amount : ?ICRC1.Balance = ?1;
                 max_memo : ?Nat = ?1000;
@@ -74,12 +76,17 @@ shared actor class Main() = this {
 
         let fee = await deposit_ledger.icrc1_fee();
 
-        let account_1 = { owner = Principal.fromActor(this); subaccount = ?Account.n32Subaccount(1); };
+        let account_1 = { owner; subaccount = ?Account.n32Subaccount(1); };
+
+        // Scenario
+        let original_balance = duration_to_sat(#SECONDS(12));
+        let approved_balance = duration_to_sat(#SECONDS(10));
+        let locked_balance = duration_to_sat(#SECONDS(5));
        
         // Mint tokens to account 1
         switch(await deposit_ledger.mint({
             to = account_1;
-            amount = duration_to_sat(#SECONDS(12));
+            amount = original_balance;
             memo = null;
             created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
         })){
@@ -94,7 +101,7 @@ shared actor class Main() = this {
         // Allow protocol to spend 10 tokens from account 1
 
         switch(await deposit_ledger.icrc2_approve({
-            amount = duration_to_sat(#SECONDS(10)); // 10 tokens
+            amount = approved_balance; // 10 tokens
             created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
             expected_allowance = null;
             expires_at = null;
@@ -103,7 +110,7 @@ shared actor class Main() = this {
             memo = null;
             spender = {
                 owner = Principal.fromActor(protocol);
-                subaccount = ?Account.pSubaccount(Principal.fromActor(this));
+                subaccount = ?Account.pSubaccount(owner);
             };
         })){
             case(#Err(err)){
@@ -115,9 +122,9 @@ shared actor class Main() = this {
         };
 
         // Lock 2 tokens from account 1
-        let tx_id = switch(await protocol.lock({
+        let tx_id = switch(await protocol.vote({
             from = account_1;
-            amount = duration_to_sat(#SECONDS(5));
+            ballot = #AYE(locked_balance);
         })){
             case(#Err(err)){
                 Debug.trap("Fail to lock 5 tokens from account 1: " # debug_show(err));
@@ -148,13 +155,13 @@ shared actor class Main() = this {
             balance := await deposit_ledger.icrc1_balance_of(account_1);
             Debug.print("Balance of account 1 (during lock): " # debug_show(balance));
             assert(balance + 2 * fee == duration_to_sat(#SECONDS(7)));
-            assert((await protocol.get_failed_reimbursements(Principal.fromActor(this))).size() == 0);
+            assert((await protocol.get_failed_reimbursements(owner)).size() == 0);
         };
 
         // Once unlocked, the balance of account 1 should be 12 minus the fees
         balance := await deposit_ledger.icrc1_balance_of(account_1);
         Debug.print("Balance of account 1 (after lock): " # debug_show(balance));
-        assert(balance + 3 * fee == duration_to_sat(#SECONDS(12)));
+        assert(balance + 3 * fee == original_balance);
     };
 
     public shared func cycles_balance() : async Nat {
