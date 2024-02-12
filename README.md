@@ -20,12 +20,11 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 
 ## Protocol parameter
 
-`deposit_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the ballots (aims to be ckBTC)
-`reward_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the rewards
-`nominal_duration_per_sat`: used to deduce the initial locking duration from the amount of satoshis transfered with the vote. Aimed to be updated programmatically based on demand or modified by a DAO.
-`decay_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock. Aimed to be modified by a DAO.
-@todo
-`ballot_minimum_amount`: the minimum amount a voter has to lock in order to vote.
+- `deposit_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the ballots (aims to be ckBTC)
+- `reward_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the rewards
+- `nominal_duration_per_sat`: used to deduce the initial locking duration from the amount of satoshis transfered with the vote. Aimed to be updated programmatically based on demand or modified by a DAO.
+- `decay_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock. Aimed to be modified by a DAO.
+- @todo `ballot_minimum_amount`: the minimum amount a voter has to lock in order to vote.
 
 ## Roadmap
 
@@ -83,19 +82,19 @@ Overall it is up to the voter to understand when "the crowd" is mature enough, o
 Boost potentail reward gives the opprtunity for somebody to contest that, like an "arbitrage".
 
 UI REQUIREMENTS:
-    General:
-        - ms_per_sat
-        - decay half life
+  General:
+    - ms_per_sat
+    - decay half life
 
-    Statement specific:
-        - total votes both sides (=cumulated)
-        - current amount tokens locked
+  Statement specific:
+    - total votes both sides (=cumulated)
+    - current amount tokens locked
 
-    User specific:
-        When about to lock tokens, you need to get:
-            - minimum locking time
-            - maximum reward (maximum reward you will get if at the end of the locking period, the result is the same as your vote)
-        Once tokens are locked, you need to have:
-            - updated (minimum) locking time remaining (or date)
-            - current reward
-            - potential reward
+  User specific:
+    When about to lock tokens, you need to get:
+      - minimum locking time
+      - maximum reward (maximum reward you will get if at the end of the locking period, the result is the same as your vote)
+    Once tokens are locked, you need to have:
+      - updated (minimum) locking time remaining (or date)
+      - current reward
+      - potential reward
