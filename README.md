@@ -2,7 +2,7 @@
 
 ## 💪 A decentralized voting system fueled with Bitcoin.
 
-- The Godwin protocol encodes the notion of caring. To participate in a vote, you should care about it; if not you will find another usage for your Bitcoins elsewhere.
+- The Godwin protocol encodes the notion of caring. To participate in a vote, you should lock bitcoins for a duration and reward that cannot be known when you vote. If you don't really care about the vote, you will find better alternatives for your bitcoins.
 - The Godwin protocol is a double edge sword. The more bitcoins you lock in a vote, the greater your voice, but the lesser the reward per tokens you're gonna get, and the greater the opportunity to contest the result and hence the duration increase of the lock gets.
 - The Godwin protocol is stateless. Votes never end and results decay. Even the most on-sided votes will decay over time, offering the opportunity to reevaluate past consensus.
 - The Godwin protocol rewards the bolds. Stand for your believes against the crowd, if the future agrees with you you will be rewarded.
