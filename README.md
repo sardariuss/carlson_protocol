@@ -29,7 +29,7 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 ## 🚀 Roadmap
 
 - Compute the maximum reward in tokens based on input tokens based on [logistic regression](https://www.desmos.com/calculator/56so1ds3bv)
-- Perform the minting of tokens
+- Perform the minting of the reward
 - Add a timer to periodically call try_unlock
 - Add decay on votes result
 - Create complex e2e scenarios
