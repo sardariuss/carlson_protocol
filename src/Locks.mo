@@ -87,7 +87,7 @@ module {
         };
 
         // Unlock the tokens if the duration is reached
-        public func try_unlock(time: Time) : [TokensLock] {
+        public func try_unlock(time: Time) : Buffer.Buffer<TokensLock> {
 
             let unlocks : Buffer.Buffer<TokensLock> = Buffer.Buffer(0);
 
@@ -120,7 +120,7 @@ module {
                 unlocks.add(lock);
             };
 
-            Buffer.toArray(unlocks);
+            unlocks;
         };
 
     };

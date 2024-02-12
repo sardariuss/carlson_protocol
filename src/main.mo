@@ -4,6 +4,7 @@ import Ballot    "Ballot";
 import Account   "Account";
 import Locks     "Locks";
 import Duration  "Duration";
+import Votes     "Votes";
 
 import Map       "mo:map/Map";
 
@@ -22,7 +23,7 @@ import Buffer    "mo:base/Buffer";
 import ICRC1     "mo:icrc1-mo/ICRC1/service";
 import ICRC2     "mo:icrc2-mo/ICRC2/service";
 
-shared actor class GodwinProtocol({
+shared({ caller = admin }) actor class GodwinProtocol({
         deposit_ledger: Principal;
         reward_ledger: Principal;
         lock_parameters: {
@@ -38,30 +39,52 @@ shared actor class GodwinProtocol({
         error: ICRC1.TransferError;
     };
 
+    // STABLE
     stable let _failed_reimbursements = Map.new<Principal, Map.Map<Nat, FailedReimbursement>>();
     stable let _deposit_ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(deposit_ledger));
     stable let _reward_ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(reward_ledger));
-    stable var _ns_per_sat = Int.abs(Duration.toTime(lock_parameters.nominal_duration_per_sat));
-    stable var _decay_params = Decay.getDecayParameters({
-        half_life = lock_parameters.decay_half_life;
-        time_init = Time.now();
-    });
-
-    let _protocol = Locks.Locks({
-        lock_params = { 
-            ns_per_sat = _ns_per_sat; 
-            decay_params = _decay_params; 
+    stable let _data = {
+        register = {
+            var index = 0;
+            votes = Map.new<Nat, Types.Vote>();
         };
-        locks = Map.new<Nat, Types.TokensLock>();
-    });
+        lock_params = {
+            ns_per_sat = Int.abs(Duration.toTime(lock_parameters.nominal_duration_per_sat));
+            decay_params = Decay.getDecayParameters({
+                half_life = lock_parameters.decay_half_life;
+                time_init = Time.now();
+            });
+        };
+    };
 
+    // NON-STABLE
+    let _votes = Votes.Votes(_data);
+
+    // Create a new vote (admin only)
+    public shared({caller}) func new_vote({
+        statement: Text
+    }) : async { #Ok : Nat; #Err: { #NotAuthorized }; } {
+        if (caller != admin) {
+            return #Err(#NotAuthorized);
+        };
+        #Ok(_votes.new_vote(statement));
+    };
+
+    // Add a ballot (vote) on the given vote identified by its vote_id
     public shared({caller}) func vote({
+        vote_id: Nat;
         from: ICRC1.Account;
         ballot: Types.Ballot;
-    }) : async { #Ok : Nat; #Err : ICRC2.TransferFromError or { #NotAuthorized } } {
+    }) : async { #Ok : Nat; #Err : ICRC2.TransferFromError or { #NotAuthorized; #VoteNotFound; } } {
 
+        // Check if the caller is the owner of the account
         if (from.owner != caller) {
             return #Err(#NotAuthorized);
+        };
+
+        // Early return if the vote is not found
+        if (not _votes.has_vote(vote_id)){
+            return #Err(#VoteNotFound);
         };
 
         let timestamp = Time.now();
@@ -86,19 +109,26 @@ shared actor class GodwinProtocol({
             };
         };
 
-        _protocol.add_lock({ tx_id; timestamp; ballot; from;});
+        _votes.put_ballot({vote_id; tx_id; timestamp; ballot; from;});
 
         #Ok(tx_id);
     };
 
     // Unlock the tokens if the duration is reached
+    // @todo: return a result with the successful and failed unlocks
     public func try_unlock() : async [Nat] {
-        
-        let to_reimburse = _protocol.try_unlock(Time.now());
 
+        let now = Time.now();
+
+        let unlocks = Buffer.Buffer<Types.TokensLock>(0);
         let reimbursed = Buffer.Buffer<Nat>(0);
 
-        for ({tx_id; ballot; from;} in Array.vals(to_reimburse)) {
+        for (vote in _votes.iter()) {
+            let locks = Locks.Locks({ lock_params = _data.lock_params; locks = vote.locks; });
+            unlocks.append(locks.try_unlock(now));
+        };
+
+        for ({tx_id; ballot; from;} in unlocks.vals()) {
 
             let args = {
                 to = from;
@@ -127,8 +157,13 @@ shared actor class GodwinProtocol({
         Buffer.toArray(reimbursed);
     };
 
-    public func find_lock(id: Nat) : async ?Types.TokensLock {
-        _protocol.find_lock(id);
+    public func find_lock({
+        vote_id: Nat; 
+        tx_id: Nat;
+    }) : async ?Types.TokensLock {
+        Option.chain(_votes.find_vote(vote_id), func(vote: Types.Vote) : ?Types.TokensLock {
+            Map.get(vote.locks, Map.nhash, tx_id);
+        });
     };
 
     public query func get_failed_reimbursements(principal: Principal) : async [(Nat, FailedReimbursement)] {

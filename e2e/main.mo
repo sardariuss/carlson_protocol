@@ -74,16 +74,20 @@ shared actor class Main() = this {
             };
         });
 
-        let fee = await deposit_ledger.icrc1_fee();
+        // Create a new vote
+        let vote_id = switch(await protocol.new_vote({statement = "ICP rocks!";})){
+            case(#Err(err)) { Debug.trap("Fail to create new vote: " # debug_show(err)); };
+            case(#Ok(vote_id)) { vote_id; };
+        };
 
+        // Scenario: Mint tokens to account_1, approve protocol to spend 10 tokens, vote with 5 tokens, and then wait untill the lock is over
         let account_1 = { owner; subaccount = ?Account.n32Subaccount(1); };
-
-        // Scenario
         let original_balance = duration_to_sat(#SECONDS(12));
         let approved_balance = duration_to_sat(#SECONDS(10));
         let locked_balance = duration_to_sat(#SECONDS(5));
+        let fee = await deposit_ledger.icrc1_fee();
        
-        // Mint tokens to account 1
+        // Mint tokens to account_1
         switch(await deposit_ledger.mint({
             to = account_1;
             amount = original_balance;
@@ -91,14 +95,14 @@ shared actor class Main() = this {
             created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
         })){
             case(#Err(err)){
-                Debug.trap("Fail to mint 12 tokens to account 1: " # debug_show(err));
+                Debug.trap("Fail to mint 12 tokens to account_1: " # debug_show(err));
             };
             case(#Ok(_)){
-                Debug.print("Minted 12 tokens to account 1");
+                Debug.print("Minted 12 tokens to account_1");
             };
         };
 
-        // Allow protocol to spend 10 tokens from account 1
+        // Allow protocol to spend 10 tokens from account_1
 
         switch(await deposit_ledger.icrc2_approve({
             amount = approved_balance; // 10 tokens
@@ -114,29 +118,30 @@ shared actor class Main() = this {
             };
         })){
             case(#Err(err)){
-                Debug.trap("Fail to approve protocol to spend 10 tokens from account 1: " # debug_show(err));
+                Debug.trap("Fail to approve protocol to spend 10 tokens from account_1: " # debug_show(err));
             };
             case(#Ok(_)){
-                Debug.print("Approved protocol to spend 10 tokens from account 1");
+                Debug.print("Approved protocol to spend 10 tokens from account_1");
             };
         };
 
-        // Lock 2 tokens from account 1
+        // Lock 2 tokens from account_1
         let tx_id = switch(await protocol.vote({
+            vote_id;
             from = account_1;
             ballot = #AYE(locked_balance);
         })){
             case(#Err(err)){
-                Debug.trap("Fail to lock 5 tokens from account 1: " # debug_show(err));
+                Debug.trap("Fail to lock 5 tokens from account_1: " # debug_show(err));
             };
             case(#Ok(tx_id)){
-                Debug.print("Locked 5 tokens from account 1");
+                Debug.print("Locked 5 tokens from account_1");
                 tx_id;
             };
         };
 
         // Get lock
-        let lock = switch(await protocol.find_lock(tx_id)){
+        let lock = switch(await protocol.find_lock({vote_id; tx_id;})){
             case(null){
                 Debug.trap("Fail to find lock " # debug_show(tx_id) # " in protocol");
             };
@@ -150,17 +155,17 @@ shared actor class Main() = this {
 
         var balance : Nat = 0;
 
-        // While locked, the balance of account 1 should be 10 minus the fees
+        // While locked, the balance of account_1 should be 10 minus the fees
         while ((await protocol.try_unlock()).size() == 0){
             balance := await deposit_ledger.icrc1_balance_of(account_1);
-            Debug.print("Balance of account 1 (during lock): " # debug_show(balance));
+            Debug.print("Balance of account_1 (during lock): " # debug_show(balance));
             assert(balance + 2 * fee == duration_to_sat(#SECONDS(7)));
             assert((await protocol.get_failed_reimbursements(owner)).size() == 0);
         };
 
-        // Once unlocked, the balance of account 1 should be 12 minus the fees
+        // Once unlocked, the balance of account_1 should be 12 minus the fees
         balance := await deposit_ledger.icrc1_balance_of(account_1);
-        Debug.print("Balance of account 1 (after lock): " # debug_show(balance));
+        Debug.print("Balance of account_1 (after lock): " # debug_show(balance));
         assert(balance + 3 * fee == original_balance);
     };
 

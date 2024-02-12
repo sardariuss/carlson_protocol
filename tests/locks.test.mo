@@ -26,10 +26,7 @@ suite("Locks suite", func(){
         // Arbirarily take 10 timestamps between time_now and target_time
         for (i in Iter.range(0, 9)) {
             let t = time_now + (target_time - time_now) * i / 10;
-            let locks = protocol.try_unlock(t);
-            for (lock in Array.vals(locks)) {
-                buffer.add(lock);
-            };
+            buffer.append(protocol.try_unlock(t));
         };
         Buffer.toArray(buffer);
     };

@@ -5,6 +5,7 @@ import Locks "Locks";
 import Map "mo:map/Map";
 
 import Debug "mo:base/Debug";
+import Iter  "mo:base/Iter";
 
 module {
 
@@ -12,30 +13,36 @@ module {
     type Time = Int;
     
     public class Votes({
-        data: Types.VotesData;
+        register: Types.VotesRegister;
         lock_params: Types.LocksParams;
     }){
 
         // Creates a new vote and add it to the list of votes
-        public func new_vote(statement: Text){           
-            Map.set(data.votes, Map.nhash, data.index, { 
-                vote_id = data.index;
+        public func new_vote(statement: Text) : Nat {
+            let vote_id = register.index;
+            register.index += 1;
+            Map.set(register.votes, Map.nhash, vote_id, { 
+                vote_id;
                 statement; 
                 total_ayes = 0;
                 total_nays = 0;
                 locks = Map.new<Nat, Types.TokensLock>();
             });
-            data.index += 1;
+            vote_id;
         };
 
         // Find a vote by its id
         public func find_vote(vote_id: Nat): ?Types.Vote {
-            Map.get(data.votes, Map.nhash, vote_id);
+            Map.get(register.votes, Map.nhash, vote_id);
         };
 
         // Checks if the vote exists
         public func has_vote(vote_id: Nat): Bool {
-            Map.has(data.votes, Map.nhash, vote_id);
+            Map.has(register.votes, Map.nhash, vote_id);
+        };
+
+        public func iter(): Iter.Iter<Types.Vote> {
+            Map.vals(register.votes);
         };
 
         // Vote (by adding the given ballot)
@@ -49,7 +56,7 @@ module {
         }){
             
             // Get the vote
-            var vote = switch(Map.get(data.votes, Map.nhash, vote_id)){
+            var vote = switch(Map.get(register.votes, Map.nhash, vote_id)){
                 case(null) { Debug.trap("Vote not found"); };
                 case(?v) { v };
             };
@@ -65,7 +72,7 @@ module {
             locks.add_lock({ tx_id; from; timestamp; ballot; });
 
             // Update the vote
-            Map.set(data.votes, Map.nhash, vote_id, vote);
+            Map.set(register.votes, Map.nhash, vote_id, vote);
         };
 
     };

@@ -56,7 +56,7 @@ module {
         locks: Map.Map<Nat, TokensLock>;
     };
 
-    public type VotesData = {
+    public type VotesRegister = {
         var index: Nat;
         votes: Map.Map<Nat, Vote>;
     };
