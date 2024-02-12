@@ -1,13 +1,13 @@
-# The Godwin protocol
+# ⚜️ The Godwin protocol
 
-## A decentralized voting system fueled with Bitcoin.
+## 💪 A decentralized voting system fueled with Bitcoin.
 
 - The Godwin protocol encodes the notion of caring. To participate in a vote, you should care about it; if not you will find another usage for your Bitcoins elsewhere.
-- The Godwin protocol is a double edge sword. The more bitcoins you lock in a vote, the greater your voice, but the lesser the reward per tokens you're gonna get, and the greater the opportunity to contest the result and locking your bitcoins gets.
+- The Godwin protocol is a double edge sword. The more bitcoins you lock in a vote, the greater your voice, but the lesser the reward per tokens you're gonna get, and the greater the opportunity to contest the result and hence the duration increase of the lock gets.
 - The Godwin protocol is stateless. Votes never end and results decay. Even the most on-sided votes will decay over time, offering the opportunity to reevaluate past consensus.
 - The Godwin protocol rewards the bolds. Stand for your believes against the crowd, if the future agrees with you you will be rewarded.
 
-## How does it work?
+## 🤓 How does it work?
 
 The Godwin protocol allows to participate on votes that really matters to you. To participate to a vote, pick your side ('Aye' or 'Nay') and choose an amount of satoshi to use for that vote: the greater the amount, the greater the power (1 satoshi = 1 vote). The satoshis will be transfered back to you after a period of time that can vary so that:
  - the greater the total of satoshis locked in a vote (including the ones from your ballot), the longer the satoshis from your ballot will be locked. But note that every satoshi locked is pondered by how much time has passed between that ballot and yours, so that the more time has passed, the least effect these satoshis have on your lock.
@@ -18,7 +18,7 @@ The Godwin protocol allows to participate on votes that really matters to you. T
  - the closer your vote is to the result of the vote at the time of unlock, the greater the reward.
 This incentivize user to vote "against the crowd", so that if they are right at the moment they vote but the crowd is wrong, if the tendency of the vote indeed changes over time, they will get rewarded more than the users who voted "with the crowd" and that now are wrong.
 
-## Protocol parameter
+## 📖 Protocol parameters
 
 - `deposit_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the ballots (aims to be ckBTC)
 - `reward_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the rewards
@@ -26,7 +26,7 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 - `decay_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock. Aimed to be modified by a DAO.
 - @todo `ballot_minimum_amount`: the minimum amount a voter has to lock in order to vote.
 
-## Roadmap
+## 🚀 Roadmap
 
 - Compute the maximum reward in tokens based on input tokens based on [logistic regression](https://www.desmos.com/calculator/56so1ds3bv)
 - Perform the minting of tokens
@@ -36,7 +36,7 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 - Integrate in [politiballs](https://politiballs.app/)
 - TBD
 
-## Misc notes (to clean)
+## 🚧 Misc notes (to clean)
 
 The protocol prevents the rich users to have too much power
    -> The more tokens locked, the longer the duration
