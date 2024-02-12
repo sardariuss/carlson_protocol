@@ -1,8 +1,8 @@
 # ⚜️ The Godwin protocol
 
-## 🚀 A decentralized voting system fueled with Bitcoin.
+## A decentralized voting system fueled with Bitcoin.
 
-✨ The Godwin protocol encodes the notion of caring. To cast your vote, you'll need to lock your bitcoins for a potentially extended period with the possibility of receiving no reward. If you don't really care about the vote, you will find better yield for your bitcoins.
+✨ The Godwin protocol encodes the notion of caring. To cast your vote, you need to lock your bitcoins for a potentially extended period with the possibility of receiving no reward. If you don't really care about the vote, you will find better yield for your bitcoins.
 
 ⚔️ The Godwin protocol is a double edge sword. The more bitcoins you lock in a vote, the greater your voice, but the lesser the reward per tokens you're gonna get, and the greater the opportunity to contest the result and hence the duration increase of the lock gets.
 
@@ -31,7 +31,7 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 
 ## 🛣️ Roadmap
 
-- Compute the maximum reward in tokens based on input tokens based on [logistic regression](https://www.desmos.com/calculator/56so1ds3bv)
+- Compute the maximum reward in tokens based on input tokens based on [logistic regression](https://www.desmos.com/calculator/0mjvi3disw)
 - Perform the minting of the reward
 - Add a timer to periodically call try_unlock
 - Add decay on votes result
