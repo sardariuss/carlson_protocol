@@ -52,9 +52,8 @@ module {
             tx_id: Nat;
             from: Types.Account;
             timestamp: Time;
-            ballot: Types.Ballot
+            ballot: Types.Ballot;
         }){
-            
             // Get the vote
             var vote = switch(Map.get(register.votes, Map.nhash, vote_id)){
                 case(null) { Debug.trap("Vote not found"); };

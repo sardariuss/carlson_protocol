@@ -30,6 +30,9 @@ shared({ caller = admin }) actor class GodwinProtocol({
             nominal_duration_per_sat: Types.Duration;
             decay_half_life: Types.Duration
         };
+        ballot_parameters: {
+            min_amount: Nat;
+        };
     }) = this {
 
     type Time = Time.Time;
@@ -75,14 +78,21 @@ shared({ caller = admin }) actor class GodwinProtocol({
         vote_id: Nat;
         from: ICRC1.Account;
         ballot: Types.Ballot;
-    }) : async { #Ok : Nat; #Err : ICRC2.TransferFromError or { #NotAuthorized; #VoteNotFound; } } {
+    }) : async { #Ok : Nat; #Err : ICRC2.TransferFromError or { #NotAuthorized; #VoteNotFound; #AmountTooLow : { min_amount : Nat; }; } } {
 
         // Check if the caller is the owner of the account
         if (from.owner != caller) {
             return #Err(#NotAuthorized);
         };
 
+        // Check if the amount is not too low
+        if (Ballot.get_amount(ballot) < ballot_parameters.min_amount) {
+            return #Err(#AmountTooLow{min_amount = ballot_parameters.min_amount});
+        };
+
         // Early return if the vote is not found
+        // @todo: it would be better if the vote interface does not "commit" the change of the vote
+        // before the transfer gets successful, so one could remove this check
         if (not _votes.has_vote(vote_id)){
             return #Err(#VoteNotFound);
         };

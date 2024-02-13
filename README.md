@@ -4,7 +4,7 @@
 
 ✨ The Godwin protocol encodes the notion of caring. To cast your vote, you need to lock your bitcoins for a potentially extended period with the possibility of receiving no reward. If you don't really care about the vote, you will find better yield for your bitcoins.
 
-⚔️ The Godwin protocol is a double edge sword. The more bitcoins you lock in a vote, the greater your voice, but the lesser the reward per tokens you're gonna get, and the greater the opportunity to contest the result and hence the duration increase of the lock gets.
+⚔️ The Godwin protocol is a double edge sword. The more bitcoins you lock in a vote, the greater your voice, but the lesser the reward per tokens you're gonna get, and the greater the opportunity to contest the result (and hence the chance your satoshis get locked for a longer duration).
 
 👨‍⚖️ The Godwin protocol is stateless. Votes never end and results decay. Even the most on-sided votes will decay over time, offering the opportunity to reevaluate past consensus.
 
@@ -27,7 +27,7 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 - `reward_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the rewards
 - `nominal_duration_per_sat`: used to deduce the initial locking duration from the amount of satoshis transfered with the vote. Aimed to be updated programmatically based on demand or modified by a DAO.
 - `decay_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock. Aimed to be modified by a DAO.
-- @todo `ballot_minimum_amount`: the minimum amount a voter has to lock in order to vote.
+- `ballot_minimum_amount`: the minimum amount a voter has to lock in order to vote.
 
 ## 🛣️ Roadmap
 

@@ -72,6 +72,9 @@ shared actor class Main() = this {
                 nominal_duration_per_sat = NOMINAL_DURATION_PER_SAT;
                 decay_half_life = #DAYS(15);
             };
+            ballot_parameters = {
+                min_amount = duration_to_sat(#SECONDS(1));
+            };
         });
 
         // Create a new vote
