@@ -1,6 +1,6 @@
 {
   "canisters": {
-    "godwin_protocol": {
+    "carlson": {
       "main": "src/main.mo",
       "type": "motoko"
     },

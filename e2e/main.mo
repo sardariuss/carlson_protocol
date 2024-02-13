@@ -1,4 +1,4 @@
-import GodwinProtocol     "../src/main";
+import Carlson            "../src/main";
 import Account            "../src/Account";
 import Types              "../src/Types";
 import Duration           "../src/Duration";
@@ -65,7 +65,7 @@ shared actor class Main() = this {
         // Fee to create protocol canister
         ExperimentalCycles.add(50_000_000_000);
 
-        let protocol = await GodwinProtocol.GodwinProtocol({ 
+        let protocol = await Carlson.Carlson({ 
             deposit_ledger = Principal.fromActor(deposit_ledger);
             reward_ledger = Principal.fromActor(deposit_ledger);
             lock_parameters = {
