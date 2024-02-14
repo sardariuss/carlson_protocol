@@ -37,13 +37,14 @@ shared({ caller = admin }) actor class Carlson({
 
     type Time = Time.Time;
 
-    type FailedReimbursement = {
+    type FailedTransfer = {
         args: ICRC1.TransferArgs;
         error: ICRC1.TransferError;
     };
 
     // STABLE
-    stable let _failed_reimbursements = Map.new<Principal, Map.Map<Nat, FailedReimbursement>>();
+    stable let _failed_reimbursements = Map.new<Principal, Map.Map<Nat, FailedTransfer>>();
+    stable let _failed_rewards = Map.new<Principal, Map.Map<Nat, FailedTransfer>>();
     stable let _deposit_ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(deposit_ledger));
     stable let _reward_ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(reward_ledger));
     stable let _data = {
@@ -91,8 +92,8 @@ shared({ caller = admin }) actor class Carlson({
         };
 
         // Early return if the vote is not found
-        // @todo: it would be better if the vote interface does not "commit" the change of the vote
-        // before the transfer gets successful, so one could remove this check
+        // @todo: it might be better if the vote interface does not "commit" the change of the vote
+        // so one could perform all what the vote needs to do before and commit the change once the transfer has been done
         if (not _votes.has_vote(vote_id)){
             return #Err(#VoteNotFound);
         };
@@ -125,22 +126,32 @@ shared({ caller = admin }) actor class Carlson({
     };
 
     // Unlock the tokens if the duration is reached
-    // @todo: return a result with the successful and failed unlocks
-    public func try_unlock() : async [Nat] {
+    // @todo: return a result that gives more information about the unlock
+    public func try_unlock() : async Bool {
 
         let now = Time.now();
 
-        let unlocks = Buffer.Buffer<Types.TokensLock>(0);
-        let reimbursed = Buffer.Buffer<Nat>(0);
+        type UnlockData = {vote_id: Nat; total_ayes: Nat; total_nays: Nat; lock: Types.TokensLock};
+        let unlocks = Buffer.Buffer<UnlockData>(0);
 
-        for (vote in _votes.iter()) {
-            let locks = Locks.Locks({ lock_params = _data.lock_params; locks = vote.locks; });
-            unlocks.append(locks.try_unlock(now));
+        for ({vote_id; total_ayes; total_nays; locks;} in _votes.iter()) {
+            let locked = Locks.Locks({ lock_params = _data.lock_params; locks; });
+            unlocks.append(Buffer.map(locked.try_unlock(now), func(lock: Types.TokensLock) : UnlockData {
+                {vote_id; total_ayes; total_nays; lock;};
+            }));
         };
 
-        for ({tx_id; ballot; from;} in unlocks.vals()) {
+        if (unlocks.size() == 0) {
+            return false;
+        };
 
-            let args = {
+        for ({vote_id; total_ayes; total_nays; lock;} in unlocks.vals()) {
+
+            let { ballot; from; contest_factor; } = lock;
+
+            // 1. Refund the tokens
+
+            let refund_args = {
                 to = from;
                 from_subaccount = ?Account.pSubaccount(from.owner);
                 amount = Ballot.get_amount(ballot) - 10; // @todo: need to remove hard-coded fee and fix warning
@@ -151,23 +162,53 @@ shared({ caller = admin }) actor class Carlson({
 
             // @todo: should try catch on transfer
             // @todo: should parallelize the transfers
-            switch(await _deposit_ledger.icrc1_transfer(args)){
+            switch(await _deposit_ledger.icrc1_transfer(refund_args)){
                 case (#Err(error)) {
-                    let inner = Option.get(Map.get(_failed_reimbursements, Map.phash, from.owner), Map.new<Nat, FailedReimbursement>());
-                    Map.set(inner, Map.nhash, tx_id, {args; error;});
+                    let inner = Option.get(Map.get(_failed_reimbursements, Map.phash, from.owner), Map.new<Nat, FailedTransfer>());
+                    Map.set(inner, Map.nhash, vote_id, { args = refund_args; error; });
                     Map.set(_failed_reimbursements, Map.phash, from.owner, inner);
                 };
-                case (#Ok(tx_id)) {
-                    reimbursed.add(tx_id);
+                case (#Ok(_)) {
                 };
             };
 
+            // 2. Reward tokens
+
+            let reward = Int.abs(Float.toInt(Float.fromInt(Ballot.get_amount(ballot)) * contest_factor)); // @todo
+
+            let reward_args = {
+                to = from;
+                from_subaccount = null;
+                amount = reward;
+                fee = null; // Use default fee
+                memo = null;
+                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            };
+
+            // @todo: should try catch on transfer
+            // @todo: should parallelize the transfers
+            switch(await _reward_ledger.icrc1_transfer(reward_args)){
+                case (#Err(error)) {
+                    let inner = Option.get(Map.get(_failed_rewards, Map.phash, from.owner), Map.new<Nat, FailedTransfer>());
+                    Map.set(inner, Map.nhash, vote_id, { args = reward_args; error; });
+                    Map.set(_failed_rewards, Map.phash, from.owner, inner);
+                };
+                case (#Ok(_)) {
+                };
+            };
         };
 
-        Buffer.toArray(reimbursed);
+        true;
     };
 
-    public func find_lock({
+    public query func preview_contest_factor({
+        vote_id: Nat;
+        ballot: Types.Ballot;
+    }) : async { #ok: Float; #err: {#VoteNotFound}; } {
+        _votes.preview_contest_factor({vote_id; ballot;});
+    };
+
+    public query func find_lock({
         vote_id: Nat; 
         tx_id: Nat;
     }) : async ?Types.TokensLock {
@@ -176,9 +217,9 @@ shared({ caller = admin }) actor class Carlson({
         });
     };
 
-    public query func get_failed_reimbursements(principal: Principal) : async [(Nat, FailedReimbursement)] {
+    public query func get_failed_reimbursements(principal: Principal) : async [(Nat, FailedTransfer)] {
         Option.getMapped(Map.get(_failed_reimbursements, Map.phash, principal), 
-            func(inner: Map.Map<Nat, FailedReimbursement>) : [(Nat, FailedReimbursement)] { 
+            func(inner: Map.Map<Nat, FailedTransfer>) : [(Nat, FailedTransfer)] { 
                 Map.toArray(inner); 
             }, 
             []

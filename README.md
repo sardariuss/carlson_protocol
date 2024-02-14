@@ -1,13 +1,13 @@
 # The Carlson Protocol
 
 *My views are changing as much as the world itself is changing. Your views should change when the evidence changes and assumptions that you had in the past are proven wrong [...] If you pay enough attention you can rate your own performance, just as if you're betting on sports [...] To tell the truth is my main view and I plan to do that to the best of my ability.*
-> Tucker Carlson, 2024 World Government Summit in Dubai.
+> [Tucker Carlson, 2024 World Government Summit in Dubai.](https://youtu.be/mMXikZM_O80?si=bSkrQ0C2GeTJe7TV&t=118)
 
 ## A decision protocol for seeking the truth
 
 The Carlson Protocol is a decentralized voting system where people vote using bitcoins. These bitcoins are transferred back to the user after a period of time that can vary according to specific rules. When reimbursed, users get rewarded with additional tokens that depend on how their past vote aligns with the current view.
 
-✨ **The Carlson Protocol leverages how much people care.**. If you don't care enough about a vote, you will find better usage for your bitcoins elsewhere.
+✨ **The Carlson Protocol leverages how much people care**. If you don't care enough about a vote, you will find better usage for your bitcoins elsewhere.
 
 ⚔️ **The Carlson Protocol is a double-edged sword**. The more bitcoins you lock in a vote, the greater your voice, but the lesser the reward and the longer your bitcoins will stay locked.
 
@@ -36,7 +36,7 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 
 ## Roadmap
 
-- Compute the maximum reward in tokens based on input tokens based on [logistic regression](https://www.desmos.com/calculator/0mjvi3disw)
+- Compute the maximum reward in tokens based on input tokens based on [logistic regression](https://www.desmos.com/calculator/afl9ytdlwh)
 - Perform the minting of the reward
 - Add a timer to periodically call try_unlock
 - Add decay on votes result

@@ -50,6 +50,7 @@ suite("Locks suite", func(){
     test("Locks test 1", func(){
         let t0 = Time.now();
         let account = { owner = Principal.fromText("aaaaa-aa"); subaccount = null; };
+        let contest_factor = 1.0; // @todo: Arbitrarily set to 1.0, ideally this parameter shouldn't be in the test
 
         let ns_per_sat = Int.abs(Duration.toTime(#MINUTES(5))); // 5 minutes per sat
         let decay_params = Decay.getDecayParameters({ half_life = #HOURS(1); time_init = t0; });
@@ -66,7 +67,7 @@ suite("Locks suite", func(){
 
         // Tx0, at t=0, lock 4 sats:
         // -> Lock0 shall be locked for 20 minutes
-        protocol.add_lock({ from = account; tx_id = 0; timestamp = t0; ballot = #AYE(4); });
+        protocol.add_lock({ from = account; tx_id = 0; timestamp = t0; ballot = #AYE(4); contest_factor; });
 
         assert(protocol.num_locks() == 1);
         var lock0 = unwrap_lock(protocol.find_lock(0));
@@ -88,7 +89,7 @@ suite("Locks suite", func(){
 
         let t1 = t0 + Duration.toTime(#MINUTES(10));
 
-        protocol.add_lock({ from = account; tx_id = 1; timestamp = t1; ballot = #NAY(6); });
+        protocol.add_lock({ from = account; tx_id = 1; timestamp = t1; ballot = #NAY(6); contest_factor; });
         assert(protocol.num_locks() == 2);
 
         // Test lock0

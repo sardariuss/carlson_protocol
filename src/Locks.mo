@@ -37,6 +37,7 @@ module {
         public func add_lock({
             tx_id: Nat;
             from: Types.Account;
+            contest_factor: Float;
             timestamp: Time;
             ballot: Types.Ballot;
         }) {
@@ -62,6 +63,7 @@ module {
                     tx_id;
                     from;
                     ballot;
+                    contest_factor;
                     timestamp;
                     time_left;
                     rates = { growth; decay; };

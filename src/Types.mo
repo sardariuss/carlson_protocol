@@ -30,6 +30,7 @@ module {
         tx_id: Nat;
         from: Account;
         ballot : Ballot;
+        contest_factor: Float;
         timestamp: Int;
         time_left: Float; // Floating point to avoid accumulating rounding errors
         rates: { 

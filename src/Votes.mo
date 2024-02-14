@@ -1,11 +1,12 @@
-import Types "Types";
+import Types  "Types";
 import Ballot "Ballot";
-import Locks "Locks";
+import Locks  "Locks";
+import Reward "Reward";
 
-import Map "mo:map/Map";
+import Map    "mo:map/Map";
 
-import Debug "mo:base/Debug";
-import Iter  "mo:base/Iter";
+import Debug  "mo:base/Debug";
+import Iter   "mo:base/Iter";
 
 module {
 
@@ -66,13 +67,27 @@ module {
                 case(#NAY(amount)) { vote := { vote with total_nays = vote.total_nays + amount; }; };
             };
 
+            // Compute the contest factor
+            let contest_factor = Reward.compute_contest_factor({ ballot; vote; });
+
             // Add a lock for the given amount
             let locks = Locks.Locks({ lock_params; locks = vote.locks;});
-            locks.add_lock({ tx_id; from; timestamp; ballot; });
+            locks.add_lock({ tx_id; from; contest_factor; timestamp; ballot; });
 
             // Update the vote
             Map.set(register.votes, Map.nhash, vote_id, vote);
         };
 
+        public func preview_contest_factor({
+            vote_id: Nat;
+            ballot: Types.Ballot;
+        }) : { #ok: Float; #err: {#VoteNotFound}; } {
+            switch(Map.get(register.votes, Map.nhash, vote_id)){
+                case(null) { #err(#VoteNotFound); };
+                case(?vote) { #ok(Reward.compute_contest_factor({ ballot; vote; })); };
+            };
+        };
+
     };
+
 }

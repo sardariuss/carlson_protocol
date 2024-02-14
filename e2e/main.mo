@@ -159,7 +159,7 @@ shared actor class Main() = this {
         var balance : Nat = 0;
 
         // While locked, the balance of account_1 should be 10 minus the fees
-        while ((await protocol.try_unlock()).size() == 0){
+        while (not (await protocol.try_unlock())){
             balance := await deposit_ledger.icrc1_balance_of(account_1);
             Debug.print("Balance of account_1 (during lock): " # debug_show(balance));
             assert(balance + 2 * fee == duration_to_sat(#SECONDS(7)));
