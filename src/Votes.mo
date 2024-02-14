@@ -61,18 +61,18 @@ module {
                 case(?v) { v };
             };
 
-            // Update the aye or nay total with the amount from the given ballot
-            switch(ballot){
-                case(#AYE(amount)) { vote := { vote with total_ayes = vote.total_ayes + amount; }; };
-                case(#NAY(amount)) { vote := { vote with total_nays = vote.total_nays + amount; }; };
-            };
-
             // Compute the contest factor
             let contest_factor = Reward.compute_contest_factor({ ballot; vote; });
 
             // Add a lock for the given amount
             let locks = Locks.Locks({ lock_params; locks = vote.locks;});
             locks.add_lock({ tx_id; from; contest_factor; timestamp; ballot; });
+
+            // Update the aye or nay total with the amount from the given ballot
+            switch(ballot){
+                case(#AYE(amount)) { vote := { vote with total_ayes = vote.total_ayes + amount; }; };
+                case(#NAY(amount)) { vote := { vote with total_nays = vote.total_nays + amount; }; };
+            };
 
             // Update the vote
             Map.set(register.votes, Map.nhash, vote_id, vote);

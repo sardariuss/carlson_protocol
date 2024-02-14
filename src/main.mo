@@ -5,6 +5,7 @@ import Account   "Account";
 import Locks     "Locks";
 import Duration  "Duration";
 import Votes     "Votes";
+import Reward    "Reward";
 
 import Map       "mo:map/Map";
 
@@ -88,7 +89,7 @@ shared({ caller = admin }) actor class Carlson({
 
         // Check if the amount is not too low
         if (Ballot.get_amount(ballot) < ballot_parameters.min_amount) {
-            return #Err(#AmountTooLow{min_amount = ballot_parameters.min_amount});
+            return #Err(#AmountTooLow{ min_amount = ballot_parameters.min_amount });
         };
 
         // Early return if the vote is not found
@@ -174,7 +175,7 @@ shared({ caller = admin }) actor class Carlson({
 
             // 2. Reward tokens
 
-            let reward = Int.abs(Float.toInt(Float.fromInt(Ballot.get_amount(ballot)) * contest_factor)); // @todo
+            let reward = Reward.compute_reward({total_ayes; total_nays; lock;});
 
             let reward_args = {
                 to = from;

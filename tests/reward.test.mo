@@ -5,9 +5,17 @@ import Float "mo:base/Float";
 
 suite("Reward", func(){
 
-    test("Test context factor computation", func(){
+    test("Test contest factor computation", func(){
 
-        let reward = Reward.contest_logistic_regression({
+        var reward = Reward.contest_logistic_regression({
+            amount = 100;
+            total_same = 0;
+            total_opposit = 0;
+        });
+
+        assert(Float.equalWithin(reward, 50, 1e-9));
+
+        reward := Reward.contest_logistic_regression({
             amount = 10;
             total_same = 6;
             total_opposit = 9;

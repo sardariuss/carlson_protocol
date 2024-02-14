@@ -61,13 +61,47 @@ shared actor class Main() = this {
                 settle_to_approvals= null;
             }
         ));
+        
+        // Fee to create token canister
+        ExperimentalCycles.add(50_000_000_000);
+
+        let reward_ledger = await Token.Token((
+            {
+                name : ?Text = ?"reward_ledger";
+                symbol : ?Text = ?"reward_ledger_symbol";
+                logo : ?Text = ?"reward_ledger_logo";
+                decimals : Nat8 = 8;
+                fee : ?ICRC1.Fee = ?#Fixed(10);
+                minting_account : ?ICRC1.Account = ?{ owner; subaccount = null; };
+                max_supply : ?ICRC1.Balance = ?2_100_000_000_000_000;
+                min_burn_amount : ?ICRC1.Balance = ?1;
+                max_memo : ?Nat = ?1000;
+                /// optional settings for the icrc1 canister
+                advanced_settings = null;
+                metadata = null;
+                fee_collector = null;
+                transaction_window = null;
+                permitted_drift = null;
+                max_accounts = null;
+                settle_to_accounts = null;
+            },
+            {
+                max_approvals_per_account = ?1_000;
+                max_allowance = ?#TotalSupply;
+                fee = ?#Fixed(10);
+                /// optional settings for the icrc2 canister
+                advanced_settings= null;
+                max_approvals= null;
+                settle_to_approvals= null;
+            }
+        ));
 
         // Fee to create protocol canister
         ExperimentalCycles.add(50_000_000_000);
 
         let protocol = await Carlson.Carlson({ 
             deposit_ledger = Principal.fromActor(deposit_ledger);
-            reward_ledger = Principal.fromActor(deposit_ledger);
+            reward_ledger = Principal.fromActor(reward_ledger);
             lock_parameters = {
                 nominal_duration_per_sat = NOMINAL_DURATION_PER_SAT;
                 decay_half_life = #DAYS(15);
@@ -76,6 +110,21 @@ shared actor class Main() = this {
                 min_amount = duration_to_sat(#SECONDS(1));
             };
         });
+
+        // Mint all reward tokens for the procol to reward users
+        switch(await reward_ledger.mint({
+            to = { owner = Principal.fromActor(protocol); subaccount = null; };
+            amount = 2_100_000_000_000_000;
+            memo = null;
+            created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+        })){
+            case(#Err(err)){
+                Debug.trap("Fail to mint all reward tokens : " # debug_show(err));
+            };
+            case(#Ok(_)){
+                Debug.print("Minted all reward tokens");
+            };
+        };
 
         // Create a new vote
         let vote_id = switch(await protocol.new_vote({statement = "ICP rocks!";})){
@@ -157,19 +206,26 @@ shared actor class Main() = this {
         Debug.print("Unlocked time: " # debug_show(lock.timestamp + Float.toInt(lock.time_left)));
 
         var balance : Nat = 0;
+        var reward : Nat = 0;
 
         // While locked, the balance of account_1 should be 10 minus the fees
         while (not (await protocol.try_unlock())){
             balance := await deposit_ledger.icrc1_balance_of(account_1);
+            reward := await reward_ledger.icrc1_balance_of(account_1);
             Debug.print("Balance of account_1 (during lock): " # debug_show(balance));
             assert(balance + 2 * fee == duration_to_sat(#SECONDS(7)));
+            assert(reward == 0);
             assert((await protocol.get_failed_reimbursements(owner)).size() == 0);
         };
 
         // Once unlocked, the balance of account_1 should be 12 minus the fees
+        // The reward shall be equal to 50% of the balance that was locked
         balance := await deposit_ledger.icrc1_balance_of(account_1);
+        reward := await reward_ledger.icrc1_balance_of(account_1);
         Debug.print("Balance of account_1 (after lock): " # debug_show(balance));
+        Debug.print("Reward of account_1 (after lock): " # debug_show(reward));
         assert(balance + 3 * fee == original_balance);
+        assert(reward == Int.abs(Float.toInt(Float.fromInt(locked_balance) * 0.5)));
     };
 
     public shared func cycles_balance() : async Nat {

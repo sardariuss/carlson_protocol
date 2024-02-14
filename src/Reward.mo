@@ -18,11 +18,11 @@ module {
         total_nays: Nat;
         lock: Types.TokensLock;
     }) : Nat {
-        let { alignement; amount; } = switch(lock.ballot){
-            case(#AYE(amount)) { { amount; alignement = Float.fromInt(total_ayes) / Float.fromInt(total_ayes + total_nays); } };
-            case(#NAY(amount)) { { amount; alignement = Float.fromInt(total_nays) / Float.fromInt(total_ayes + total_nays); } };
+        let alignement = switch(lock.ballot){
+            case(#AYE(_)) { Float.fromInt(total_ayes) / Float.fromInt(total_ayes + total_nays); };
+            case(#NAY(_)) { Float.fromInt(total_nays) / Float.fromInt(total_ayes + total_nays); };
         };
-        Int.abs(Float.toInt(Float.fromInt(amount) * alignement * lock.contest_factor));
+        Int.abs(Float.toInt(alignement * lock.contest_factor));
     };
 
     public func compute_contest_factor({
@@ -41,6 +41,13 @@ module {
         total_same: Nat;
         total_opposit: Nat;
     }) : Float {
+        
+        // If there is no vote yet, the contest factor is 0.5
+        if (total_same + total_opposit == 0) {
+            return 0.5 * Float.fromInt(amount);
+        };
+
+        // Otherwise accumulate values yeild from the logistic regression
         let length = Float.fromInt(total_same + total_opposit + amount);
         var accumulation : Float = 0;
         for (i in Iter.range(0, amount - 1)) {
@@ -51,5 +58,6 @@ module {
             });
         };
         accumulation;
+
     };
 }
