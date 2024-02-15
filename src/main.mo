@@ -1,28 +1,28 @@
-import Types     "Types";
-import Decay     "Decay";
-import Ballot    "Ballot";
-import Account   "Account";
-import Locks     "Locks";
-import Duration  "Duration";
-import Votes     "Votes";
-import Reward    "Reward";
+import Types         "Types";
+import Decay         "Decay";
+import Choice        "Choice";
+import Account       "Account";
+import LockScheduler "LockScheduler";
+import Duration      "Duration";
+import Votes         "Votes";
+import Reward        "Reward";
 
-import Map       "mo:map/Map";
+import Map           "mo:map/Map";
 
-import Deque     "mo:base/Deque";
-import List      "mo:base/List";
-import Nat       "mo:base/Nat";
-import Float     "mo:base/Float";
-import Int       "mo:base/Int";
-import Time      "mo:base/Time";
-import Principal "mo:base/Principal";
-import Nat64     "mo:base/Nat64";
-import Array     "mo:base/Array";
-import Option    "mo:base/Option";
-import Buffer    "mo:base/Buffer";
+import Deque         "mo:base/Deque";
+import List          "mo:base/List";
+import Nat           "mo:base/Nat";
+import Float         "mo:base/Float";
+import Int           "mo:base/Int";
+import Time          "mo:base/Time";
+import Principal     "mo:base/Principal";
+import Nat64         "mo:base/Nat64";
+import Array         "mo:base/Array";
+import Option        "mo:base/Option";
+import Buffer        "mo:base/Buffer";
 
-import ICRC1     "mo:icrc1-mo/ICRC1/service";
-import ICRC2     "mo:icrc2-mo/ICRC2/service";
+import ICRC1         "mo:icrc1-mo/ICRC1/service";
+import ICRC2         "mo:icrc2-mo/ICRC2/service";
 
 shared({ caller = admin }) actor class Carlson({
         deposit_ledger: Principal;
@@ -44,8 +44,8 @@ shared({ caller = admin }) actor class Carlson({
     };
 
     // STABLE
-    stable let _failed_reimbursements = Map.new<Principal, Map.Map<Nat, FailedTransfer>>();
-    stable let _failed_rewards = Map.new<Principal, Map.Map<Nat, FailedTransfer>>();
+    stable let _failed_refunds = Map.new<Principal, [FailedTransfer]>();
+    stable let _failed_rewards = Map.new<Principal, [FailedTransfer]>();
     stable let _deposit_ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(deposit_ledger));
     stable let _reward_ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(reward_ledger));
     stable let _data = {
@@ -63,7 +63,13 @@ shared({ caller = admin }) actor class Carlson({
     };
 
     // NON-STABLE
-    let _votes = Votes.Votes(_data);
+    let _votes = Votes.Votes({
+        register = _data.register;
+        lock_scheduler = LockScheduler.LockScheduler<Types.Ballot>({
+            lock_params = _data.lock_params;
+            to_lock = Votes.to_lock;
+        });
+    });
 
     // Create a new vote (admin only)
     public shared({caller}) func new_vote({
@@ -79,8 +85,8 @@ shared({ caller = admin }) actor class Carlson({
     public shared({caller}) func vote({
         vote_id: Nat;
         from: ICRC1.Account;
-        ballot: Types.Ballot;
-    }) : async { #Ok : Nat; #Err : ICRC2.TransferFromError or { #NotAuthorized; #VoteNotFound; #AmountTooLow : { min_amount : Nat; }; } } {
+        choice: Types.Choice;
+    }) : async { #Ok : Types.Ballot; #Err : ICRC2.TransferFromError or { #NotAuthorized; #VoteNotFound; #AmountTooLow : { min_amount : Nat; }; } } {
 
         // Check if the caller is the owner of the account
         if (from.owner != caller) {
@@ -88,7 +94,7 @@ shared({ caller = admin }) actor class Carlson({
         };
 
         // Check if the amount is not too low
-        if (Ballot.get_amount(ballot) < ballot_parameters.min_amount) {
+        if (Choice.get_amount(choice) < ballot_parameters.min_amount) {
             return #Err(#AmountTooLow{ min_amount = ballot_parameters.min_amount });
         };
 
@@ -108,7 +114,7 @@ shared({ caller = admin }) actor class Carlson({
                 owner = Principal.fromActor(this);
                 subaccount = ?Account.pSubaccount(from.owner);
             };
-            amount = Ballot.get_amount(ballot);
+            amount = Choice.get_amount(choice);
             fee = null; // Use default fee
             memo = null;
             created_at_time = ?Nat64.fromNat(Int.abs(timestamp));
@@ -121,110 +127,98 @@ shared({ caller = admin }) actor class Carlson({
             };
         };
 
-        _votes.put_ballot({vote_id; tx_id; timestamp; ballot; from;});
-
-        #Ok(tx_id);
+        #Ok(_votes.put_ballot({vote_id; tx_id; timestamp; choice; from;}));
     };
 
     // Unlock the tokens if the duration is reached
-    // @todo: return a result that gives more information about the unlock
-    public func try_unlock() : async Bool {
+    // Return the number of ballots unlocked (whether the transfers succeded or not)
+    public func try_unlock() : async Nat {
 
         let now = Time.now();
 
-        type UnlockData = {vote_id: Nat; total_ayes: Nat; total_nays: Nat; lock: Types.TokensLock};
-        let unlocks = Buffer.Buffer<UnlockData>(0);
+        // 1. Try to unlock the tokens
+        let unlocks = _votes.try_unlock(now);
 
-        for ({vote_id; total_ayes; total_nays; locks;} in _votes.iter()) {
-            let locked = Locks.Locks({ lock_params = _data.lock_params; locks; });
-            unlocks.append(Buffer.map(locked.try_unlock(now), func(lock: Types.TokensLock) : UnlockData {
-                {vote_id; total_ayes; total_nays; lock;};
-            }));
-        };
-
-        if (unlocks.size() == 0) {
-            return false;
-        };
-
-        for ({vote_id; total_ayes; total_nays; lock;} in unlocks.vals()) {
-
-            let { ballot; from; contest_factor; } = lock;
-
-            // 1. Refund the tokens
+        // 2. Trigger the transfers
+        // @todo: somehow it seems one can use a type with async as template parameter 
+        // but not define a type with async. This prevents from using Buffer.map.
+        let transfers = Buffer.Buffer<{
+            refund: { args: ICRC1.TransferArgs; call: async ICRC1.TransferResult; };
+            reward: { args: ICRC1.TransferArgs; call: async ICRC1.TransferResult; };
+        }>(unlocks.size());
+        for ({account; refund; reward;} in unlocks.vals()) {
 
             let refund_args = {
-                to = from;
-                from_subaccount = ?Account.pSubaccount(from.owner);
-                amount = Ballot.get_amount(ballot) - 10; // @todo: need to remove hard-coded fee and fix warning
+                to = account;
+                from_subaccount = ?Account.pSubaccount(account.owner);
+                amount = refund - 10; // @todo: need to remove hard-coded fee and fix warning
                 fee = null; // Use default fee
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
             };
+            let reward_args = {
+                to = account;
+                from_subaccount = null;
+                amount = reward;
+                fee = null;
+                memo = null;
+                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            };
 
-            // @todo: should try catch on transfer
-            // @todo: should parallelize the transfers
-            switch(await _deposit_ledger.icrc1_transfer(refund_args)){
+            // @todo: need to add try/catch block
+            transfers.add({
+                refund = { args = refund_args; call = _deposit_ledger.icrc1_transfer(refund_args); };
+                reward = { args = reward_args; call = _reward_ledger.icrc1_transfer(reward_args); };
+            });
+        };
+
+        // 3. Now wait for the transfers to complete and handle the errors
+        for ({ refund; reward; } in transfers.vals()){
+            switch(await refund.call){
                 case (#Err(error)) {
-                    let inner = Option.get(Map.get(_failed_reimbursements, Map.phash, from.owner), Map.new<Nat, FailedTransfer>());
-                    Map.set(inner, Map.nhash, vote_id, { args = refund_args; error; });
-                    Map.set(_failed_reimbursements, Map.phash, from.owner, inner);
+                    let user_fails = Buffer.fromArray<FailedTransfer>(Option.get(Map.get(_failed_refunds, Map.phash, refund.args.to.owner), []));
+                    user_fails.add({ args = refund.args; error; });
+                    Map.set(_failed_refunds, Map.phash, refund.args.to.owner, Buffer.toArray(user_fails));
                 };
                 case (#Ok(_)) {
                 };
             };
-
-            // 2. Reward tokens
-
-            let reward = Reward.compute_reward({total_ayes; total_nays; lock;});
-
-            let reward_args = {
-                to = from;
-                from_subaccount = null;
-                amount = reward;
-                fee = null; // Use default fee
-                memo = null;
-                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
-            };
-
-            // @todo: should try catch on transfer
-            // @todo: should parallelize the transfers
-            switch(await _reward_ledger.icrc1_transfer(reward_args)){
+            switch(await reward.call){
                 case (#Err(error)) {
-                    let inner = Option.get(Map.get(_failed_rewards, Map.phash, from.owner), Map.new<Nat, FailedTransfer>());
-                    Map.set(inner, Map.nhash, vote_id, { args = reward_args; error; });
-                    Map.set(_failed_rewards, Map.phash, from.owner, inner);
+                    let user_fails = Buffer.fromArray<FailedTransfer>(Option.get(Map.get(_failed_rewards, Map.phash, reward.args.to.owner), []));
+                    user_fails.add({ args = reward.args; error; });
+                    Map.set(_failed_rewards, Map.phash, reward.args.to.owner, Buffer.toArray(user_fails));
                 };
                 case (#Ok(_)) {
                 };
             };
         };
 
-        true;
+        unlocks.size();
     };
 
     public query func preview_contest_factor({
         vote_id: Nat;
-        ballot: Types.Ballot;
+        choice: Types.Choice;
     }) : async { #ok: Float; #err: {#VoteNotFound}; } {
-        _votes.preview_contest_factor({vote_id; ballot;});
+        _votes.preview_contest_factor({vote_id; choice;});
     };
 
     public query func find_lock({
         vote_id: Nat; 
         tx_id: Nat;
-    }) : async ?Types.TokensLock {
-        Option.chain(_votes.find_vote(vote_id), func(vote: Types.Vote) : ?Types.TokensLock {
-            Map.get(vote.locks, Map.nhash, tx_id);
+    }) : async ?Types.Ballot {
+        Option.chain(_votes.find_vote(vote_id), func(vote: Types.Vote) : ?Types.Ballot {
+            Map.get(vote.locked_ballots, Map.nhash, tx_id);
         });
     };
 
-    public query func get_failed_reimbursements(principal: Principal) : async [(Nat, FailedTransfer)] {
-        Option.getMapped(Map.get(_failed_reimbursements, Map.phash, principal), 
-            func(inner: Map.Map<Nat, FailedTransfer>) : [(Nat, FailedTransfer)] { 
-                Map.toArray(inner); 
-            }, 
-            []
-        );
+    public query func get_failed_refunds(principal: Principal) : async [FailedTransfer] {
+        Option.get(Map.get(_failed_refunds, Map.phash, principal), []);
+    };
+
+    public query func get_failed_rewards(principal: Principal) : async [FailedTransfer] {
+        Option.get(Map.get(_failed_rewards, Map.phash, principal), []);
     };
 
 };

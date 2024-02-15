@@ -26,10 +26,10 @@ module {
         decay_params: DecayParameters;
     };
 
-    public type TokensLock = {
+    public type Ballot = {
         tx_id: Nat;
         from: Account;
-        ballot : Ballot;
+        choice : Choice;
         contest_factor: Float;
         timestamp: Int;
         time_left: Float; // Floating point to avoid accumulating rounding errors
@@ -39,12 +39,7 @@ module {
         };
     };
 
-    public type BallotSide = {
-        #AYE;
-        #NAY;
-    };
-
-    public type Ballot = {
+    public type Choice = {
         #AYE: Nat;
         #NAY: Nat;
     };
@@ -54,7 +49,7 @@ module {
         statement: Text;
         total_ayes: Nat;
         total_nays: Nat;
-        locks: Map.Map<Nat, TokensLock>;
+        locked_ballots: Map.Map<Nat, Ballot>;
     };
 
     public type VotesRegister = {

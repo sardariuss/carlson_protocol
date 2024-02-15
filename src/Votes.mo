@@ -1,21 +1,24 @@
-import Types  "Types";
-import Ballot "Ballot";
-import Locks  "Locks";
-import Reward "Reward";
+import Types          "Types";
+import Choice         "Choice";
+import LockScheduler  "LockScheduler";
+import Reward         "Reward";
 
-import Map    "mo:map/Map";
+import Map            "mo:map/Map";
 
-import Debug  "mo:base/Debug";
-import Iter   "mo:base/Iter";
+import Debug          "mo:base/Debug";
+import Iter           "mo:base/Iter";
+import Buffer         "mo:base/Buffer";
 
 module {
 
     type Vote = Types.Vote;
     type Time = Int;
+
+    public type Unlock = { account: Types.Account; refund: Nat; reward: Nat; };
     
     public class Votes({
         register: Types.VotesRegister;
-        lock_params: Types.LocksParams;
+        lock_scheduler: LockScheduler.LockScheduler<Types.Ballot>;
     }){
 
         // Creates a new vote and add it to the list of votes
@@ -27,7 +30,7 @@ module {
                 statement; 
                 total_ayes = 0;
                 total_nays = 0;
-                locks = Map.new<Nat, Types.TokensLock>();
+                locked_ballots = Map.new<Nat, Types.Ballot>();
             });
             vote_id;
         };
@@ -53,41 +56,69 @@ module {
             tx_id: Nat;
             from: Types.Account;
             timestamp: Time;
-            ballot: Types.Ballot;
-        }){
+            choice: Types.Choice;
+        }) : Types.Ballot {
+            
             // Get the vote
-            var vote = switch(Map.get(register.votes, Map.nhash, vote_id)){
+            let vote = switch(Map.get(register.votes, Map.nhash, vote_id)){
                 case(null) { Debug.trap("Vote not found"); };
                 case(?v) { v };
             };
 
-            // Compute the contest factor
-            let contest_factor = Reward.compute_contest_factor({ ballot; vote; });
-
-            // Add a lock for the given amount
-            let locks = Locks.Locks({ lock_params; locks = vote.locks;});
-            locks.add_lock({ tx_id; from; contest_factor; timestamp; ballot; });
-
-            // Update the aye or nay total with the amount from the given ballot
-            switch(ballot){
-                case(#AYE(amount)) { vote := { vote with total_ayes = vote.total_ayes + amount; }; };
-                case(#NAY(amount)) { vote := { vote with total_nays = vote.total_nays + amount; }; };
+            // Update the totals
+            switch(choice){
+                case(#AYE(amount)) { Map.set(register.votes, Map.nhash, vote_id, { vote with total_ayes = vote.total_ayes + amount; }); };
+                case(#NAY(amount)) { Map.set(register.votes, Map.nhash, vote_id, { vote with total_nays = vote.total_nays + amount; }); };
             };
 
-            // Update the vote
-            Map.set(register.votes, Map.nhash, vote_id, vote);
+            // Add a lock for the given amount
+            lock_scheduler.new_lock({ map = vote.locked_ballots; id = tx_id; amount = Choice.get_amount(choice); timestamp; from_lock = func(lock: LockScheduler.Lock) : Types.Ballot {
+                {
+                    tx_id;
+                    from;
+                    choice;
+                    // Watchout: the method "compute_contest_factor" assumes the vote 
+                    // totals have not been updated yet with the new ballot
+                    contest_factor = Reward.compute_contest_factor({ choice; vote; });
+                    timestamp;
+                    time_left = lock.time_left;
+                    rates = lock.rates;
+                };
+            }});
         };
 
         public func preview_contest_factor({
             vote_id: Nat;
-            ballot: Types.Ballot;
+            choice: Types.Choice;
         }) : { #ok: Float; #err: {#VoteNotFound}; } {
             switch(Map.get(register.votes, Map.nhash, vote_id)){
                 case(null) { #err(#VoteNotFound); };
-                case(?vote) { #ok(Reward.compute_contest_factor({ ballot; vote; })); };
+                case(?vote) { #ok(Reward.compute_contest_factor({ choice; vote; })); };
             };
+        };
+
+        public func try_unlock(time: Time) : Buffer.Buffer<Unlock>{
+            
+            let buffer = Buffer.Buffer<Unlock>(0);
+
+            for ({ total_ayes; total_nays; locked_ballots; } in Map.vals(register.votes)) {
+                buffer.append(Buffer.map(lock_scheduler.try_unlock({ map = locked_ballots; time; }), func(ballot: Types.Ballot) : Unlock {
+                    {
+                        account = ballot.from;
+                        refund = Choice.get_amount(ballot.choice);
+                        reward = Reward.compute_reward({ total_ayes; total_nays; ballot; });
+                    };
+                }));
+            };
+
+            buffer;
         };
 
     };
 
-}
+    // Utility function to convert a tokens lock to a lock scheduler lock
+    public func to_lock(ballot : Types.Ballot) : LockScheduler.Lock {
+        { id = ballot.tx_id; amount = Choice.get_amount(ballot.choice); timestamp = ballot.timestamp; time_left = ballot.time_left; rates = ballot.rates; };
+    };
+
+};

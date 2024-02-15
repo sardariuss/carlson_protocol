@@ -178,17 +178,17 @@ shared actor class Main() = this {
         };
 
         // Lock 2 tokens from account_1
-        let tx_id = switch(await protocol.vote({
+        let { tx_id; } = switch(await protocol.vote({
             vote_id;
             from = account_1;
-            ballot = #AYE(locked_balance);
+            choice = #AYE(locked_balance);
         })){
             case(#Err(err)){
                 Debug.trap("Fail to lock 5 tokens from account_1: " # debug_show(err));
             };
-            case(#Ok(tx_id)){
+            case(#Ok(lock)){
                 Debug.print("Locked 5 tokens from account_1");
-                tx_id;
+                lock;
             };
         };
 
@@ -209,23 +209,29 @@ shared actor class Main() = this {
         var reward : Nat = 0;
 
         // While locked, the balance of account_1 should be 10 minus the fees
-        while (not (await protocol.try_unlock())){
+        while ((await protocol.try_unlock()) == 0){
+
             balance := await deposit_ledger.icrc1_balance_of(account_1);
-            reward := await reward_ledger.icrc1_balance_of(account_1);
             Debug.print("Balance of account_1 (during lock): " # debug_show(balance));
             assert(balance + 2 * fee == duration_to_sat(#SECONDS(7)));
+
+            reward := await reward_ledger.icrc1_balance_of(account_1);
+            Debug.print("Reward of account_1 (during lock): " # debug_show(reward));
             assert(reward == 0);
-            assert((await protocol.get_failed_reimbursements(owner)).size() == 0);
         };
 
         // Once unlocked, the balance of account_1 should be 12 minus the fees
         // The reward shall be equal to 50% of the balance that was locked
         balance := await deposit_ledger.icrc1_balance_of(account_1);
-        reward := await reward_ledger.icrc1_balance_of(account_1);
         Debug.print("Balance of account_1 (after lock): " # debug_show(balance));
-        Debug.print("Reward of account_1 (after lock): " # debug_show(reward));
         assert(balance + 3 * fee == original_balance);
+
+        reward := await reward_ledger.icrc1_balance_of(account_1);
+        Debug.print("Reward of account_1 (after lock): " # debug_show(reward));
         assert(reward == Int.abs(Float.toInt(Float.fromInt(locked_balance) * 0.5)));
+
+        assert((await protocol.get_failed_refunds(owner)).size() == 0);
+        assert((await protocol.get_failed_rewards(owner)).size() == 0);
     };
 
     public shared func cycles_balance() : async Nat {

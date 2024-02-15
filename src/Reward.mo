@@ -7,7 +7,6 @@ import Int    "mo:base/Int";
 
 module {
 
-    
     // This abritrary parameter is used to "tighten" the logistic regression used for the reward so that 
     // for every values of x within the range [0, total_amount], y will be within the range [0, 1]
     // (or [0.00669285092428, 0.993307149076] to be precise)
@@ -16,20 +15,20 @@ module {
     public func compute_reward({
         total_ayes: Nat; 
         total_nays: Nat;
-        lock: Types.TokensLock;
+        ballot: Types.Ballot;
     }) : Nat {
-        let alignement = switch(lock.ballot){
+        let alignement = switch(ballot.choice){
             case(#AYE(_)) { Float.fromInt(total_ayes) / Float.fromInt(total_ayes + total_nays); };
             case(#NAY(_)) { Float.fromInt(total_nays) / Float.fromInt(total_ayes + total_nays); };
         };
-        Int.abs(Float.toInt(alignement * lock.contest_factor));
+        Int.abs(Float.toInt(alignement * ballot.contest_factor));
     };
 
     public func compute_contest_factor({
-        ballot: Types.Ballot;
+        choice: Types.Choice;
         vote: Types.Vote;
     }) : Float {
-        let { amount; total_same; total_opposit; } = switch(ballot){
+        let { amount; total_same; total_opposit; } = switch(choice){
             case(#AYE(amount)) { { amount; total_same = vote.total_ayes; total_opposit = vote.total_nays; }; };
             case(#NAY(amount)) { { amount; total_same = vote.total_nays; total_opposit = vote.total_ayes; }; };
         };
