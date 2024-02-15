@@ -1,6 +1,49 @@
-import Map "mo:map/Map";
+import Map  "mo:map/Map";
 
 module {
+
+    public type Time = Int;
+
+    // FROM ICRC-1
+
+    public type Balance = Nat;
+
+    public type Timestamp = Nat64;
+
+    public type TimeError = {
+        #TooOld;
+        #CreatedInFuture : { ledger_time : Timestamp };
+    };
+
+    public type Subaccount = Blob;
+
+    public type TxIndex = Nat;
+
+    public type TransferError = TimeError or {
+            #BadFee : { expected_fee : Balance };
+            #BadBurn : { min_burn_amount : Balance };
+            #InsufficientFunds : { balance : Balance };
+            #Duplicate : { duplicate_of : TxIndex };
+            #TemporarilyUnavailable;
+            #GenericError : { error_code : Nat; message : Text };
+        };
+
+    public type TransferArgs = {
+        from_subaccount : ?Subaccount;
+        to : Account;
+        amount : Balance;
+        fee : ?Balance;
+        memo : ?Blob;
+
+        /// The time at which the transaction was created.
+        /// If this is set, the canister will check for duplicate transactions and reject them.
+        created_at_time : ?Nat64;
+    };
+
+    public type FailedTransfer = {
+        args: TransferArgs;
+        error: TransferError;
+    };
     
     public type Duration = {
         #YEARS: Nat;

@@ -5,19 +5,13 @@ import Account       "Account";
 import LockScheduler "LockScheduler";
 import Duration      "Duration";
 import Votes         "Votes";
-import Reward        "Reward";
 
 import Map           "mo:map/Map";
 
-import Deque         "mo:base/Deque";
-import List          "mo:base/List";
-import Nat           "mo:base/Nat";
-import Float         "mo:base/Float";
 import Int           "mo:base/Int";
 import Time          "mo:base/Time";
 import Principal     "mo:base/Principal";
 import Nat64         "mo:base/Nat64";
-import Array         "mo:base/Array";
 import Option        "mo:base/Option";
 import Buffer        "mo:base/Buffer";
 
@@ -36,16 +30,9 @@ shared({ caller = admin }) actor class Carlson({
         };
     }) = this {
 
-    type Time = Time.Time;
-
-    type FailedTransfer = {
-        args: ICRC1.TransferArgs;
-        error: ICRC1.TransferError;
-    };
-
-    // STABLE
-    stable let _failed_refunds = Map.new<Principal, [FailedTransfer]>();
-    stable let _failed_rewards = Map.new<Principal, [FailedTransfer]>();
+    // STABLE MEMBERS
+    stable let _failed_refunds = Map.new<Principal, [Types.FailedTransfer]>();
+    stable let _failed_rewards = Map.new<Principal, [Types.FailedTransfer]>();
     stable let _deposit_ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(deposit_ledger));
     stable let _reward_ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(reward_ledger));
     stable let _data = {
@@ -62,7 +49,7 @@ shared({ caller = admin }) actor class Carlson({
         };
     };
 
-    // NON-STABLE
+    // NON-STABLE MEMBER
     let _votes = Votes.Votes({
         register = _data.register;
         lock_scheduler = LockScheduler.LockScheduler<Types.Ballot>({
@@ -99,8 +86,6 @@ shared({ caller = admin }) actor class Carlson({
         };
 
         // Early return if the vote is not found
-        // @todo: it might be better if the vote interface does not "commit" the change of the vote
-        // so one could perform all what the vote needs to do before and commit the change once the transfer has been done
         if (not _votes.has_vote(vote_id)){
             return #Err(#VoteNotFound);
         };
@@ -127,6 +112,8 @@ shared({ caller = admin }) actor class Carlson({
             };
         };
 
+        // @todo: instead of potentially trapping, a result shall be returned from "put_ballot"
+        // and if an error is returned, one shall transfer back the tokens to the user
         #Ok(_votes.put_ballot({vote_id; tx_id; timestamp; choice; from;}));
     };
 
@@ -176,7 +163,7 @@ shared({ caller = admin }) actor class Carlson({
         for ({ refund; reward; } in transfers.vals()){
             switch(await refund.call){
                 case (#Err(error)) {
-                    let user_fails = Buffer.fromArray<FailedTransfer>(Option.get(Map.get(_failed_refunds, Map.phash, refund.args.to.owner), []));
+                    let user_fails = Buffer.fromArray<Types.FailedTransfer>(Option.get(Map.get(_failed_refunds, Map.phash, refund.args.to.owner), []));
                     user_fails.add({ args = refund.args; error; });
                     Map.set(_failed_refunds, Map.phash, refund.args.to.owner, Buffer.toArray(user_fails));
                 };
@@ -185,7 +172,7 @@ shared({ caller = admin }) actor class Carlson({
             };
             switch(await reward.call){
                 case (#Err(error)) {
-                    let user_fails = Buffer.fromArray<FailedTransfer>(Option.get(Map.get(_failed_rewards, Map.phash, reward.args.to.owner), []));
+                    let user_fails = Buffer.fromArray<Types.FailedTransfer>(Option.get(Map.get(_failed_rewards, Map.phash, reward.args.to.owner), []));
                     user_fails.add({ args = reward.args; error; });
                     Map.set(_failed_rewards, Map.phash, reward.args.to.owner, Buffer.toArray(user_fails));
                 };
@@ -197,6 +184,8 @@ shared({ caller = admin }) actor class Carlson({
         unlocks.size();
     };
 
+    // Compute the contest factor for the given choice to anticipate
+    // the reward before voting
     public query func preview_contest_factor({
         vote_id: Nat;
         choice: Types.Choice;
@@ -204,7 +193,8 @@ shared({ caller = admin }) actor class Carlson({
         _votes.preview_contest_factor({vote_id; choice;});
     };
 
-    public query func find_lock({
+    // Find a ballot by its vote_id and tx_id
+    public query func find_ballot({
         vote_id: Nat; 
         tx_id: Nat;
     }) : async ?Types.Ballot {
@@ -213,11 +203,13 @@ shared({ caller = admin }) actor class Carlson({
         });
     };
 
-    public query func get_failed_refunds(principal: Principal) : async [FailedTransfer] {
+    // Get the failed refunds for the given principal
+    public query func get_failed_refunds(principal: Principal) : async [Types.FailedTransfer] {
         Option.get(Map.get(_failed_refunds, Map.phash, principal), []);
     };
 
-    public query func get_failed_rewards(principal: Principal) : async [FailedTransfer] {
+    // Get the failed rewards for the given principal
+    public query func get_failed_rewards(principal: Principal) : async [Types.FailedTransfer] {
         Option.get(Map.get(_failed_rewards, Map.phash, principal), []);
     };
 

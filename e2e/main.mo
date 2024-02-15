@@ -193,17 +193,17 @@ shared actor class Main() = this {
         };
 
         // Get lock
-        let lock = switch(await protocol.find_lock({vote_id; tx_id;})){
+        let ballot = switch(await protocol.find_ballot({vote_id; tx_id;})){
             case(null){
                 Debug.trap("Fail to find lock " # debug_show(tx_id) # " in protocol");
             };
-            case(?lock){
-                lock;
+            case(?b){
+                b;
             };
         };
 
         Debug.print("Time now: " # debug_show(Time.now()));
-        Debug.print("Unlocked time: " # debug_show(lock.timestamp + Float.toInt(lock.time_left)));
+        Debug.print("Unlocked time: " # debug_show(ballot.timestamp + Float.toInt(ballot.time_left)));
 
         var balance : Nat = 0;
         var reward : Nat = 0;
