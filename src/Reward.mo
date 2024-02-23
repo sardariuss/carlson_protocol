@@ -3,39 +3,44 @@ import Math   "Math";
 
 import Float  "mo:base/Float";
 import Iter   "mo:base/Iter";
-import Int    "mo:base/Int";
 
 module {
 
-    // This abritrary parameter is used to "tighten" the logistic regression used for the reward so that 
+    // This abritrary parameter is used to "tighten" the logistic regression used for the score so that 
     // for every values of x within the range [0, total_amount], y will be within the range [0, 1]
     // (or [0.00669285092428, 0.993307149076] to be precise)
     let K = 0.1;
     
-    public func compute_reward({
+    public func compute_score({
         total_ayes: Nat; 
         total_nays: Nat;
-        ballot: Types.Ballot;
-    }) : Nat {
-        let alignement = switch(ballot.choice){
-            case(#AYE(_)) { Float.fromInt(total_ayes) / Float.fromInt(total_ayes + total_nays); };
-            case(#NAY(_)) { Float.fromInt(total_nays) / Float.fromInt(total_ayes + total_nays); };
+        choice: Types.Choice;
+    }) : Float {
+        let { total_same; total_opposit; } = switch(choice){
+            case(#AYE(_)) { { total_same = total_ayes; total_opposit = total_nays; }; };
+            case(#NAY(_)) { { total_same = total_nays; total_opposit = total_ayes; }; };
         };
-        Int.abs(Float.toInt(alignement * ballot.contest_factor));
+        let length = Float.fromInt(total_same + total_opposit);
+        Math.logistic_regression({
+            x = Float.fromInt(total_same);
+            mu = length * 0.5;
+            sigma = length * K;
+        });
     };
 
-    public func compute_contest_factor({
+    public func compute_max_reward({
+        total_ayes: Nat; 
+        total_nays: Nat;
         choice: Types.Choice;
-        vote: Types.Vote;
     }) : Float {
         let { amount; total_same; total_opposit; } = switch(choice){
-            case(#AYE(amount)) { { amount; total_same = vote.total_ayes; total_opposit = vote.total_nays; }; };
-            case(#NAY(amount)) { { amount; total_same = vote.total_nays; total_opposit = vote.total_ayes; }; };
+            case(#AYE(amount)) { { amount; total_same = total_ayes; total_opposit = total_nays; }; };
+            case(#NAY(amount)) { { amount; total_same = total_nays; total_opposit = total_ayes; }; };
         };
-        contest_logistic_regression({ amount; total_same; total_opposit; });
+        linear_contest({ amount; total_same; total_opposit; });
     };
 
-    public func contest_logistic_regression({
+    public func linear_contest({
         amount: Nat;
         total_same: Nat;
         total_opposit: Nat;
@@ -46,15 +51,10 @@ module {
             return 0.5 * Float.fromInt(amount);
         };
 
-        // Otherwise accumulate values yeild from the logistic regression
-        let length = Float.fromInt(total_same + total_opposit + amount);
+        // Otherwise, accumulate following a slope based on the ratio: opposit / total
         var accumulation : Float = 0;
         for (i in Iter.range(0, amount - 1)) {
-            accumulation += Math.logistic_regression({
-                x = length * Float.fromInt(total_opposit) / (Float.fromInt(total_same + total_opposit + i) + 0.5);
-                mu = length * 0.5;
-                sigma = length * K;
-            });
+            accumulation += Float.fromInt(total_opposit) / (Float.fromInt(total_same + total_opposit + i) + 0.5);
         };
         accumulation;
 

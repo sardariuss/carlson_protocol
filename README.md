@@ -36,12 +36,10 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 
 ## Roadmap
 
-- Compute the maximum reward in tokens based on input tokens based on [logistic regression](https://www.desmos.com/calculator/stc0wn4npw)
-- Perform the minting of the reward
 - Add a timer to periodically call try_unlock
 - Add decay on votes result
 - Create complex e2e scenarios
-- Create a UI to demo or directly integrate in [Politiballs](https://politiballs.app/) for selection and mapping votes
+- Start building a UI
 - TBD
 
 ## 🚧 Misc notes (to clean)

@@ -8,6 +8,8 @@ import Map            "mo:map/Map";
 import Debug          "mo:base/Debug";
 import Iter           "mo:base/Iter";
 import Buffer         "mo:base/Buffer";
+import Int            "mo:base/Int";
+import Float          "mo:base/Float";
 
 module {
 
@@ -77,9 +79,9 @@ module {
                     tx_id;
                     from;
                     choice;
-                    // Watchout: the method "compute_contest_factor" assumes the vote 
+                    // Watchout: the method "compute_max_reward" assumes the vote 
                     // totals have not been updated yet with the new ballot
-                    contest_factor = Reward.compute_contest_factor({ choice; vote; });
+                    max_reward = Reward.compute_max_reward({ choice; total_ayes = vote.total_ayes; total_nays = vote.total_nays; });
                     timestamp;
                     time_left = lock.time_left;
                     rates = lock.rates;
@@ -87,13 +89,13 @@ module {
             }});
         };
 
-        public func preview_contest_factor({
+        public func preview_max_reward({
             vote_id: Nat;
             choice: Types.Choice;
         }) : { #ok: Float; #err: {#VoteNotFound}; } {
             switch(Map.get(register.votes, Map.nhash, vote_id)){
                 case(null) { #err(#VoteNotFound); };
-                case(?vote) { #ok(Reward.compute_contest_factor({ choice; vote; })); };
+                case(?{ total_ayes; total_nays; }) { #ok(Reward.compute_max_reward({ choice; total_ayes; total_nays; })); };
             };
         };
 
@@ -103,10 +105,12 @@ module {
 
             for ({ total_ayes; total_nays; locked_ballots; } in Map.vals(register.votes)) {
                 buffer.append(Buffer.map(lock_scheduler.try_unlock({ map = locked_ballots; time; }), func(ballot: Types.Ballot) : Unlock {
+                    let { from; choice; max_reward; } = ballot;
+                    let score = Reward.compute_score({ total_ayes; total_nays; choice; });
                     {
-                        account = ballot.from;
-                        refund = Choice.get_amount(ballot.choice);
-                        reward = Reward.compute_reward({ total_ayes; total_nays; ballot; });
+                        account = from;
+                        refund = Choice.get_amount(choice);
+                        reward = Int.abs(Float.toInt(max_reward * score));
                     };
                 }));
             };

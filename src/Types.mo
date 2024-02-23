@@ -73,7 +73,7 @@ module {
         tx_id: Nat;
         from: Account;
         choice : Choice;
-        contest_factor: Float;
+        max_reward: Float;
         timestamp: Int;
         time_left: Float; // Floating point to avoid accumulating rounding errors
         rates: { 

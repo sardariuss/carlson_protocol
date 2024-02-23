@@ -184,13 +184,13 @@ shared({ caller = admin }) actor class Carlson({
         unlocks.size();
     };
 
-    // Compute the contest factor for the given choice to anticipate
+    // Compute the max reward for the given choice to anticipate
     // the reward before voting
-    public query func preview_contest_factor({
+    public query func preview_max_reward({
         vote_id: Nat;
         choice: Types.Choice;
     }) : async { #ok: Float; #err: {#VoteNotFound}; } {
-        _votes.preview_contest_factor({vote_id; choice;});
+        _votes.preview_max_reward({vote_id; choice;});
     };
 
     // Find a ballot by its vote_id and tx_id
