@@ -34,73 +34,41 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 - `decay_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock. Aimed to be modified by a DAO.
 - `ballot_minimum_amount`: the minimum amount a voter has to lock in order to vote.
 
-## Roadmap
+## 🚧 Roadmap
 
-- Add a timer to periodically call try_unlock
-- Add decay on votes result
-- Create complex e2e scenarios
-- Start building a UI
-- TBD
+### Q2 2024: MVP
 
-## 🚧 Misc notes (to clean)
+For end of Q2, we'd like to have a local functional MVP where users can participate to votes, create new votes, and appreciate the reward mechanisms of the Carlson protocol through a minimal front-end.
 
-The protocol prevents the rich users to have too much power
-   -> The more tokens locked, the longer the duration
-       -> Problem: it punishes the users who align with the community on what matters
-                   and gives more instant power to the users who don't align with it
-       -> Solution: - reward more the users the longer the lock is
-                    - reward more the users who are right than the users who are wrong at the end of the lock
-                    - reward more if that topic is important compared to other topics (at the time that topic came out?)
+#### Features:
 
-Without reward (notion of sacrifice, good faith)
-- Winning:
-    - people who voted for a topic that matters to the community, the same side as the community
-    - people who voted for a topic that does not matter to the community
-- Losing:
-    - people who voted for a topic that matters to the community, the opposite side as the community
+- BACKEND
+  - vote proposal, so that everybody can propose a new vote.
+  - vote metadata, so that the Carlson protocol canister can be used as a service separated from any other backend/frontend canisters, but still allows to save and retrieve specific votes.
+  - time dilation curve: shall replace the current nominal_duration_per_sat. It aims at preventing absurd locking times (e.g. 10 seconds or 100 years). Curve formula would probably be ax^b, where a=3 (days), and b=ln(2)/ln(10). This way, a hot score of 1 sat would yield 3 days lock, 10 sats a 6 days lock, ... 1 btc a 1 year lock.
+  - vote decay over time (so it gets easier to challenge consensus overtime)
 
-Basically, sacrifice alone is useless, sacrifice if aligned with others will shape the community, and sacrifice if not aligned with others will do nothing.
+- FRONTEND:
+  - II login + ckBTC account + Carlson (reward token) account
+  - display the list of votes (ordered by date)
+  - vote details: total amount locked, current vote results, current lock duration
+  - put ballot: select 'AYE'/'NAY', input number of satoshis, preview lock duration, preview contest multiplier, place the vote
+  - profile page: list of current locks with amount and time left, list of old locks with amount won
 
-POSSIBLE ABUSES:
-  When nobody voted yet, it gets possible to "shotgun" the statement if is too obvious, making it a "sure reward" of c=0.5
-    -> Fix 1: Have the selection of statement done by DAO or other process so that they cannot be too obvious
-    -> Fix 2: Have a starting period during which the votes are not revealed, at the end of which the c is determined based on the proportion of votes
-  At anytime, it is possible to get a reward of 0.25 by alternating votes of YES and NO so that whichever side "wins" at the end, half of the tokens locked will get you c=0.5
-    -> It could artificially increase the number of divisive votes (close to 50/50), but the more divise and the more tokens are locked, the greater the opportunity for people who cares to jump in (especially poor ones)
-    -> If most users are only there for the rewards, it is always possible to diminish the reward (and keep more for the owners)
+#### Challenges:
+  
+  - Manage to convey how the protocol works in the UI
+  - Make a functional test scenario with many users and votes, manage the balances of each user
+  - The Carlson' protocol relies on conditions on time and durations, which kind be tricky to reproduce in a test
 
-PHILOSOPHY:
+### Later
 
-Justification behind the exp decay for the locking time
-  1. People shall not have their tokens locked for an inifinite amount of time
-  2. The more tokens are locked overall, the longer the locking period for individuals
-  3. The longer the locking period for individuals, the greater the opportunity for other individuals to vote and alter the reward
-
-Reward too late or too soon ?
--> if an important vote (how many people are voting), shall be later
--> if a disputed vote, shall be later
-    -> normally disputed votes will attract more people (because of incentives), so shall automatically make the locking period more long
-
--> Could just use the logarithmic amount of tokens
-    -> No, because logarthmic of tokens from the beginning ? If you assume a topic had had a lot of traction in the past, then it over, and you want to revive it, you might stuck your tokens in it while you're alone wanting to revive it
-Overall it is up to the voter to understand when "the crowd" is mature enough, or ready enough to change its mind about a topic.
-
-Boost potentail reward gives the opprtunity for somebody to contest that, like an "arbitrage".
-
-UI REQUIREMENTS:
-  General:
-    - ms_per_sat
-    - decay half life
-
-  Statement specific:
-    - total votes both sides (=cumulated)
-    - current amount tokens locked
-
-  User specific:
-    When about to lock tokens, you need to get:
-      - minimum locking time
-      - maximum reward (maximum reward you will get if at the end of the locking period, the result is the same as your vote)
-    Once tokens are locked, you need to have:
-      - updated (minimum) locking time remaining (or date)
-      - current reward
-      - potential reward
+- BACKEND
+  - create and parametrize the Carlson ledger (new token). For this, we need to implement the logic for 3) and 4). In the Carlson protocol, the reward shall be proportional to to:
+        1) the contest multiplier of the ballot, determined at the start of the lock
+        2) the vote results, determined at the end of the lock
+        3) the proportion of the ballot's ckBTC amount compared to the overall ckBTC amount of tokens locked in the protocol for the duration of that lock.
+        4) the minting velocity of the token (set to be halved every 2 years or so).
+  - to justify: why use a linear function for the contest factor, and a logistic regression for the score?
+- FRONTEND
+  - Plug login
