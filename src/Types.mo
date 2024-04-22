@@ -75,7 +75,7 @@ module {
         choice : Choice;
         max_reward: Float;
         timestamp: Int;
-        time_left: Float; // Floating point to avoid accumulating rounding errors
+        hotness: Float;
         rates: { 
             growth: Float;
             decay: Float; 

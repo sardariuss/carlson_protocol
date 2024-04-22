@@ -1,3 +1,5 @@
+import Types     "Types";
+import Duration  "Duration";
 import Decay     "Decay";
 
 import Map       "mo:map/Map";
@@ -7,6 +9,7 @@ import Time      "mo:base/Time";
 import Buffer    "mo:base/Buffer";
 import Debug     "mo:base/Debug";
 import Option    "mo:base/Option";
+import Int       "mo:base/Int";
 
 module {
 
@@ -16,26 +19,36 @@ module {
         id: Nat;
         amount: Nat;
         timestamp: Int;
-        time_left: Float; // Floating point to avoid accumulating rounding errors
+        hotness: Float;
         rates: { 
             growth: Float;
             decay: Float; 
         };
     };
     
-    public type Params = {
-        ns_per_sat: Nat;
-        decay_params: {
-            lambda: Float;
-            shift: Float;
-        };
+    public type DecayParams = {
+        lambda: Float;
+        shift: Float;
     };
 
     public class LockScheduler<T>({
-        lock_params: Params;
+        time_init: Time;
+        hotness_half_life: Types.Duration;
+        nominal_lock_duration: Types.Duration;
         to_lock: T -> Lock;
     }){
 
+        // Attributes
+        let _hotness_decay = Decay.getDecayParameters({
+            half_life = hotness_half_life;
+            time_init;
+        });
+        let _nominal_lock_duration_ns = Float.fromInt(Duration.toTime(nominal_lock_duration));
+
+        // Creates a new lock with the given id, amount and timestamp
+        // Deduce the hotness of the lock from the previous locks
+        // Update the hotness of the previous locks
+        // Add the lock to the map and return it
         public func new_lock({
             map: Map.Map<Nat, T>;
             id: Nat;
@@ -44,29 +57,54 @@ module {
             from_lock: Lock -> T;
         }) : T {
 
+            // @todo: assert the timestamp of the last lock is less than the new one
+
             // Create the new entry
             let new : Lock = do {
 
-                // Compute the decays
-                let growth = Decay.computeDecay(lock_params.decay_params, timestamp);
-                let decay = Decay.computeDecay(lock_params.decay_params, -timestamp);
+                // The hotness of a lock is the amount of that lock, plus the sum of the previous lock
+                // amounts weighted by their growth, plus the sum of the next lock amounts weighted
+                // by their decay:
+                //
+                //  hotness_i = amount_i
+                //            + (growth_0  * amount_0   + ... + growth_i-1 * amount_i-1) / growth_i
+                //            + (decay_i+1 * amount_i+1 + ... + decay_n    * amount_n  ) / decay_i
+                //
+                //                 lock 0                lock i                   lock n
+                //                       
+                //                    |                    |                        |
+                //   growth           |                    |                        |          ·
+                //     ↑              |                    |                        |        ···
+                //       → time       |                    |                        ↓    ·······
+                //                    |                    |                     ···············
+                //                    ↓                    ↓     ·······························
+                //               ·······························································
+                //
+                //                    |                    |                        |           
+                //               ·    |                    |                        |
+                //   decay       ···  ↓                    |                        |
+                //     ↑         ·······                   |                        |
+                //       → time  ···············           ↓                        |
+                //               ·······························                    ↓
+                //               ·······························································
+                
+                let growth = Decay.computeDecay(_hotness_decay, timestamp);
+                let decay = Decay.computeDecay(_hotness_decay, -timestamp);
 
-                // Accumulate the increasing decays
-                var accumulation = growth * Float.fromInt(amount);
-                // Consider all the previous locks to the time left
+                // Compute the hotness
+                var hotness : Float = 0;
                 for (val in Map.vals(map)) {
                     let lock = to_lock(val);
-                    accumulation += lock.rates.growth * Float.fromInt(lock.amount);
+                    hotness += lock.rates.growth * Float.fromInt(lock.amount);
                 };
-                
-                // Deduce the time left (in nanoseconds)
-                let time_left = Float.fromInt(lock_params.ns_per_sat) * accumulation / growth;
+                hotness /= growth;
+                hotness += Float.fromInt(amount);
 
                 {
                     id;
                     amount;
                     timestamp;
-                    time_left;
+                    hotness;
                     rates = { growth; decay; };
                 };
             };
@@ -76,7 +114,7 @@ module {
                 Debug.trap("Lock " # debug_show(id) # " already exists in the map");
             };
 
-            // Update the time left for all the previous locks
+            // Update the hotness for all the previous locks
             label update_loop for (val in Map.vals(map)) {
                 let lock = to_lock(val);
 
@@ -85,18 +123,15 @@ module {
                     continue update_loop;
                 };
 
-                // Update the time left
-                let time_left = lock.time_left 
-                    + (new.rates.decay * Float.fromInt(new.amount) 
-                        * Float.fromInt(lock_params.ns_per_sat)) 
-                        / lock.rates.decay;
-                Map.set(map, Map.nhash, lock.id, from_lock({ lock with time_left; }));
+                let hotness = lock.hotness + Float.fromInt(new.amount) * new.rates.decay / lock.rates.decay;
+                Map.set(map, Map.nhash, lock.id, from_lock({ lock with hotness; }));
             };
 
             from_lock(new);
         };
 
-        // Unlock the tokens if the duration is reached
+        // Remove the locks from the map which duration has expired
+        // Return the removed locks
         public func try_unlock({
             map: Map.Map<Nat, T>;
             time: Time
@@ -105,7 +140,7 @@ module {
             let removed : Buffer.Buffer<T> = Buffer.Buffer(0);
 
             label endless_loop while true {
-                let { id; timestamp; time_left; } = switch(Map.peek(map)){
+                let { id; timestamp; hotness; } = switch(Map.peek(map)){
                     // The map is empty
                     case(null) {
                         break endless_loop;
@@ -118,8 +153,8 @@ module {
 
                 Debug.print("There is a candidate lock with id=" # debug_show(id));
 
-                // Stop the loop if the duration is not reached yet (the map is sorted by timestamp)
-                if (timestamp + Float.toInt(time_left) > time) {
+                // Stop the loop if the duration is not reached yet (the locks are added in order of time)
+                if (timestamp + get_lock_duration_ns(hotness) > time) {
                     Debug.print("The lock is not expired yet");
                     break endless_loop;
                 };
@@ -138,6 +173,28 @@ module {
             };
 
             removed;
+        };
+
+
+        // The time dilation curve is responsible for scaling the time left of each lock to prevent
+        // absurd locking times (e.g. 10 seconds or 100 years).
+        // It is defined as a power function of the hotness so that the duration is doubled for each 
+        // order of magnitude of hotness:
+        //      duration = a * hotness ^ b where 
+        // where:
+        //      a is the duration for a hotness of 1
+        //      b = ln(2) / ln(10)
+        //
+        //                                                   ································
+        //  lock_time                        ················
+        //      ↑                    ········
+        //        → hotness      ····
+        //                     ··
+        //                    ·
+        // 
+        func get_lock_duration_ns(hotness: Float) : Nat {
+            let scale_factor = Float.log(2.0) / Float.log(10.0);
+            Int.abs(Float.toInt(_nominal_lock_duration_ns * Float.pow(hotness, scale_factor)));
         };
 
     };

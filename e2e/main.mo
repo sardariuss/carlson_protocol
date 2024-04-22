@@ -99,16 +99,18 @@ shared actor class Main() = this {
         // Fee to create protocol canister
         ExperimentalCycles.add(50_000_000_000);
 
-        let protocol = await Carlson.Carlson({ 
+        let protocol = await Carlson.Carlson({
             deposit_ledger = Principal.fromActor(deposit_ledger);
             reward_ledger = Principal.fromActor(reward_ledger);
-            lock_parameters = {
-                nominal_duration_per_sat = NOMINAL_DURATION_PER_SAT;
-                decay_half_life = #DAYS(15);
-            };
-            ballot_parameters = {
-                min_amount = duration_to_sat(#SECONDS(1));
-            };
+            parameters = {
+                lock_scheduler = {
+                    hotness_half_life = #DAYS(15);
+                    nominal_lock_duration = #DAYS(3);
+                };
+                vote = {
+                    ballot_min_amount = 50;
+                };
+            }
         });
 
         // Mint all reward tokens for the procol to reward users
@@ -203,7 +205,6 @@ shared actor class Main() = this {
         };
 
         Debug.print("Time now: " # debug_show(Time.now()));
-        Debug.print("Unlocked time: " # debug_show(ballot.timestamp + Float.toInt(ballot.time_left)));
 
         var balance : Nat = 0;
         var reward : Nat = 0;

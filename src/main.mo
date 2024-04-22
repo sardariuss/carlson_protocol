@@ -1,9 +1,7 @@
 import Types         "Types";
-import Decay         "Decay";
 import Choice        "Choice";
 import Account       "Account";
 import LockScheduler "LockScheduler";
-import Duration      "Duration";
 import Votes         "Votes";
 
 import Map           "mo:map/Map";
@@ -19,16 +17,17 @@ import ICRC1         "mo:icrc1-mo/ICRC1/service";
 import ICRC2         "mo:icrc2-mo/ICRC2/service";
 
 shared({ caller = admin }) actor class Carlson({
-        deposit_ledger: Principal;
-        reward_ledger: Principal;
-        lock_parameters: {
-            nominal_duration_per_sat: Types.Duration;
-            decay_half_life: Types.Duration
+    deposit_ledger: Principal;
+    reward_ledger: Principal;
+    parameters: {
+        lock_scheduler: {
+            hotness_half_life: Types.Duration;
+            nominal_lock_duration: Types.Duration;
         };
-        ballot_parameters: {
-            min_amount: Nat;
+        vote: {
+            ballot_min_amount: Nat;
         };
-    }) = this {
+    }}) = this {
 
     // STABLE MEMBERS
     stable let _failed_refunds = Map.new<Principal, [Types.FailedTransfer]>();
@@ -40,22 +39,18 @@ shared({ caller = admin }) actor class Carlson({
             var index = 0;
             votes = Map.new<Nat, Types.Vote>();
         };
-        lock_params = {
-            ns_per_sat = Int.abs(Duration.toTime(lock_parameters.nominal_duration_per_sat));
-            decay_params = Decay.getDecayParameters({
-                half_life = lock_parameters.decay_half_life;
-                time_init = Time.now();
-            });
-        };
+        parameters = parameters;
     };
 
     // NON-STABLE MEMBER
+    let _lock_scheduler = LockScheduler.LockScheduler<Types.Ballot>({
+        _data.parameters.lock_scheduler with 
+        time_init = Time.now();
+        to_lock = Votes.to_lock;
+    });
     let _votes = Votes.Votes({
         register = _data.register;
-        lock_scheduler = LockScheduler.LockScheduler<Types.Ballot>({
-            lock_params = _data.lock_params;
-            to_lock = Votes.to_lock;
-        });
+        lock_scheduler = _lock_scheduler;
     });
 
     // Create a new vote (admin only)
@@ -69,6 +64,7 @@ shared({ caller = admin }) actor class Carlson({
     };
 
     // Add a ballot (vote) on the given vote identified by its vote_id
+    // @todo: is a min amount really necessary? Or just check if the amount is not 0?
     public shared({caller}) func vote({
         vote_id: Nat;
         from: ICRC1.Account;
@@ -81,8 +77,9 @@ shared({ caller = admin }) actor class Carlson({
         };
 
         // Check if the amount is not too low
-        if (Choice.get_amount(choice) < ballot_parameters.min_amount) {
-            return #Err(#AmountTooLow{ min_amount = ballot_parameters.min_amount });
+        let min_amount = _data.parameters.vote.ballot_min_amount;
+        if (Choice.get_amount(choice) < min_amount) {
+            return #Err(#AmountTooLow{ min_amount; });
         };
 
         // Early return if the vote is not found

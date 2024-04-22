@@ -83,7 +83,7 @@ module {
                     // totals have not been updated yet with the new ballot
                     max_reward = Reward.compute_max_reward({ choice; total_ayes = vote.total_ayes; total_nays = vote.total_nays; });
                     timestamp;
-                    time_left = lock.time_left;
+                    hotness = lock.hotness;
                     rates = lock.rates;
                 };
             }});
@@ -122,7 +122,7 @@ module {
 
     // Utility function to convert a tokens lock to a lock scheduler lock
     public func to_lock(ballot : Types.Ballot) : LockScheduler.Lock {
-        { id = ballot.tx_id; amount = Choice.get_amount(ballot.choice); timestamp = ballot.timestamp; time_left = ballot.time_left; rates = ballot.rates; };
+        { id = ballot.tx_id; amount = Choice.get_amount(ballot.choice); timestamp = ballot.timestamp; hotness = ballot.hotness; rates = ballot.rates; };
     };
 
 };
