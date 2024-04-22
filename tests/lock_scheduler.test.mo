@@ -20,9 +20,14 @@ suite("LockScheduler suite", func(){
 
     func lock_passthrough(lock: LockScheduler.Lock) : LockScheduler.Lock { lock; };
 
+    // For the test, every "satoshi" of hotness is equivalent to 5 minutes of lock duration
+    func hotness_to_duration(hotness: Float) : Nat {
+        Int.abs(Float.toInt(hotness * Float.fromInt(Duration.toTime(#MINUTES(5)))));
+    };
+
     func try_repetitive_unlock(lock_scheduler: LockScheduler, map: Map.Map<Nat, LockScheduler.Lock>, time_now: Time, target_time: Time) : [LockScheduler.Lock] {
         let buffer = Buffer.Buffer<LockScheduler.Lock>(0);
-        // Arbirarily take 10 timestamps between time_now and target_time
+        // Arbitrarily take 10 timestamps between time_now and target_time
         for (i in Iter.range(0, 9)) {
             let time = time_now + (target_time - time_now) * i / 10;
             buffer.append(lock_scheduler.try_unlock({ map; time; }));
@@ -36,7 +41,7 @@ suite("LockScheduler suite", func(){
         Debug.print("timestamp = " # debug_show(lock.timestamp));
         Debug.print("growth = " # debug_show(lock.rates.growth));
         Debug.print("decay = " # debug_show(lock.rates.decay));
-        Debug.print("time_left = " # debug_show(lock.time_left));
+        Debug.print("time_left = " # debug_show(hotness_to_duration(lock.hotness)));
     };
 
     func unwrap_lock(lock: ?LockScheduler.Lock) : LockScheduler.Lock {
@@ -50,10 +55,9 @@ suite("LockScheduler suite", func(){
         let t0 = Time.now();
         
         let lock_scheduler = LockScheduler.LockScheduler<LockScheduler.Lock>({
-            lock_params = { 
-                ns_per_sat = Int.abs(Duration.toTime(#MINUTES(5))); // 5 minutes per sat
-                decay_params = Decay.getDecayParameters({ half_life = #HOURS(1); time_init = t0; });
-            };
+            time_init = t0;
+            hotness_half_life = #HOURS(1);
+            get_lock_duration_ns = hotness_to_duration;
             to_lock = lock_passthrough;
         });
 
@@ -70,8 +74,8 @@ suite("LockScheduler suite", func(){
         assert(lock0.timestamp == t0);
         Debug.print("Lock 0 growth = " # debug_show(lock0.rates.growth));
         Debug.print("Lock 0 decay = " # debug_show(lock0.rates.decay));
-        Debug.print("Lock 0 time left = " # debug_show(Float.toInt(lock0.time_left)));
-        assert(Float.toInt(Float.nearest(lock0.time_left)) == Duration.toTime(#MINUTES(20)));
+        Debug.print("Lock 0 time left = " # debug_show(hotness_to_duration(lock0.hotness)));
+        assert(hotness_to_duration(lock0.hotness) == Duration.toTime(#MINUTES(20)));
 
         // Try to unlock till 19 minutes shall fail
         assert(try_repetitive_unlock(lock_scheduler, map, t0, t0 + 19).size() == 0);
@@ -92,33 +96,33 @@ suite("LockScheduler suite", func(){
         assert(lock1.timestamp == t1);
         Debug.print("Lock 1 growth = " # debug_show(lock1.rates.growth));
         Debug.print("Lock 1 decay = " # debug_show(lock1.rates.decay));
-        Debug.print("Lock 1 time left = " # debug_show(Float.toInt(lock1.time_left)));
-        assert(Float.toInt(Float.nearest(lock1.time_left)) > Duration.toTime(#MINUTES(30)));
-        assert(Float.toInt(Float.nearest(lock1.time_left)) < Duration.toTime(#MINUTES(50)));
+        Debug.print("Lock 1 time left = " # debug_show(hotness_to_duration(lock1.hotness)));
+        assert(hotness_to_duration(lock1.hotness) > Duration.toTime(#MINUTES(30)));
+        assert(hotness_to_duration(lock1.hotness) < Duration.toTime(#MINUTES(50)));
 
         // Test lock0
         lock0 := unwrap_lock(Map.get(map, Map.nhash, 0));
         assert(lock0.id == 0);
         assert(lock0.amount == 4);
         assert(lock0.timestamp == t0);
-        Debug.print("Lock 0 time left = " # debug_show(Float.toInt(lock0.time_left)));
-        assert(Float.toInt(Float.nearest(lock0.time_left)) > Duration.toTime(#MINUTES(20)));
-        assert(Float.toInt(Float.nearest(lock0.time_left)) < Duration.toTime(#MINUTES(50)));
+        Debug.print("Lock 0 time left = " # debug_show(hotness_to_duration(lock0.hotness)));
+        assert(hotness_to_duration(lock0.hotness) > Duration.toTime(#MINUTES(20)));
+        assert(hotness_to_duration(lock0.hotness) < Duration.toTime(#MINUTES(50)));
 
         // Try to unlock till the lock0's time_left is over shall fail
-        assert(try_repetitive_unlock(lock_scheduler, map, t0, t0 + Float.toInt(Float.nearest(lock0.time_left))).size() == 0);
+        assert(try_repetitive_unlock(lock_scheduler, map, t0, t0 + hotness_to_duration(lock0.hotness)).size() == 0);
         assert(Map.get(map, Map.nhash, 0) != null);
         assert(Map.get(map, Map.nhash, 1) != null);
         assert(Map.size(map) == 2);
 
         // Try to unlock after the lock0's time_left is over shall succeed
-        assert(lock_scheduler.try_unlock({ map; time = t0 + Float.toInt(Float.nearest(lock0.time_left)) + 1; }).size() == 1);
+        assert(lock_scheduler.try_unlock({ map; time = t0 + hotness_to_duration(lock0.hotness) + 1; }).size() == 1);
         assert(Map.get(map, Map.nhash, 0) == null);
         assert(Map.get(map, Map.nhash, 1) != null);
         assert(Map.size(map) == 1);
 
         // Try to unlock after the lock1's time_left is over shall succeed
-        assert(lock_scheduler.try_unlock({ map; time = t1 + Float.toInt(Float.nearest(lock1.time_left)) + 1; }).size() == 1);
+        assert(lock_scheduler.try_unlock({ map; time = t1 + hotness_to_duration(lock1.hotness) + 1; }).size() == 1);
         assert(Map.get(map, Map.nhash, 0) == null);
         assert(Map.get(map, Map.nhash, 1) == null);
         assert(Map.size(map) == 0);

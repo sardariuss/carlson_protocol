@@ -1,5 +1,4 @@
 import Float "mo:base/Float";
-import Iter "mo:base/Iter";
 
 module {
 

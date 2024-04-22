@@ -1,32 +1,29 @@
-import Types         "Types";
-import Choice        "Choice";
-import Account       "Account";
-import LockScheduler "LockScheduler";
-import Votes         "Votes";
+import Types             "Types";
+import Choice            "Choice";
+import Account           "Account";
+import LockScheduler     "LockScheduler";
+import LockDurationCurve "LockDurationCurve";
+import Votes             "Votes";
 
-import Map           "mo:map/Map";
+import Map               "mo:map/Map";
 
-import Int           "mo:base/Int";
-import Time          "mo:base/Time";
-import Principal     "mo:base/Principal";
-import Nat64         "mo:base/Nat64";
-import Option        "mo:base/Option";
-import Buffer        "mo:base/Buffer";
+import Int               "mo:base/Int";
+import Time              "mo:base/Time";
+import Principal         "mo:base/Principal";
+import Nat64             "mo:base/Nat64";
+import Option            "mo:base/Option";
+import Buffer            "mo:base/Buffer";
 
-import ICRC1         "mo:icrc1-mo/ICRC1/service";
-import ICRC2         "mo:icrc2-mo/ICRC2/service";
+import ICRC1             "mo:icrc1-mo/ICRC1/service";
+import ICRC2             "mo:icrc2-mo/ICRC2/service";
 
 shared({ caller = admin }) actor class Carlson({
     deposit_ledger: Principal;
     reward_ledger: Principal;
     parameters: {
-        lock_scheduler: {
-            hotness_half_life: Types.Duration;
-            nominal_lock_duration: Types.Duration;
-        };
-        vote: {
-            ballot_min_amount: Nat;
-        };
+        hotness_half_life: Types.Duration;
+        nominal_lock_duration: Types.Duration;
+        ballot_min_amount: Nat;
     }}) = this {
 
     // STABLE MEMBERS
@@ -43,9 +40,13 @@ shared({ caller = admin }) actor class Carlson({
     };
 
     // NON-STABLE MEMBER
+    let _lock_duration_curve = LockDurationCurve.LockDurationCurve({
+        nominal_lock_duration = _data.parameters.nominal_lock_duration;
+    });
     let _lock_scheduler = LockScheduler.LockScheduler<Types.Ballot>({
-        _data.parameters.lock_scheduler with 
         time_init = Time.now();
+        hotness_half_life = _data.parameters.hotness_half_life;
+        get_lock_duration_ns = _lock_duration_curve.get_lock_duration_ns;
         to_lock = Votes.to_lock;
     });
     let _votes = Votes.Votes({
@@ -77,7 +78,7 @@ shared({ caller = admin }) actor class Carlson({
         };
 
         // Check if the amount is not too low
-        let min_amount = _data.parameters.vote.ballot_min_amount;
+        let min_amount = _data.parameters.ballot_min_amount;
         if (Choice.get_amount(choice) < min_amount) {
             return #Err(#AmountTooLow{ min_amount; });
         };

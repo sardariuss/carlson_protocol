@@ -1,5 +1,4 @@
 import Types     "Types";
-import Duration  "Duration";
 import Decay     "Decay";
 
 import Map       "mo:map/Map";
@@ -34,16 +33,14 @@ module {
     public class LockScheduler<T>({
         time_init: Time;
         hotness_half_life: Types.Duration;
-        nominal_lock_duration: Types.Duration;
+        get_lock_duration_ns: Float -> Nat;
         to_lock: T -> Lock;
     }){
 
-        // Attributes
         let _hotness_decay = Decay.getDecayParameters({
             half_life = hotness_half_life;
             time_init;
         });
-        let _nominal_lock_duration_ns = Float.fromInt(Duration.toTime(nominal_lock_duration));
 
         // Creates a new lock with the given id, amount and timestamp
         // Deduce the hotness of the lock from the previous locks
@@ -173,28 +170,6 @@ module {
             };
 
             removed;
-        };
-
-
-        // The time dilation curve is responsible for scaling the time left of each lock to prevent
-        // absurd locking times (e.g. 10 seconds or 100 years).
-        // It is defined as a power function of the hotness so that the duration is doubled for each 
-        // order of magnitude of hotness:
-        //      duration = a * hotness ^ b where 
-        // where:
-        //      a is the duration for a hotness of 1
-        //      b = ln(2) / ln(10)
-        //
-        //                                                   ································
-        //  lock_time                        ················
-        //      ↑                    ········
-        //        → hotness      ····
-        //                     ··
-        //                    ·
-        // 
-        func get_lock_duration_ns(hotness: Float) : Nat {
-            let scale_factor = Float.log(2.0) / Float.log(10.0);
-            Int.abs(Float.toInt(_nominal_lock_duration_ns * Float.pow(hotness, scale_factor)));
         };
 
     };
