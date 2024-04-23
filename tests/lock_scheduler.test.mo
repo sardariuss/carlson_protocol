@@ -1,6 +1,6 @@
-import Decay            "../src/Decay";
-import Duration         "../src/Duration";
-import LockScheduler    "../src/LockScheduler";
+import Decay            "../src/backend/Decay";
+import Duration         "../src/backend/Duration";
+import LockScheduler    "../src/backend/LockScheduler";
 
 import { test; suite; } "mo:test";
 import Time             "mo:base/Time";

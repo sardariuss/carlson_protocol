@@ -1,0 +1,16 @@
+type Listing = 
+ record {
+   itemOwner: principal;
+   itemPrice: nat;
+ };
+service : {
+  check: () -> (principal);
+  getListedPrice: (principal) -> (nat) query;
+  getListedTokens: () -> (vec Listing);
+  getMainCanisterId: () -> (principal) query;
+  getOwnedTokens: (principal) -> (vec principal) query;
+  getTokens: () -> (vec principal);
+  mint: (text, nat, nat, text, text, nat, text) -> (principal);
+  purchase: (nat) -> (text);
+  tokenPriceUpdate: (nat, principal) -> (text);
+}

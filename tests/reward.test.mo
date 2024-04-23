@@ -1,4 +1,4 @@
-import Reward "../src/Reward";
+import Reward "../src/backend/Reward";
 
 import { test; suite; } "mo:test";
 import Float "mo:base/Float";
