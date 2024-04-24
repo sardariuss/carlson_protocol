@@ -103,14 +103,11 @@ shared actor class Main() = this {
             deposit_ledger = Principal.fromActor(deposit_ledger);
             reward_ledger = Principal.fromActor(reward_ledger);
             parameters = {
-                lock_scheduler = {
-                    hotness_half_life = #DAYS(15);
-                    nominal_lock_duration = #DAYS(3);
-                };
-                vote = {
-                    ballot_min_amount = 50;
-                };
-            }
+                hotness_half_life = #DAYS(15);
+                nominal_lock_duration = #DAYS(3);
+                add_ballot_min_amount = 50;
+                new_vote_min_amount = 100;
+            };
         });
 
         // Mint all reward tokens for the procol to reward users
@@ -128,14 +125,18 @@ shared actor class Main() = this {
             };
         };
 
+        let account_1 = { owner; subaccount = ?Account.n32Subaccount(1); };
+
         // Create a new vote
-        let vote_id = switch(await protocol.new_vote({statement = "ICP rocks!";})){
+        let vote_id = switch(await protocol.new_vote({
+            statement = "ICP rocks!";
+            from = account_1;
+        })){
             case(#Err(err)) { Debug.trap("Fail to create new vote: " # debug_show(err)); };
             case(#Ok(vote_id)) { vote_id; };
         };
 
         // Scenario: Mint tokens to account_1, approve protocol to spend 10 tokens, vote with 5 tokens, and then wait untill the lock is over
-        let account_1 = { owner; subaccount = ?Account.n32Subaccount(1); };
         let original_balance = duration_to_sat(#SECONDS(12));
         let approved_balance = duration_to_sat(#SECONDS(10));
         let locked_balance = duration_to_sat(#SECONDS(5));
@@ -180,7 +181,7 @@ shared actor class Main() = this {
         };
 
         // Lock 2 tokens from account_1
-        let { tx_id; } = switch(await protocol.vote({
+        let { tx_id; } = switch(await protocol.add_ballot({
             vote_id;
             from = account_1;
             choice = #AYE(locked_balance);

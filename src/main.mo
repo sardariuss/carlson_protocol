@@ -23,7 +23,8 @@ shared({ caller = admin }) actor class Carlson({
     parameters: {
         hotness_half_life: Types.Duration;
         nominal_lock_duration: Types.Duration;
-        ballot_min_amount: Nat;
+        add_ballot_min_amount: Nat;
+        new_vote_min_amount: Nat;
     }}) = this {
 
     // STABLE MEMBERS
@@ -54,19 +55,40 @@ shared({ caller = admin }) actor class Carlson({
         lock_scheduler = _lock_scheduler;
     });
 
-    // Create a new vote (admin only)
+    // Create a new vote
     public shared({caller}) func new_vote({
-        statement: Text
-    }) : async { #Ok : Nat; #Err: { #NotAuthorized }; } {
-        if (caller != admin) {
+        statement: Text;
+        from: ICRC1.Account;
+    }) : async { #Ok : Nat; #Err: ICRC2.TransferFromError or { #NotAuthorized; } } {
+        
+        // Check if the caller is the owner of the account
+        if (from.owner != caller) {
             return #Err(#NotAuthorized);
+        };
+        
+        switch(await _deposit_ledger.icrc2_transfer_from({
+            spender_subaccount = ?Account.pSubaccount(from.owner);
+            from;
+            to = {
+                owner = Principal.fromActor(this);
+                subaccount = ?Account.pSubaccount(from.owner);
+            };
+            amount = _data.parameters.new_vote_min_amount;
+            fee = null; // Use default fee
+            memo = null;
+            created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+        })){
+            case (#Err(err)) {
+                return #Err(err);
+            };
+            case (#Ok(_)) {};
         };
         #Ok(_votes.new_vote(statement));
     };
 
     // Add a ballot (vote) on the given vote identified by its vote_id
     // @todo: is a min amount really necessary? Or just check if the amount is not 0?
-    public shared({caller}) func vote({
+    public shared({caller}) func add_ballot({
         vote_id: Nat;
         from: ICRC1.Account;
         choice: Types.Choice;
@@ -78,7 +100,7 @@ shared({ caller = admin }) actor class Carlson({
         };
 
         // Check if the amount is not too low
-        let min_amount = _data.parameters.ballot_min_amount;
+        let min_amount = _data.parameters.add_ballot_min_amount;
         if (Choice.get_amount(choice) < min_amount) {
             return #Err(#AmountTooLow{ min_amount; });
         };
@@ -110,9 +132,9 @@ shared({ caller = admin }) actor class Carlson({
             };
         };
 
-        // @todo: instead of potentially trapping, a result shall be returned from "put_ballot"
+        // @todo: instead of potentially trapping, a result shall be returned from "add_ballot"
         // and if an error is returned, one shall transfer back the tokens to the user
-        #Ok(_votes.put_ballot({vote_id; tx_id; timestamp; choice; from;}));
+        #Ok(_votes.add_ballot({vote_id; tx_id; timestamp; choice; from;}));
     };
 
     // Unlock the tokens if the duration is reached
@@ -182,13 +204,13 @@ shared({ caller = admin }) actor class Carlson({
         unlocks.size();
     };
 
-    // Compute the max reward for the given choice to anticipate
-    // the reward before voting
-    public query func preview_max_reward({
+    // Compute the contest factor for the given choice to anticipate
+    // the potential reward before voting
+    public query func preview_contest_factor({
         vote_id: Nat;
         choice: Types.Choice;
     }) : async { #ok: Float; #err: {#VoteNotFound}; } {
-        _votes.preview_max_reward({vote_id; choice;});
+        _votes.preview_contest_factor({vote_id; choice;});
     };
 
     // Find a ballot by its vote_id and tx_id

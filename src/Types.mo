@@ -73,7 +73,7 @@ module {
         tx_id: Nat;
         from: Account;
         choice : Choice;
-        max_reward: Float;
+        contest_factor: Float;
         timestamp: Int;
         hotness: Float;
         rates: { 

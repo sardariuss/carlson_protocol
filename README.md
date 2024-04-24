@@ -26,13 +26,13 @@ The Carlson protocol allows to participate on votes that really matters to you. 
  - the closer your vote is to the result of the vote at the time of unlock, the greater the reward.
 This incentivize user to vote "against the crowd", so that if they are right at the moment they vote but the crowd is wrong, if the tendency of the vote indeed changes over time, they will get rewarded more than the users who voted "with the crowd" and that now are wrong.
 
-## Protocol parameters
+## Canister arguments
 
 - `deposit_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the ballots (aims to be ckBTC)
 - `reward_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the rewards
-- `nominal_duration_per_sat`: used to deduce the initial locking duration from the amount of satoshis transfered with the vote. Aimed to be updated programmatically based on demand or modified by a DAO.
-- `decay_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock. Aimed to be modified by a DAO.
-- `ballot_minimum_amount`: the minimum amount a voter has to lock in order to vote.
+- `parameters.nominal_lock_duration`: the duration of the lock for 1 satoshi
+- `parameters.hotness_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock.
+- `parameters.ballot_min_amount`: the minimum amount a voter has to lock in order to vote.
 
 ## 🚧 Roadmap
 
@@ -43,9 +43,9 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
 #### Features:
 
 - BACKEND
+  - *DONE* time dilation curve: shall replace the current nominal_duration_per_sat. It aims at preventing absurd locking times (e.g. 10 seconds or 100 years). Curve formula would probably be ax^b, where a=3 (days), and b=ln(2)/ln(10). This way, a hot score of 1 sat would yield 3 days lock, 10 sats a 6 days lock, ... 1 btc a 1 year lock.
   - vote proposal, so that everybody can propose a new vote.
   - vote metadata, so that the Carlson protocol canister can be used as a service separated from any other backend/frontend canisters, but still allows to save and retrieve specific votes.
-  - time dilation curve: shall replace the current nominal_duration_per_sat. It aims at preventing absurd locking times (e.g. 10 seconds or 100 years). Curve formula would probably be ax^b, where a=3 (days), and b=ln(2)/ln(10). This way, a hot score of 1 sat would yield 3 days lock, 10 sats a 6 days lock, ... 1 btc a 1 year lock.
   - vote decay over time (so it gets easier to challenge consensus overtime)
 
 - FRONTEND:
@@ -72,3 +72,9 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
   - to justify: why use a linear function for the contest factor, and a logistic regression for the score?
 - FRONTEND
   - Plug login
+
+### Misc TODOs
+
+- Have two maps of ballots: one for all of them, and one only for the locked ones
+- Fix initial contest multiplier: 0.5 shall decrease the more tokens are locked with the first ballot
+- Simplify linear contest?

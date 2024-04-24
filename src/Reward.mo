@@ -2,6 +2,7 @@ import Types  "Types";
 import Math   "Math";
 
 import Float  "mo:base/Float";
+import Debug  "mo:base/Debug";
 import Iter   "mo:base/Iter";
 
 module {
@@ -12,7 +13,7 @@ module {
     let K = 0.1;
     
     public func compute_score({
-        total_ayes: Nat; 
+        total_ayes: Nat;
         total_nays: Nat;
         choice: Types.Choice;
     }) : Float {
@@ -28,7 +29,7 @@ module {
         });
     };
 
-    public func compute_max_reward({
+    public func compute_contest_factor({
         total_ayes: Nat; 
         total_nays: Nat;
         choice: Types.Choice;
@@ -45,6 +46,10 @@ module {
         total_same: Nat;
         total_opposit: Nat;
     }) : Float {
+
+        if(amount == 0){
+            Debug.trap("Amount must be greater than 0");
+        };
         
         // If there is no vote yet, the contest factor is 0.5
         if (total_same + total_opposit == 0) {
@@ -56,7 +61,9 @@ module {
         for (i in Iter.range(0, amount - 1)) {
             accumulation += Float.fromInt(total_opposit) / (Float.fromInt(total_same + total_opposit + i) + 0.5);
         };
-        accumulation;
+
+        // Divide the accumulation by the total amount to get the average per coin
+        accumulation / Float.fromInt(amount);
 
     };
 }
