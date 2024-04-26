@@ -17,7 +17,7 @@ import Buffer            "mo:base/Buffer";
 import ICRC1             "mo:icrc1-mo/ICRC1/service";
 import ICRC2             "mo:icrc2-mo/ICRC2/service";
 
-shared({ caller = admin }) actor class Carlson({
+shared({ caller = admin }) actor class CarlsonProtocol({
     deposit_ledger: Principal;
     reward_ledger: Principal;
     parameters: {

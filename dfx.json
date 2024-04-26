@@ -1,6 +1,20 @@
 {
   "canisters": {
-    "carlson": {
+    "ckBTC": {
+      "main": "ledger/main.mo",
+      "type": "motoko",
+      "remote": {
+        "candid": "ledger/ckBTC.did",
+        "id": {
+          "ic": "mxzaz-hqaaa-aaaar-qaada-cai"
+        }
+      }
+    },
+    "ledger": {
+      "main": "ledger/main.mo",
+      "type": "motoko"
+    },
+    "protocol": {
       "main": "src/main.mo",
       "type": "motoko"
     },

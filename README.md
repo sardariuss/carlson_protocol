@@ -78,3 +78,4 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
 - Have two maps of ballots: one for all of them, and one only for the locked ones
 - Fix initial contest multiplier: 0.5 shall decrease the more tokens are locked with the first ballot
 - Simplify linear contest?
+- The protocol canister shall be the owner of the ledger canister

@@ -1,11 +1,10 @@
-import Carlson            "../src/main";
+import CarlsonProtocol    "../src/main";
 import Account            "../src/Account";
 import Types              "../src/Types";
 import Duration           "../src/Duration";
 
 import Token              "mo:icrc2-mo/ICRC2/Canisters/Token";
 import ICRC1              "mo:icrc1-mo/ICRC1";
-import ICRC2              "mo:icrc2-mo/ICRC2";
 
 import Principal          "mo:base/Principal";
 import Debug              "mo:base/Debug";
@@ -29,7 +28,7 @@ shared actor class Main() = this {
         let owner = Principal.fromActor(this);
 
         // Fee to create token canister
-        ExperimentalCycles.add(50_000_000_000);
+        ExperimentalCycles.add<system>(50_000_000_000);
 
         let deposit_ledger = await Token.Token((
             {
@@ -63,7 +62,7 @@ shared actor class Main() = this {
         ));
         
         // Fee to create token canister
-        ExperimentalCycles.add(50_000_000_000);
+        ExperimentalCycles.add<system>(50_000_000_000);
 
         let reward_ledger = await Token.Token((
             {
@@ -97,9 +96,9 @@ shared actor class Main() = this {
         ));
 
         // Fee to create protocol canister
-        ExperimentalCycles.add(50_000_000_000);
+        ExperimentalCycles.add<system>(50_000_000_000);
 
-        let protocol = await Carlson.Carlson({
+        let protocol = await CarlsonProtocol.CarlsonProtocol({
             deposit_ledger = Principal.fromActor(deposit_ledger);
             reward_ledger = Principal.fromActor(reward_ledger);
             parameters = {
