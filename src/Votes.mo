@@ -81,7 +81,7 @@ module {
                     choice;
                     // Watchout: the method "compute_contest_factor" assumes the vote 
                     // totals have not been updated yet with the new ballot
-                    // @todo: add total to the method, and assert in it, so we can remove this assumption
+                    // @todo: is there a way to not make this assumption? Maybe by passing the updated total as argument?
                     contest_factor = Reward.compute_contest_factor({ choice; total_ayes = vote.total_ayes; total_nays = vote.total_nays; });
                     timestamp;
                     hotness = lock.hotness;

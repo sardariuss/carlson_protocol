@@ -5,6 +5,8 @@ import Float "mo:base/Float";
 import Debug "mo:base/Debug";
 import Int   "mo:base/Int";
 
+import { verify; Testify; } = "utils/Testify";
+
 suite("Reward", func(){
 
     test("Contest factor", func(){
@@ -18,7 +20,7 @@ suite("Reward", func(){
             total_nays;
         });
 
-        assert(Float.equalWithin(contest_factor_with, 0.15, 1e-9));
+        verify(contest_factor_with, 0.15, Testify.float.equal);
 
         let contest_factor_against = Reward.compute_contest_factor({
             choice = #NAY(300);
@@ -26,7 +28,7 @@ suite("Reward", func(){
             total_nays;
         });
 
-        assert(Float.equalWithin(contest_factor_against, 0.65, 1e-9));
+        verify(contest_factor_against, 0.65, Testify.float.equal);
     });
 
 //    test("Test compute score", func(){

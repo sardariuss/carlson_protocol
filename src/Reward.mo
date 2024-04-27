@@ -3,7 +3,6 @@ import Math   "Math";
 
 import Float  "mo:base/Float";
 import Debug  "mo:base/Debug";
-import Iter   "mo:base/Iter";
 
 module {
 
@@ -17,53 +16,48 @@ module {
         total_nays: Nat;
         choice: Types.Choice;
     }) : Float {
-        let { total_same; total_opposit; } = switch(choice){
-            case(#AYE(_)) { { total_same = total_ayes; total_opposit = total_nays; }; };
-            case(#NAY(_)) { { total_same = total_nays; total_opposit = total_ayes; }; };
+        let { same_amount; opposit_amount; } = switch(choice){
+            case(#AYE(_)) { { same_amount = total_ayes; opposit_amount = total_nays; }; };
+            case(#NAY(_)) { { same_amount = total_nays; opposit_amount = total_ayes; }; };
         };
-        let length = Float.fromInt(total_same + total_opposit);
+        let length = Float.fromInt(same_amount + opposit_amount);
         Math.logistic_regression({
-            x = Float.fromInt(total_same);
+            x = Float.fromInt(same_amount);
             mu = length * 0.5;
             sigma = length * K;
         });
     };
 
     public func compute_contest_factor({
+        choice: Types.Choice;
         total_ayes: Nat; 
         total_nays: Nat;
-        choice: Types.Choice;
-    }) : Float {
-        let { amount; total_same; total_opposit; } = switch(choice){
-            case(#AYE(amount)) { { amount; total_same = total_ayes; total_opposit = total_nays; }; };
-            case(#NAY(amount)) { { amount; total_same = total_nays; total_opposit = total_ayes; }; };
-        };
-        linear_contest({ amount; total_same; total_opposit; });
-    };
-
-    public func linear_contest({
-        amount: Nat;
-        total_same: Nat;
-        total_opposit: Nat;
     }) : Float {
 
-        if(amount == 0){
-            Debug.trap("Amount must be greater than 0");
+        let { ballot_amount; same_amount; opposit_amount; } = switch(choice){
+            case(#AYE(ballot_amount)) { { ballot_amount; same_amount = total_ayes; opposit_amount = total_nays; }; };
+            case(#NAY(ballot_amount)) { { ballot_amount; same_amount = total_nays; opposit_amount = total_ayes; }; };
         };
+
+        if(ballot_amount == 0){
+            Debug.trap("Ballot amount must be greater than 0");
+        };
+
+        let total_amount = same_amount + opposit_amount;
         
         // If there is no vote yet, the contest factor is 0.5
-        if (total_same + total_opposit == 0) {
-            return 0.5 * Float.fromInt(amount);
+        // @todo: need to find a better way to handle this case
+        if (total_amount == 0) {
+            return 0.5 * Float.fromInt(ballot_amount);
         };
 
         // Otherwise, accumulate following a slope based on the ratio: opposit / total
-        var accumulation : Float = 0;
-        for (i in Iter.range(0, amount - 1)) {
-            accumulation += Float.fromInt(total_opposit) / (Float.fromInt(total_same + total_opposit + i) + 0.5);
-        };
+        // and divide by the total amount to get the average contest per coin
 
-        // Divide the accumulation by the total amount to get the average per coin
-        accumulation / Float.fromInt(amount);
+        let total_f = Float.fromInt(total_amount);
+        let opposit_f = Float.fromInt(opposit_amount);
+        let ballot_f = Float.fromInt(ballot_amount);
 
+        opposit_f * (Float.log(total_f + ballot_f) - Float.log(total_f)) / ballot_f;
     };
 }

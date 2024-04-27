@@ -1,4 +1,3 @@
-import Decay            "../src/Decay";
 import Duration         "../src/Duration";
 import LockScheduler    "../src/LockScheduler";
 
@@ -9,21 +8,34 @@ import Debug            "mo:base/Debug";
 import Float            "mo:base/Float";
 import Buffer           "mo:base/Buffer";
 import Iter             "mo:base/Iter";
+import Text             "mo:base/Text";
 
 import Map              "mo:map/Map";
 
 suite("LockScheduler suite", func(){
 
     type Time = Time.Time;
-
+    type Lock =  LockScheduler.Lock;
     type LockScheduler = LockScheduler.LockScheduler<LockScheduler.Lock>;
-
-    func lock_passthrough(lock: LockScheduler.Lock) : LockScheduler.Lock { lock; };
 
     // For the test, every "satoshi" of hotness is equivalent to 5 minutes of lock duration
     func hotness_to_duration(hotness: Float) : Nat {
         Int.abs(Float.toInt(hotness * Float.fromInt(Duration.toTime(#MINUTES(5)))));
     };
+
+    func lock_to_text(lock: Lock) : Text {
+        let buffer = Buffer.Buffer<Text>(6);
+        buffer.add("id = " # debug_show(lock.id));
+        buffer.add("amount = " # debug_show(lock.amount));
+        buffer.add("timestamp = " # debug_show(lock.timestamp));
+        buffer.add("growth = " # debug_show(lock.rates.growth));
+        buffer.add("decay = " # debug_show(lock.rates.decay));
+        buffer.add("hotness = " # debug_show(lock.hotness));
+        buffer.add("(duration = " # debug_show(hotness_to_duration(lock.hotness)) # " ns)");
+        Text.join("\\n", buffer.vals());
+    };
+
+    func lock_passthrough(lock: LockScheduler.Lock) : LockScheduler.Lock { lock; };
 
     func try_repetitive_unlock(lock_scheduler: LockScheduler, map: Map.Map<Nat, LockScheduler.Lock>, time_now: Time, target_time: Time) : [LockScheduler.Lock] {
         let buffer = Buffer.Buffer<LockScheduler.Lock>(0);
@@ -33,15 +45,6 @@ suite("LockScheduler suite", func(){
             buffer.append(lock_scheduler.try_unlock({ map; time; }));
         };
         Buffer.toArray(buffer);
-    };
-    
-    func print_lock(lock: LockScheduler.Lock) {
-        Debug.print("id = " # debug_show(lock.id));
-        Debug.print("amount = " # debug_show(lock.amount));
-        Debug.print("timestamp = " # debug_show(lock.timestamp));
-        Debug.print("growth = " # debug_show(lock.rates.growth));
-        Debug.print("decay = " # debug_show(lock.rates.decay));
-        Debug.print("time_left = " # debug_show(hotness_to_duration(lock.hotness)));
     };
 
     func unwrap_lock(lock: ?LockScheduler.Lock) : LockScheduler.Lock {
@@ -72,9 +75,7 @@ suite("LockScheduler suite", func(){
         assert(lock0.id == 0);
         assert(lock0.amount == 4);
         assert(lock0.timestamp == t0);
-        Debug.print("Lock 0 growth = " # debug_show(lock0.rates.growth));
-        Debug.print("Lock 0 decay = " # debug_show(lock0.rates.decay));
-        Debug.print("Lock 0 time left = " # debug_show(hotness_to_duration(lock0.hotness)));
+        Debug.print(lock_to_text(lock0));
         assert(hotness_to_duration(lock0.hotness) == Duration.toTime(#MINUTES(20)));
 
         // Try to unlock till 19 minutes shall fail
@@ -94,9 +95,7 @@ suite("LockScheduler suite", func(){
         assert(lock1.id == 1);
         assert(lock1.amount == 6);
         assert(lock1.timestamp == t1);
-        Debug.print("Lock 1 growth = " # debug_show(lock1.rates.growth));
-        Debug.print("Lock 1 decay = " # debug_show(lock1.rates.decay));
-        Debug.print("Lock 1 time left = " # debug_show(hotness_to_duration(lock1.hotness)));
+        Debug.print(lock_to_text(lock1));
         assert(hotness_to_duration(lock1.hotness) > Duration.toTime(#MINUTES(30)));
         assert(hotness_to_duration(lock1.hotness) < Duration.toTime(#MINUTES(50)));
 
