@@ -76,10 +76,13 @@ module {
         contest_factor: Float;
         timestamp: Int;
         hotness: Float;
-        rates: { 
-            growth: Float;
-            decay: Float; 
-        };
+        decay: Float; 
+        lock_state: LockState;
+    };
+
+    public type LockState = {
+        #UNLOCKED;
+        #LOCKED;
     };
 
     public type Choice = {
@@ -90,8 +93,8 @@ module {
     public type Vote = {
         vote_id: Nat;
         statement: Text;
-        total_ayes: Nat;
-        total_nays: Nat;
+        total_ayes: Nat; // Total satoshis ayes
+        total_nays: Nat; // Total satoshis nays
         locked_ballots: Map.Map<Nat, Ballot>;
     };
 

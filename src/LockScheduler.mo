@@ -18,11 +18,14 @@ module {
         id: Nat;
         amount: Nat;
         timestamp: Int;
+        decay: Float;
         hotness: Float;
-        rates: { 
-            growth: Float;
-            decay: Float; 
-        };
+        lock_state: LockState;
+    };
+
+    public type LockState = {
+        #LOCKED;
+        #UNLOCKED;
     };
     
     public type DecayParams = {
@@ -35,6 +38,7 @@ module {
         hotness_half_life: Types.Duration;
         get_lock_duration_ns: Float -> Nat;
         to_lock: T -> Lock;
+        update_lock: (T, Lock) -> T;
     }){
 
         let _hotness_decay = Decay.getDecayParameters({
@@ -51,125 +55,122 @@ module {
             id: Nat;
             amount: Nat;
             timestamp: Time;
-            from_lock: Lock -> T;
+            new: Lock -> T;
         }) : T {
 
-            // @todo: assert the timestamp of the last lock is less than the new one
-
-            // Create the new entry
-            let new : Lock = do {
-
-                // The hotness of a lock is the amount of that lock, plus the sum of the previous lock
-                // amounts weighted by their growth, plus the sum of the next lock amounts weighted
-                // by their decay:
-                //
-                //  hotness_i = amount_i
-                //            + (growth_0  * amount_0   + ... + growth_i-1 * amount_i-1) / growth_i
-                //            + (decay_i+1 * amount_i+1 + ... + decay_n    * amount_n  ) / decay_i
-                //
-                //                 lock 0                lock i                   lock n
-                //                       
-                //                    |                    |                        |
-                //   growth           |                    |                        |          ·
-                //     ↑              |                    |                        |        ···
-                //       → time       |                    |                        ↓    ·······
-                //                    |                    |                     ···············
-                //                    ↓                    ↓     ·······························
-                //               ·······························································
-                //
-                //                    |                    |                        |           
-                //               ·    |                    |                        |
-                //   decay       ···  ↓                    |                        |
-                //     ↑         ·······                   |                        |
-                //       → time  ···············           ↓                        |
-                //               ·······························                    ↓
-                //               ·······························································
-                
-                let growth = Decay.computeDecay(_hotness_decay, timestamp);
-                let decay = Decay.computeDecay(_hotness_decay, -timestamp);
-
-                // Compute the hotness
-                var hotness : Float = 0;
-                for (val in Map.vals(map)) {
-                    let lock = to_lock(val);
-                    hotness += lock.rates.growth * Float.fromInt(lock.amount);
-                };
-                hotness /= growth;
-                hotness += Float.fromInt(amount);
-
-                {
-                    id;
-                    amount;
-                    timestamp;
-                    hotness;
-                    rates = { growth; decay; };
-                };
-            };
-
-            // Add the lock to the map
-            if (Option.isSome(Map.addFront(map, Map.nhash, id, from_lock(new)))) {
+            // Ensure the lock does not already exist
+            if (Map.has(map, Map.nhash, id)) {
                 Debug.trap("Lock " # debug_show(id) # " already exists in the map");
             };
 
-            // Update the hotness for all the previous locks
-            label update_loop for (val in Map.vals(map)) {
-                let lock = to_lock(val);
-
-                // If the lock is the new one, skip it
-                if (lock.id == id){
-                    continue update_loop;
+            // Ensure the timestamp of the new lock is greater than the timestamp of the last lock
+            Option.iterate(Map.peekFront(map), func((_, val): (Nat, T)) {
+                if (to_lock(val).timestamp > timestamp) {
+                    Debug.trap("The timestamp of the last lock is greater than the timestamp of the new lock");
                 };
+            });
 
-                let hotness = lock.hotness + Float.fromInt(new.amount) * new.rates.decay / lock.rates.decay;
-                Map.set(map, Map.nhash, lock.id, from_lock({ lock with hotness; }));
+            // The hotness of a lock is the amount of that lock, plus the sum of the previous lock
+            // amounts weighted by their growth, plus the sum of the next lock amounts weighted
+            // by their decay:
+            //
+            //  hotness_i = amount_i
+            //            + (growth_0  * amount_0   + ... + growth_i-1 * amount_i-1) / growth_i
+            //            + (decay_i+1 * amount_i+1 + ... + decay_n    * amount_n  ) / decay_i
+            //
+            //                 lock 0                lock i                   lock n
+            //                       
+            //                    |                    |                        |
+            //   growth           |                    |                        |          ·
+            //     ↑              |                    |                        |        ···
+            //       → time       |                    |                        ↓    ·······
+            //                    |                    |                     ···············
+            //                    ↓                    ↓     ·······························
+            //               ·······························································
+            //
+            //                    |                    |                        |           
+            //               ·    |                    |                        |
+            //   decay       ···  ↓                    |                        |
+            //     ↑         ·······                   |                        |
+            //       → time  ···············           ↓                        |
+            //               ·······························                    ↓
+            //               ·······························································
+            //
+            // Since we use the same rate for growth and decay, we can use the same weight for 
+            // weighting the previous locks and the next locks. The hotness can be simplified to:
+            //
+            //  hotness_i = amount_i
+            //            + (decay_i   / decay_0) * amount_0   + ... + (decay_i * decay_i-1) * amount_i-1
+            //            + (decay_i+1 / decay_i) * amount_i+1 + ... + (decay_n / decay_i  ) * amount_n
+
+            let decay = Decay.computeDecay(_hotness_decay, -timestamp);
+            var hotness = Float.fromInt(amount);
+
+            // Iterate over the previous locks
+            for (elem in Map.vals(map)) {
+                
+                let previous_lock = to_lock(elem);
+
+                // Compute the weight between the two locks
+                let weight = decay / previous_lock.decay;
+                
+                // Update the hotness of the previous lock
+                Map.set(map, Map.nhash, previous_lock.id, update_lock(elem, { previous_lock 
+                    with hotness = previous_lock.hotness + Float.fromInt(amount) * weight; }));
+
+                // Add to the hotness of the new lock
+                hotness += Float.fromInt(previous_lock.amount) * weight;
             };
 
-            from_lock(new);
+            let elem = new({ id; amount; timestamp; decay; hotness; lock_state = #LOCKED;});
+
+            Map.setFront(map, Map.nhash, id, elem);
+
+            elem;
         };
 
-        // Remove the locks from the map which duration has expired
-        // Return the removed locks
+        // Unlock the elements in the map which duration has expired
+        // Return the elements that have been unlocked
         public func try_unlock({
             map: Map.Map<Nat, T>;
-            time: Time
+            time: Time;
         }) : Buffer.Buffer<T> {
 
-            let removed : Buffer.Buffer<T> = Buffer.Buffer(0);
+            let new_unlocked : Buffer.Buffer<T> = Buffer.Buffer(0);
 
-            label endless_loop while true {
-                let { id; timestamp; hotness; } = switch(Map.peek(map)){
-                    // The map is empty
-                    case(null) {
-                        break endless_loop;
-                    };
-                    // The map is not empty
-                    case(?(_, val)) {
-                        to_lock(val);
-                    };
-                };
+            label unlock_loop for (val in Map.vals(filter_locked(map))) {
+                
+                let lock = to_lock(val);
 
-                Debug.print("There is a candidate lock with id=" # debug_show(id));
-
+                Debug.print("There is a candidate lock with id=" # debug_show(lock.id));
+                
                 // Stop the loop if the duration is not reached yet (the locks are added in order of time)
-                if (timestamp + get_lock_duration_ns(hotness) > time) {
+                if (lock.timestamp + get_lock_duration_ns(lock.hotness) > time) {
                     Debug.print("The lock is not expired yet");
-                    break endless_loop;
+                    break unlock_loop;
                 };
 
                 Debug.print("The lock is expired");
-               
-                // Remove the lock from the map
-                switch(Map.remove(map, Map.nhash, id)){
-                    case(?val) {
-                        removed.add(val);
-                    };
-                    case(null) {
-                        Debug.trap("The lock " # debug_show(id) # " could not be removed in the map");
-                    };
-                };
+
+                // Update the lock state of the element
+                let elem = update_lock(val, { lock with lock_state = #UNLOCKED });
+
+                // Update the element in the map
+                Map.set<Nat, T>(map, Map.nhash, lock.id, elem);
+
+                // Add the element to the list of new unlocked
+                new_unlocked.add(elem);
             };
 
-            removed;
+            new_unlocked;
+        };
+
+        func filter_locked(
+            map: Map.Map<Nat, T>
+        ) : Map.Map<Nat, T> {
+            Map.filter<Nat, T>(map, Map.nhash, func((_, val): (Nat, T)) : Bool {
+                to_lock(val).lock_state == #LOCKED;
+            });
         };
 
     };

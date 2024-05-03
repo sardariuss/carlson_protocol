@@ -49,6 +49,7 @@ shared({ caller = admin }) actor class CarlsonProtocol({
         hotness_half_life = _data.parameters.hotness_half_life;
         get_lock_duration_ns = _lock_duration_curve.get_lock_duration_ns;
         to_lock = Votes.to_lock;
+        update_lock = Votes.update_lock;
     });
     let _votes = Votes.Votes({
         register = _data.register;

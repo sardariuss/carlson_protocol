@@ -74,20 +74,20 @@ module {
             };
 
             // Add a lock for the given amount
-            lock_scheduler.new_lock({ map = vote.locked_ballots; id = tx_id; amount = Choice.get_amount(choice); timestamp; from_lock = func(lock: LockScheduler.Lock) : Types.Ballot {
-                {
-                    tx_id;
+            lock_scheduler.new_lock({
+                map = vote.locked_ballots;
+                id = tx_id;
+                amount = Choice.get_amount(choice);
+                timestamp;
+                new = new_ballot({
                     from;
                     choice;
                     // Watchout: the method "compute_contest_factor" assumes the vote 
                     // totals have not been updated yet with the new ballot
                     // @todo: is there a way to not make this assumption? Maybe by passing the updated total as argument?
                     contest_factor = Reward.compute_contest_factor({ choice; total_ayes = vote.total_ayes; total_nays = vote.total_nays; });
-                    timestamp;
-                    hotness = lock.hotness;
-                    rates = lock.rates;
-                };
-            }});
+                });
+            });
         };
 
         public func preview_contest_factor({
@@ -121,9 +121,51 @@ module {
 
     };
 
-    // Utility function to convert a tokens lock to a lock scheduler lock
-    public func to_lock(ballot : Types.Ballot) : LockScheduler.Lock {
-        { id = ballot.tx_id; amount = Choice.get_amount(ballot.choice); timestamp = ballot.timestamp; hotness = ballot.hotness; rates = ballot.rates; };
+    // Utility function to convert a ballot to a lock
+    public func to_lock(ballot: Types.Ballot) : LockScheduler.Lock {
+        { 
+            id = ballot.tx_id;
+            amount = Choice.get_amount(ballot.choice);
+            timestamp = ballot.timestamp;
+            hotness = ballot.hotness;
+            decay = ballot.decay;
+            lock_state = ballot.lock_state;
+        };
+    };
+
+    // Utility function to update a ballot from a lock
+    public func update_lock(
+        ballot: Types.Ballot,
+        lock: LockScheduler.Lock
+    ) : Types.Ballot {
+        {
+            ballot with
+            amount = lock.amount;
+            timestamp = lock.timestamp;
+            hotness = lock.hotness;
+            decay = lock.decay;
+            lock_state = lock.lock_state;
+        };
+    };
+
+    // Utility function to create a new ballot from ballot arguments and lock info
+    public func new_ballot({
+        from: Types.Account;
+        choice: Types.Choice;
+        contest_factor: Float;
+    }) : (LockScheduler.Lock) -> Types.Ballot {
+        func(lock: LockScheduler.Lock) : Types.Ballot {
+            {
+                tx_id = lock.id;
+                timestamp = lock.timestamp;
+                hotness = lock.hotness;
+                decay = lock.decay;
+                lock_state = lock.lock_state;
+                from;
+                choice;
+                contest_factor;
+            };
+        };  
     };
 
 };

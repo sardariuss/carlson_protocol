@@ -7,7 +7,7 @@ import Int       "mo:base/Int";
 module {
 
     // The lock duration curve is responsible for deducting the time left of each lock from their
-    // hotness. It especially aim at preventing absurd locking times (e.g. 10 seconds or 100 years).
+    // hotness. It especially aims at preventing absurd locking times (e.g. 10 seconds or 100 years).
     // It is defined as a power function of the hotness so that the duration is doubled for each 
     // order of magnitude of hotness:
     //      duration = a * hotness ^ b where 
