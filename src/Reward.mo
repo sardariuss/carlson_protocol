@@ -7,57 +7,53 @@ import Debug  "mo:base/Debug";
 module {
 
     // This abritrary parameter is used to "tighten" the logistic regression used for the score so that 
-    // for every values of x within the range [0, total_amount], y will be within the range [0, 1]
+    // for every values of x within the range [0, total], y will be within the range [0, 1]
     // (or [0.00669285092428, 0.993307149076] to be precise)
     let K = 0.1;
     
     public func compute_score({
-        total_ayes: Nat;
-        total_nays: Nat;
         choice: Types.Choice;
+        total_ayes: Float;
+        total_nays: Float;
     }) : Float {
-        let { same_amount; opposit_amount; } = switch(choice){
-            case(#AYE(_)) { { same_amount = total_ayes; opposit_amount = total_nays; }; };
-            case(#NAY(_)) { { same_amount = total_nays; opposit_amount = total_ayes; }; };
+        let { same; opposit; } = switch(choice){
+            case(#AYE(_)) { { same = total_ayes; opposit = total_nays; }; };
+            case(#NAY(_)) { { same = total_nays; opposit = total_ayes; }; };
         };
-        let length = Float.fromInt(same_amount + opposit_amount);
+        let length = same + opposit;
         Math.logistic_regression({
-            x = Float.fromInt(same_amount);
+            x = same;
             mu = length * 0.5;
             sigma = length * K;
         });
     };
 
-    public func compute_contest_factor({
+    public func compute_contest({
         choice: Types.Choice;
-        total_ayes: Nat; 
-        total_nays: Nat;
+        total_ayes: Float; 
+        total_nays: Float;
     }) : Float {
 
-        let { ballot_amount; same_amount; opposit_amount; } = switch(choice){
-            case(#AYE(ballot_amount)) { { ballot_amount; same_amount = total_ayes; opposit_amount = total_nays; }; };
-            case(#NAY(ballot_amount)) { { ballot_amount; same_amount = total_nays; opposit_amount = total_ayes; }; };
+        let { ballot; same; opposit; } = switch(choice){
+            case(#AYE(ballot)) { { ballot = Float.fromInt(ballot); same = total_ayes; opposit = total_nays; }; };
+            case(#NAY(ballot)) { { ballot = Float.fromInt(ballot); same = total_nays; opposit = total_ayes; }; };
         };
 
-        if(ballot_amount == 0){
+        if(ballot == 0){
             Debug.trap("Ballot amount must be greater than 0");
         };
 
-        let total_amount = same_amount + opposit_amount;
+        let total = same + opposit;
         
         // If there is no vote yet, the contest factor is 0.5
         // @todo: need to find a better way to handle this case
-        if (total_amount == 0) {
-            return 0.5 * Float.fromInt(ballot_amount);
+        if (total == 0.0) {
+            return 0.5 * ballot;
         };
 
         // Otherwise, accumulate following a slope based on the ratio: opposit / total
-        // and divide by the total amount to get the average contest per coin
+        // and divide by the ballot amount to get the average contest value per coin
 
-        let total_f = Float.fromInt(total_amount);
-        let opposit_f = Float.fromInt(opposit_amount);
-        let ballot_f = Float.fromInt(ballot_amount);
-
-        opposit_f * (Float.log(total_f + ballot_f) - Float.log(total_f)) / ballot_f;
+        opposit * (Float.log(total + ballot) - Float.log(total)) / ballot;
     };
 }

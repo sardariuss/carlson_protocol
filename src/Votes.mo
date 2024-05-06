@@ -1,5 +1,6 @@
 import Types          "Types";
 import Choice         "Choice";
+import Decay          "Decay";
 import LockScheduler  "LockScheduler";
 import Reward         "Reward";
 
@@ -14,6 +15,8 @@ import Float          "mo:base/Float";
 module {
 
     type Vote = Types.Vote;
+    type Decayed = Types.Decayed;
+    type Choice = Types.Choice;
     type Time = Int;
 
     public type Unlock = { account: Types.Account; refund: Nat; reward: Nat; };
@@ -21,6 +24,7 @@ module {
     public class Votes({
         register: Types.VotesRegister;
         lock_scheduler: LockScheduler.LockScheduler<Types.Ballot>;
+        decay_model: Decay.DecayModel;
     }){
 
         // Creates a new vote and add it to the list of votes
@@ -30,9 +34,9 @@ module {
             Map.set(register.votes, Map.nhash, vote_id, { 
                 vote_id;
                 statement; 
-                total_ayes = 0;
-                total_nays = 0;
-                locked_ballots = Map.new<Nat, Types.Ballot>();
+                total_ayes = #DECAYED(0.0);
+                total_nays = #DECAYED(0.0);
+                ballots = Map.new<Nat, Types.Ballot>();
             });
             vote_id;
         };
@@ -58,45 +62,57 @@ module {
             tx_id: Nat;
             from: Types.Account;
             timestamp: Time;
-            choice: Types.Choice;
+            choice: Choice;
         }) : Types.Ballot {
             
             // Get the vote
-            let vote = switch(Map.get(register.votes, Map.nhash, vote_id)){
+            let { ballots; total_ayes; total_nays; } = switch(Map.get(register.votes, Map.nhash, vote_id)){
                 case(null) { Debug.trap("Vote not found"); };
                 case(?v) { v };
             };
 
-            // Update the totals
-            switch(choice){
-                case(#AYE(amount)) { Map.set(register.votes, Map.nhash, vote_id, { vote with total_ayes = vote.total_ayes + amount; }); };
-                case(#NAY(amount)) { Map.set(register.votes, Map.nhash, vote_id, { vote with total_nays = vote.total_nays + amount; }); };
-            };
-
             // Add a lock for the given amount
-            lock_scheduler.new_lock({
-                map = vote.locked_ballots;
+            let ballot = lock_scheduler.new_lock({
+                map = ballots;
                 id = tx_id;
                 amount = Choice.get_amount(choice);
                 timestamp;
                 new = new_ballot({
                     from;
-                    choice;
-                    // Watchout: the method "compute_contest_factor" assumes the vote 
+                    choice; 
+                    // Watchout: the method "compute_contest" assumes the vote 
                     // totals have not been updated yet with the new ballot
                     // @todo: is there a way to not make this assumption? Maybe by passing the updated total as argument?
-                    contest_factor = Reward.compute_contest_factor({ choice; total_ayes = vote.total_ayes; total_nays = vote.total_nays; });
+                    contest = compute_contest({choice; total_ayes; total_nays; time = timestamp;})
                 });
             });
+
+            // Update the totals
+            ignore Map.update<Nat, Vote>(register.votes, Map.nhash, vote_id, func(id: Nat, vote: ?Vote): ?Vote {
+                switch(vote){
+                    case(null) { Debug.trap("Vote not found"); };
+                    case(?v) {
+                        switch(choice){
+                            case(#AYE(amount)) { ?{ v with total_ayes = Decay.add(v.total_ayes, #DECAYED(Float.fromInt(amount) * ballot.decay)); } };
+                            case(#NAY(amount)) { ?{ v with total_nays = Decay.add(v.total_nays, #DECAYED(Float.fromInt(amount) * ballot.decay)); } };
+                        };
+                    };
+                };
+            });
+
+            ballot;
         };
 
-        public func preview_contest_factor({
+        public func preview_contest({
             vote_id: Nat;
-            choice: Types.Choice;
+            choice: Choice;
+            time: Time;
         }) : { #ok: Float; #err: {#VoteNotFound}; } {
             switch(Map.get(register.votes, Map.nhash, vote_id)){
                 case(null) { #err(#VoteNotFound); };
-                case(?{ total_ayes; total_nays; }) { #ok(Reward.compute_contest_factor({ choice; total_ayes; total_nays; })); };
+                case(?{ total_ayes; total_nays; }) { 
+                    #ok(compute_contest({ choice; total_ayes; total_nays; time; }));
+                };
             };
         };
 
@@ -104,19 +120,36 @@ module {
             
             let buffer = Buffer.Buffer<Unlock>(0);
 
-            for ({ total_ayes; total_nays; locked_ballots; } in Map.vals(register.votes)) {
-                buffer.append(Buffer.map(lock_scheduler.try_unlock({ map = locked_ballots; time; }), func(ballot: Types.Ballot) : Unlock {
-                    let { from; choice; contest_factor; } = ballot;
-                    let score = Reward.compute_score({ total_ayes; total_nays; choice; });
+            for ({ total_ayes; total_nays; ballots; } in Map.vals(register.votes)) {
+                buffer.append(Buffer.map(lock_scheduler.try_unlock({ map = ballots; time; }), func(ballot: Types.Ballot) : Unlock {
+                    let { from; choice; contest; } = ballot;
+                    let score = Reward.compute_score({ 
+                        choice;
+                        total_ayes = decay_model.unwrapDecayed(total_ayes, time);
+                        total_nays = decay_model.unwrapDecayed(total_nays, time);
+                    });
                     {
                         account = from;
                         refund = Choice.get_amount(choice);
-                        reward = Int.abs(Float.toInt(contest_factor * score));
+                        reward = Int.abs(Float.toInt(contest * score));
                     };
                 }));
             };
 
             buffer;
+        };
+
+        func compute_contest({
+            choice: Choice;
+            total_ayes: Decayed;
+            total_nays: Decayed;
+            time: Time;
+        }) : Float {
+            Reward.compute_contest({ 
+                choice;
+                total_ayes = decay_model.unwrapDecayed(total_ayes, time);
+                total_nays = decay_model.unwrapDecayed(total_nays, time);
+            });
         };
 
     };
@@ -151,8 +184,8 @@ module {
     // Utility function to create a new ballot from ballot arguments and lock info
     public func new_ballot({
         from: Types.Account;
-        choice: Types.Choice;
-        contest_factor: Float;
+        choice: Choice;
+        contest: Float;
     }) : (LockScheduler.Lock) -> Types.Ballot {
         func(lock: LockScheduler.Lock) : Types.Ballot {
             {
@@ -163,7 +196,7 @@ module {
                 lock_state = lock.lock_state;
                 from;
                 choice;
-                contest_factor;
+                contest;
             };
         };  
     };

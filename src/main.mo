@@ -1,8 +1,9 @@
-import Types             "Types";
-import Choice            "Choice";
 import Account           "Account";
+import Choice            "Choice";
+import Decay             "Decay";
 import LockScheduler     "LockScheduler";
 import LockDurationCurve "LockDurationCurve";
+import Types             "Types";
 import Votes             "Votes";
 
 import Map               "mo:map/Map";
@@ -21,7 +22,7 @@ shared({ caller = admin }) actor class CarlsonProtocol({
     deposit_ledger: Principal;
     reward_ledger: Principal;
     parameters: {
-        hotness_half_life: Types.Duration;
+        ballot_half_life: Types.Duration;
         nominal_lock_duration: Types.Duration;
         add_ballot_min_amount: Nat;
         new_vote_min_amount: Nat;
@@ -44,9 +45,12 @@ shared({ caller = admin }) actor class CarlsonProtocol({
     let _lock_duration_curve = LockDurationCurve.LockDurationCurve({
         nominal_lock_duration = _data.parameters.nominal_lock_duration;
     });
-    let _lock_scheduler = LockScheduler.LockScheduler<Types.Ballot>({
+    let _decay_model = Decay.DecayModel({
         time_init = Time.now();
-        hotness_half_life = _data.parameters.hotness_half_life;
+        half_life = _data.parameters.ballot_half_life;
+    });
+    let _lock_scheduler = LockScheduler.LockScheduler<Types.Ballot>({
+        decay_model = _decay_model;
         get_lock_duration_ns = _lock_duration_curve.get_lock_duration_ns;
         to_lock = Votes.to_lock;
         update_lock = Votes.update_lock;
@@ -54,6 +58,7 @@ shared({ caller = admin }) actor class CarlsonProtocol({
     let _votes = Votes.Votes({
         register = _data.register;
         lock_scheduler = _lock_scheduler;
+        decay_model = _decay_model;
     });
 
     // Create a new vote
@@ -207,11 +212,11 @@ shared({ caller = admin }) actor class CarlsonProtocol({
 
     // Compute the contest factor for the given choice to anticipate
     // the potential reward before voting
-    public query func preview_contest_factor({
+    public query func preview_contest({
         vote_id: Nat;
         choice: Types.Choice;
     }) : async { #ok: Float; #err: {#VoteNotFound}; } {
-        _votes.preview_contest_factor({vote_id; choice;});
+        _votes.preview_contest({vote_id; choice; time = Time.now(); });
     };
 
     // Find a ballot by its vote_id and tx_id
@@ -220,7 +225,7 @@ shared({ caller = admin }) actor class CarlsonProtocol({
         tx_id: Nat;
     }) : async ?Types.Ballot {
         Option.chain(_votes.find_vote(vote_id), func(vote: Types.Vote) : ?Types.Ballot {
-            Map.get(vote.locked_ballots, Map.nhash, tx_id);
+            Map.get(vote.ballots, Map.nhash, tx_id);
         });
     };
 

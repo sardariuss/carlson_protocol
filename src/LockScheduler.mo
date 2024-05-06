@@ -13,6 +13,7 @@ import Int       "mo:base/Int";
 module {
 
     type Time = Time.Time;
+    type DecayModel = Decay.DecayModel;
 
     public type Lock = {
         id: Nat;
@@ -28,23 +29,12 @@ module {
         #UNLOCKED;
     };
     
-    public type DecayParams = {
-        lambda: Float;
-        shift: Float;
-    };
-
     public class LockScheduler<T>({
-        time_init: Time;
-        hotness_half_life: Types.Duration;
+        decay_model: DecayModel;
         get_lock_duration_ns: Float -> Nat;
         to_lock: T -> Lock;
         update_lock: (T, Lock) -> T;
     }){
-
-        let _hotness_decay = Decay.getDecayParameters({
-            half_life = hotness_half_life;
-            time_init;
-        });
 
         // Creates a new lock with the given id, amount and timestamp
         // Deduce the hotness of the lock from the previous locks
@@ -64,7 +54,7 @@ module {
             };
 
             // Ensure the timestamp of the new lock is greater than the timestamp of the last lock
-            Option.iterate(Map.peekFront(map), func((_, val): (Nat, T)) {
+            Option.iterate(Map.peek(map), func((_, val): (Nat, T)) {
                 if (to_lock(val).timestamp > timestamp) {
                     Debug.trap("The timestamp of the last lock is greater than the timestamp of the new lock");
                 };
@@ -100,10 +90,11 @@ module {
             // weighting the previous locks and the next locks. The hotness can be simplified to:
             //
             //  hotness_i = amount_i
-            //            + (decay_i   / decay_0) * amount_0   + ... + (decay_i * decay_i-1) * amount_i-1
-            //            + (decay_i+1 / decay_i) * amount_i+1 + ... + (decay_n / decay_i  ) * amount_n
+            //            + (decay_0 / decay_i  ) * amount_0   + ... + (decay_i-1 / decay_i) * amount_i-1
+            //            + (decay_i / decay_i+1) * amount_i+1 + ... + (decay_i  / decay_n ) * amount_n
 
-            let decay = Decay.computeDecay(_hotness_decay, -timestamp);
+            let decay = decay_model.computeDecay(timestamp);
+
             var hotness = Float.fromInt(amount);
 
             // Iterate over the previous locks
@@ -112,7 +103,7 @@ module {
                 let previous_lock = to_lock(elem);
 
                 // Compute the weight between the two locks
-                let weight = decay / previous_lock.decay;
+                let weight = previous_lock.decay / decay;
                 
                 // Update the hotness of the previous lock
                 Map.set(map, Map.nhash, previous_lock.id, update_lock(elem, { previous_lock 
@@ -124,7 +115,7 @@ module {
 
             let elem = new({ id; amount; timestamp; decay; hotness; lock_state = #LOCKED;});
 
-            Map.setFront(map, Map.nhash, id, elem);
+            Map.set(map, Map.nhash, id, elem);
 
             elem;
         };

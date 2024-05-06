@@ -59,6 +59,10 @@ module {
         shift: Float;
     };
 
+    public type Decayed = {
+        #DECAYED: Float;
+    };
+
     public type Account = { 
         owner : Principal; 
         subaccount : ?Blob;
@@ -73,10 +77,10 @@ module {
         tx_id: Nat;
         from: Account;
         choice : Choice;
-        contest_factor: Float;
+        contest: Float;
         timestamp: Int;
         hotness: Float;
-        decay: Float; 
+        decay: Float;
         lock_state: LockState;
     };
 
@@ -93,9 +97,9 @@ module {
     public type Vote = {
         vote_id: Nat;
         statement: Text;
-        total_ayes: Nat; // Total satoshis ayes
-        total_nays: Nat; // Total satoshis nays
-        locked_ballots: Map.Map<Nat, Ballot>;
+        total_ayes: Decayed; // Total satoshis ayes
+        total_nays: Decayed; // Total satoshis nays
+        ballots: Map.Map<Nat, Ballot>;
     };
 
     public type VotesRegister = {

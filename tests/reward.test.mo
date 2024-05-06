@@ -14,21 +14,21 @@ suite("Reward", func(){
         let total_ayes = 400;
         let total_nays = 100;
 
-        let contest_factor_with = Reward.compute_contest_factor({
+        let contest_with = Reward.compute_contest({
             choice = #AYE(500);
             total_ayes;
             total_nays;
         });
 
-        verify(contest_factor_with, 0.15, Testify.float.equal);
+        verify(contest_with, 0.15, Testify.float.equal);
 
-        let contest_factor_against = Reward.compute_contest_factor({
+        let contest_against = Reward.compute_contest({
             choice = #NAY(300);
             total_ayes;
             total_nays;
         });
 
-        verify(contest_factor_against, 0.65, Testify.float.equal);
+        verify(contest_against, 0.65, Testify.float.equal);
     });
 
 //    test("Test compute score", func(){
@@ -45,11 +45,11 @@ suite("Reward", func(){
 //        var score_against = Reward.compute_score({ total_ayes; total_nays; choice = choice_against; });
 //        Debug.print("Score against: " # debug_show(score_against));
 //
-//        var reward_with = Int.abs(Float.toInt(contest_factor_with * score_with));
+//        var reward_with = Int.abs(Float.toInt(contest_with * score_with));
 //
 //        Debug.print("Trend stayed the same, reward with: " # debug_show(reward_with));
 //
-//        var reward_against = Int.abs(Float.toInt(contest_factor_against * score_against));
+//        var reward_against = Int.abs(Float.toInt(contest_against * score_against));
 //
 //        Debug.print("Trend stayed the same, reward against: " # debug_show(reward_against));
 //
@@ -62,11 +62,11 @@ suite("Reward", func(){
 //        score_against := Reward.compute_score({ total_ayes; total_nays; choice = choice_against; });
 //        Debug.print("Score against: " # debug_show(score_against));
 //
-//        reward_with := Int.abs(Float.toInt(contest_factor_with * score_with));
+//        reward_with := Int.abs(Float.toInt(contest_with * score_with));
 //
 //        Debug.print("Trend confirmed, reward with: " # debug_show(reward_with));
 //
-//        reward_against := Int.abs(Float.toInt(contest_factor_against * score_against));
+//        reward_against := Int.abs(Float.toInt(contest_against * score_against));
 //
 //        Debug.print("Trend confirmed, reward against: " # debug_show(reward_against));
 //
@@ -77,11 +77,11 @@ suite("Reward", func(){
 //        score_with := Reward.compute_score({ total_ayes; total_nays; choice = choice_with; });
 //        score_against := Reward.compute_score({ total_ayes; total_nays; choice = choice_against; });
 //
-//        reward_with := Int.abs(Float.toInt(contest_factor_with * score_with));
+//        reward_with := Int.abs(Float.toInt(contest_with * score_with));
 //
 //        Debug.print("Trend changed a little, reward with: " # debug_show(reward_with));
 //
-//        reward_against := Int.abs(Float.toInt(contest_factor_against * score_against));
+//        reward_against := Int.abs(Float.toInt(contest_against * score_against));
 //
 //        Debug.print("Trend changed a little, reward against: " # debug_show(reward_against));
 //
@@ -92,11 +92,11 @@ suite("Reward", func(){
 //        score_with := Reward.compute_score({ total_ayes; total_nays; choice = choice_with; });
 //        score_against := Reward.compute_score({ total_ayes; total_nays; choice = choice_against; });
 //
-//        reward_with := Int.abs(Float.toInt(contest_factor_with * score_with));
+//        reward_with := Int.abs(Float.toInt(contest_with * score_with));
 //
 //        Debug.print("Trend changed drastically, reward with: " # debug_show(reward_with));
 //
-//        reward_against := Int.abs(Float.toInt(contest_factor_against * score_against));
+//        reward_against := Int.abs(Float.toInt(contest_against * score_against));
 //
 //        Debug.print("Trend changed drastically, reward against: " # debug_show(reward_against));
 //
