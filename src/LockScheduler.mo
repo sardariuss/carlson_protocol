@@ -133,15 +133,15 @@ module {
                 
                 let lock = to_lock(val);
 
-                Debug.print("There is a candidate lock with id=" # debug_show(lock.id));
+                //Debug.print("There is a candidate lock with id=" # debug_show(lock.id));
                 
                 // Stop the loop if the duration is not reached yet (the locks are added in order of time)
                 if (lock.timestamp + get_lock_duration_ns(lock.hotness) > time) {
-                    Debug.print("The lock is not expired yet");
+                    //Debug.print("The lock is not expired yet");
                     break unlock_loop;
                 };
 
-                Debug.print("The lock is expired");
+                //Debug.print("The lock is expired");
 
                 // Update the lock state of the element
                 let elem = update_lock(val, { lock with lock_state = #UNLOCKED });

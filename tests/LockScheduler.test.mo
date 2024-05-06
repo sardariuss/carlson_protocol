@@ -16,7 +16,7 @@ import Text             "mo:base/Text";
 
 import Map              "mo:map/Map";
 
-suite("LockScheduler suite", func(){
+suite("LockScheduler", func(){
 
     type Time = Time.Time;
     type Duration = Types.Duration;
@@ -90,7 +90,7 @@ suite("LockScheduler suite", func(){
         func (d1: Duration, d2: Duration) : Bool { Duration.toTime(d1) > Duration.toTime(d2); }
     );
 
-    test("Test with two locks", func(){
+    test("Two locks", func(){
         let t0 = Time.now();
 
         let decay_model = Decay.DecayModel({
@@ -164,7 +164,6 @@ suite("LockScheduler suite", func(){
                 lock_state = #LOCKED;
             },
             equal_lock);
-        Debug.print("Lock 0 time left = " # debug_show(hotness_to_duration(lock0.hotness)));
         verify(#NS(hotness_to_duration(lock0.hotness)), #MINUTES(20), superior_duration);
         verify(#NS(hotness_to_duration(lock0.hotness)), #MINUTES(50), inferior_duration);
 

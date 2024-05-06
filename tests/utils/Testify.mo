@@ -154,6 +154,18 @@ module {
                 toText = func (f : Float) : Text = Prim.floatToText(f);
                 compare    = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, FLOAT_EPSILON); };
             };
+            equalEpsilon9 : Testify<Float> = {
+                toText = func (f : Float) : Text = Prim.floatToText(f);
+                compare    = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, 1e-9); };
+            };
+            equalEpsilon6 : Testify<Float> = {
+                toText = func (f : Float) : Text = Prim.floatToText(f);
+                compare    = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, 1e-6); };
+            };
+            equalEpsilon3 : Testify<Float> = {
+                toText = func (f : Float) : Text = Prim.floatToText(f);
+                compare    = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, 1e-3); };
+            };
             greaterThan : Testify<Float> = {
                 toText = func (f : Float) : Text = Prim.floatToText(f);
                 compare    = func (x : Float, y : Float) : Bool { x > y };
@@ -169,27 +181,6 @@ module {
             lessThanOrEqual : Testify<Float> = {
                 toText = func (f : Float) : Text = Prim.floatToText(f);
                 compare    = func (x : Float, y : Float) : Bool { x <= y };
-            };
-        };
-
-        public let floatEpsilon9 = {
-            equal : Testify<Float> = {
-                toText = func (f : Float) : Text = Prim.floatToText(f);
-                compare    = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, 1e-9); };
-            };
-        };
-
-        public let floatEpsilon6 = {
-            equal : Testify<Float> = {
-                toText = func (f : Float) : Text = Prim.floatToText(f);
-                compare    = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, 1e-6); };
-            };
-        };
-
-        public let floatEpsilon3 = {
-            equal : Testify<Float> = {
-                toText = func (f : Float) : Text = Prim.floatToText(f);
-                compare    = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, 1e-3); };
             };
         };
 

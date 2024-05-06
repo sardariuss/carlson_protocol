@@ -80,5 +80,4 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
 - Be able to order the votes by date, popularity or hotness. Be able to filter them by tag.
 - Add reward for users who suggest votes
 - Remove prints in LockScheduler.mo
-- Fix decay and reward unit tests
 - Add votes unit tests
