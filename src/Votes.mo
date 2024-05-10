@@ -34,8 +34,8 @@ module {
             Map.set(register.votes, Map.nhash, vote_id, { 
                 vote_id;
                 statement; 
-                total_ayes = #DECAYED(0.0);
-                total_nays = #DECAYED(0.0);
+                total_yes = #DECAYED(0.0);
+                total_no = #DECAYED(0.0);
                 ballots = Map.new<Nat, Types.Ballot>();
             });
             vote_id;
@@ -66,7 +66,7 @@ module {
         }) : Types.Ballot {
             
             // Get the vote
-            let { ballots; total_ayes; total_nays; } = switch(Map.get(register.votes, Map.nhash, vote_id)){
+            let { ballots; total_yes; total_no; } = switch(Map.get(register.votes, Map.nhash, vote_id)){
                 case(null) { Debug.trap("Vote not found"); };
                 case(?v) { v };
             };
@@ -83,7 +83,7 @@ module {
                     // Watchout: the method "compute_contest" assumes the vote 
                     // totals have not been updated yet with the new ballot
                     // @todo: is there a way to not make this assumption? Maybe by passing the updated total as argument?
-                    contest = compute_contest({choice; total_ayes; total_nays; time = timestamp;})
+                    contest = compute_contest({choice; total_yes; total_no; time = timestamp;})
                 });
             });
 
@@ -93,8 +93,8 @@ module {
                     case(null) { Debug.trap("Vote not found"); };
                     case(?v) {
                         switch(choice){
-                            case(#AYE(amount)) { ?{ v with total_ayes = Decay.add(v.total_ayes, #DECAYED(Float.fromInt(amount) * ballot.decay)); } };
-                            case(#NAY(amount)) { ?{ v with total_nays = Decay.add(v.total_nays, #DECAYED(Float.fromInt(amount) * ballot.decay)); } };
+                            case(#YES(amount)) { ?{ v with total_yes = Decay.add(v.total_yes, #DECAYED(Float.fromInt(amount) * ballot.decay)); } };
+                            case(#NO(amount)) { ?{ v with total_no = Decay.add(v.total_no, #DECAYED(Float.fromInt(amount) * ballot.decay)); } };
                         };
                     };
                 };
@@ -110,8 +110,8 @@ module {
         }) : { #ok: Float; #err: {#VoteNotFound}; } {
             switch(Map.get(register.votes, Map.nhash, vote_id)){
                 case(null) { #err(#VoteNotFound); };
-                case(?{ total_ayes; total_nays; }) { 
-                    #ok(compute_contest({ choice; total_ayes; total_nays; time; }));
+                case(?{ total_yes; total_no; }) { 
+                    #ok(compute_contest({ choice; total_yes; total_no; time; }));
                 };
             };
         };
@@ -120,13 +120,13 @@ module {
             
             let buffer = Buffer.Buffer<Unlock>(0);
 
-            for ({ total_ayes; total_nays; ballots; } in Map.vals(register.votes)) {
+            for ({ total_yes; total_no; ballots; } in Map.vals(register.votes)) {
                 buffer.append(Buffer.map(lock_scheduler.try_unlock({ map = ballots; time; }), func(ballot: Types.Ballot) : Unlock {
                     let { from; choice; contest; } = ballot;
                     let score = Reward.compute_score({ 
                         choice;
-                        total_ayes = decay_model.unwrapDecayed(total_ayes, time);
-                        total_nays = decay_model.unwrapDecayed(total_nays, time);
+                        total_yes = decay_model.unwrapDecayed(total_yes, time);
+                        total_no = decay_model.unwrapDecayed(total_no, time);
                     });
                     {
                         account = from;
@@ -141,14 +141,14 @@ module {
 
         func compute_contest({
             choice: Choice;
-            total_ayes: Decayed;
-            total_nays: Decayed;
+            total_yes: Decayed;
+            total_no: Decayed;
             time: Time;
         }) : Float {
             Reward.compute_contest({ 
                 choice;
-                total_ayes = decay_model.unwrapDecayed(total_ayes, time);
-                total_nays = decay_model.unwrapDecayed(total_nays, time);
+                total_yes = decay_model.unwrapDecayed(total_yes, time);
+                total_no = decay_model.unwrapDecayed(total_no, time);
             });
         };
 

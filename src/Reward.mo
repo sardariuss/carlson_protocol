@@ -13,12 +13,12 @@ module {
     
     public func compute_score({
         choice: Types.Choice;
-        total_ayes: Float;
-        total_nays: Float;
+        total_yes: Float;
+        total_no: Float;
     }) : Float {
         let { same; opposit; } = switch(choice){
-            case(#AYE(_)) { { same = total_ayes; opposit = total_nays; }; };
-            case(#NAY(_)) { { same = total_nays; opposit = total_ayes; }; };
+            case(#YES(_)) { { same = total_yes; opposit = total_no; }; };
+            case(#NO(_)) { { same = total_no; opposit = total_yes; }; };
         };
         let length = same + opposit;
         Math.logistic_regression({
@@ -30,13 +30,13 @@ module {
 
     public func compute_contest({
         choice: Types.Choice;
-        total_ayes: Float; 
-        total_nays: Float;
+        total_yes: Float; 
+        total_no: Float;
     }) : Float {
 
         let { ballot; same; opposit; } = switch(choice){
-            case(#AYE(ballot)) { { ballot = Float.fromInt(ballot); same = total_ayes; opposit = total_nays; }; };
-            case(#NAY(ballot)) { { ballot = Float.fromInt(ballot); same = total_nays; opposit = total_ayes; }; };
+            case(#YES(ballot)) { { ballot = Float.fromInt(ballot); same = total_yes; opposit = total_no; }; };
+            case(#NO(ballot)) { { ballot = Float.fromInt(ballot); same = total_no; opposit = total_yes; }; };
         };
 
         if(ballot == 0){

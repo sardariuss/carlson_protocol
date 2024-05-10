@@ -90,15 +90,15 @@ module {
     };
 
     public type Choice = {
-        #AYE: Nat;
-        #NAY: Nat;
+        #YES: Nat;
+        #NO: Nat;
     };
 
     public type Vote = {
         vote_id: Nat;
         statement: Text;
-        total_ayes: Decayed; // Total satoshis ayes
-        total_nays: Decayed; // Total satoshis nays
+        total_yes: Decayed; // Total satoshis yes
+        total_no: Decayed; // Total satoshis no
         ballots: Map.Map<Nat, Ballot>;
     };
 

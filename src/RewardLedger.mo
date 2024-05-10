@@ -1,10 +1,5 @@
 import Account           "Account";
-import Choice            "Choice";
-import Decay             "Decay";
-import LockScheduler     "LockScheduler";
-import LockDurationCurve "LockDurationCurve";
 import Types             "Types";
-import Votes             "Votes";
 
 import Map               "mo:map/Map";
 
@@ -18,20 +13,13 @@ import Buffer            "mo:base/Buffer";
 import ICRC1             "mo:icrc1-mo/ICRC1/service";
 import ICRC2             "mo:icrc2-mo/ICRC2/service";
 
-shared({ caller = admin }) actor class CarlsonProtocol({
-    deposit_ledger: Principal;
-    reward_ledger: Principal;
-    parameters: {
-        ballot_half_life: Types.Duration;
-        nominal_lock_duration: Types.Duration;
-        add_ballot_min_amount: Nat;
-        new_vote_min_amount: Nat;
-    }}) = this {
-
-    // STABLE MEMBERS
-    stable let _failed_refunds = Map.new<Principal, [Types.FailedTransfer]>();
+module{
+    class DepositLedger({
+        ledger: ICRC1.service and ICRC2.service;
+        failed_refunds: Map.Map<Principal, [Types.FailedTransfer]>;
+    })
     stable let _failed_rewards = Map.new<Principal, [Types.FailedTransfer]>();
-    stable let _deposit_ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(deposit_ledger));
+    
     stable let _reward_ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(reward_ledger));
     stable let _data = {
         register = {
@@ -100,7 +88,14 @@ shared({ caller = admin }) actor class CarlsonProtocol({
         choice: Types.Choice;
     }) : async { #Ok : Types.Ballot; #Err : ICRC2.TransferFromError or { #NotAuthorized; #VoteNotFound; #AmountTooLow : { min_amount : Nat; }; } } {
 
-        // Check if the caller is the owner of the account
+        // Early return if the vote is not found
+        if (not _votes.has_vote(vote_id)){
+            return #Err(#VoteNotFound);
+        };
+
+        let timestamp = Time.now();
+
+         // Check if the caller is the owner of the account
         if (from.owner != caller) {
             return #Err(#NotAuthorized);
         };
@@ -110,13 +105,6 @@ shared({ caller = admin }) actor class CarlsonProtocol({
         if (Choice.get_amount(choice) < min_amount) {
             return #Err(#AmountTooLow{ min_amount; });
         };
-
-        // Early return if the vote is not found
-        if (not _votes.has_vote(vote_id)){
-            return #Err(#VoteNotFound);
-        };
-
-        let timestamp = Time.now();
         
         let tx_id = switch(await _deposit_ledger.icrc2_transfer_from({
             spender_subaccount = ?Account.pSubaccount(from.owner);
