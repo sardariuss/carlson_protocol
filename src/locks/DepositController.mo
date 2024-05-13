@@ -1,7 +1,7 @@
 import DepositScheduler "DepositScheduler";
 import Types            "../Types";
 import Decay            "../Decay";
-import LedgerFacade     "../LedgerFacade";
+import PayementFacade   "../PayementFacade";
 
 import Map              "mo:map/Map";
 
@@ -15,23 +15,20 @@ module {
     type DecayModel = Decay.DecayModel;
     type DepositScheduler = DepositScheduler.DepositScheduler;
     type LockedDeposit = DepositScheduler.LockedDeposit;
-    type TransferResult = LedgerFacade.TransferResult;
+    type TransferResult = PayementFacade.TransferResult;
 
     type LockedAccount = {
         account: Account;
     };
 
     type Time = Int;
-    type AddDepositResult = LedgerFacade.AddDepositResult;
+    type AddDepositResult = PayementFacade.AddDepositResult;
+    type TransferCallback = DepositScheduler.TransferCallback;
 
     public class DepositController({
         map_deposits: Map.Map<Nat, Map.Map<Nat, LockedDeposit>>;
-        ledger: LedgerFacade.LedgerFacade;
-        decay_model: DecayModel;
-        get_lock_duration_ns: Float -> Nat;
+        deposit_scheduler: DepositScheduler;
     }) {
-
-        let _deposit_scheduler = DepositScheduler.DepositScheduler({ ledger; decay_model; get_lock_duration_ns; });
 
         public func new_map_deposits(map_id: Nat) {
             let old = Map.add(map_deposits, Map.nhash, map_id, Map.new<Nat, LockedDeposit>());
@@ -47,7 +44,7 @@ module {
             account: Account;
             amount: Nat;
             timestamp: Time;
-        }) : async AddDepositResult {
+        }) : async* AddDepositResult {
             
             // Get the deposits
             let deposits = switch(Map.get(map_deposits, Map.nhash, map_id)){
@@ -56,21 +53,25 @@ module {
             };
 
             // Add the deposit
-            await _deposit_scheduler.add_deposit({ deposits; caller; account; amount; timestamp; });
+            await* deposit_scheduler.add_deposit({ deposits; caller; account; amount; timestamp; });
         };
 
-        public func try_refund(time: Time) : Map.Map<Nat, [async* TransferResult]> {
+        public func try_refund(time: Time) : async* [TransferResult] {
             
-            let to_refund = Map.new<Nat, [TransferCallback]>();
-
+            // Trigger all the refunds
+            let transfers = Buffer.Buffer<async* TransferResult>(0);
             for ((map_id, deposits) in Map.entries(map_deposits)){
-                let transfer_callbacks = _deposit_scheduler.try_refund(deposits, time);
-                if (transfer_callbacks.size() > 0){
-                    Map.set(to_refund, Map.nhash, map_id, Buffer.toArray(transfer_callbacks));
+                for (callback in deposit_scheduler.try_refund(deposits, time).vals()){
+                    transfers.add(callback());
                 };
             };
 
-            to_refund;
+            // Wait for the results
+            let results = Buffer.Buffer<TransferResult>(transfers.size());
+            for (transfer in transfers.vals()){
+                results.add(await* transfer);
+            };
+            Buffer.toArray(results);
         };
 
     };

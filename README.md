@@ -81,3 +81,4 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
 - Add reward for users who suggest votes
 - Remove prints in LockScheduler.mo
 - Add votes unit tests
+- If a transfer fails, it is added to the map of failed transfers, but its origin is lost

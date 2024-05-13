@@ -1,7 +1,7 @@
 import LockScheduler "LockScheduler";
 import Types "../Types";
 import Decay "../Decay";
-import LedgerFacade "../LedgerFacade";
+import PayementFacade "../PayementFacade";
 
 import Map "mo:map/Map";
 
@@ -15,6 +15,7 @@ module {
     type DecayModel = Decay.DecayModel;
     type Account = Types.Account;
     type Lock<T> = LockScheduler.Lock<T>;
+    type Buffer<T> = Buffer.Buffer<T>;
 
     type LockedAccount = {
         account: Account;
@@ -22,16 +23,14 @@ module {
     public type LockedDeposit = Lock<LockedAccount>;
 
     type Time = Int;
-    type AddDepositResult = LedgerFacade.AddDepositResult;
-    type TransferResult = LedgerFacade.TransferResult;
+    type AddDepositResult = PayementFacade.AddDepositResult;
+    type TransferResult = PayementFacade.TransferResult;
+    public type TransferCallback = () -> async* PayementFacade.TransferResult;
 
-     public class DepositScheduler({
-        ledger: LedgerFacade.LedgerFacade;
-        decay_model: DecayModel;
-        get_lock_duration_ns: Float -> Nat;
+    public class DepositScheduler({
+        payement: PayementFacade.PayementFacade;
+        lock_scheduler: LockScheduler.LockScheduler<LockedAccount>;
     }){
-
-        let _lock_scheduler = LockScheduler.LockScheduler<LockedAccount>({ decay_model; get_lock_duration_ns; });
 
         public func add_deposit({
             deposits: Map.Map<Nat, LockedDeposit>;
@@ -51,23 +50,27 @@ module {
             });
 
             // Perform the deposit
-            let deposit_result = await* ledger.add_deposit({ caller; from = account; amount; time = timestamp; });
+            let deposit_result = await* payement.add_deposit({ caller; from = account; amount; time = timestamp; });
 
             // Add the lock if the deposit was successful
             Result.iterate(deposit_result, func(tx_index: Nat){
-                _lock_scheduler.new_lock({ locks = deposits; id = tx_index; amount; timestamp; data = { account; } });
+                lock_scheduler.new_lock({ locks = deposits; id = tx_index; amount; timestamp; data = { account; } });
             });
 
             deposit_result;
         };
 
-        public func try_refund(deposits: Map.Map<Nat, LockedDeposit>, time: Time) : Buffer.Buffer<async* TransferResult> {
-            Buffer.map(_lock_scheduler.try_unlock(deposits, time), func(deposit: LockedDeposit) : async* TransferResult {
-                ledger.refund_deposit({ 
-                    origin_account = deposit.data.account;
-                    amount = deposit.amount;
-                    time; 
-                });
+        public func try_refund(deposits: Map.Map<Nat, LockedDeposit>, time: Time) : Buffer<TransferCallback> {
+
+            // For each deposit unlocked, prepare the refund (do not execute it yet)
+            Buffer.map<LockedDeposit, TransferCallback>(lock_scheduler.try_unlock(deposits, time), func(deposit: LockedDeposit) : TransferCallback {
+                func() : async* TransferResult {
+                    await* payement.refund_deposit({
+                        origin_account = deposit.data.account;
+                        amount = deposit.amount;
+                        time; 
+                    });
+                };
             });
         };
 

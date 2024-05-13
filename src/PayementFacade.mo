@@ -1,5 +1,6 @@
 import Account           "Account";
 import Types             "Types";
+import MapArray          "utils/MapArray";
 
 import Map               "mo:map/Map";
 
@@ -7,8 +8,6 @@ import Int               "mo:base/Int";
 import Time              "mo:base/Time";
 import Principal         "mo:base/Principal";
 import Nat64             "mo:base/Nat64";
-import Option            "mo:base/Option";
-import Buffer            "mo:base/Buffer";
 import Result            "mo:base/Result";
 
 import ICRC1             "mo:icrc1-mo/ICRC1/service";
@@ -34,8 +33,8 @@ module {
     public type TransferResult = Result<Nat, ICRC1.TransferError>;
     
     // @todo: is setting created_at_time a good practice?
-    public class LedgerFacade({
-        custodian: Principal;
+    public class PayementFacade({
+        payee: Principal;
         ledger: ICRC1.service and ICRC2.service;
         failed_transfers: Map.Map<Principal, [FailedTransfer]>;
         min_deposit: Nat;
@@ -49,7 +48,7 @@ module {
             time: Time;
         }) : async* Result<Nat, ICRC2.TransferFromError or { #NotAuthorized; }> {
             
-            // Transfer to the custodian's main account (null subaccount)
+            // Transfer to the payee's main account (null subaccount)
             await* transfer_from({
                 caller;
                 from;
@@ -70,7 +69,7 @@ module {
                 return #err(#DepositTooLow{ min_deposit; });
             };
 
-            // Transfer to the custodian's user subaccount
+            // Transfer to the payee's user subaccount
             await* transfer_from({
                 caller;
                 from;
@@ -84,7 +83,7 @@ module {
             amount: Nat;
             origin_account: Account;
             time: Time;
-        }) : async* Result<Nat, ICRC1.TransferError> {
+        }) : async* TransferResult {
 
             await* transfer({
                 amount;
@@ -98,7 +97,7 @@ module {
             amount: Nat;
             to: Account;
             time: Time;
-        }) : async* Result<Nat, ICRC1.TransferError> {
+        }) : async* TransferResult {
             
             await* transfer({
                 amount;
@@ -125,7 +124,7 @@ module {
                 spender_subaccount = ?Account.pSubaccount(from.owner);
                 from;
                 to = {
-                    owner = custodian;
+                    owner = payee;
                     subaccount = to_subaccount;
                 };
                 amount;
@@ -140,16 +139,27 @@ module {
             to: Account;
             from_subaccount: ?Blob;
             time: Time;
-        }) : async* Result<Nat, ICRC1.TransferError> {
-        
-            to_base_result(await ledger.icrc1_transfer({
+        }) : async* TransferResult {
+
+            let args = {
                 to;
                 from_subaccount;
                 amount;
                 fee;
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(time));
-            }));
+            };
+        
+            let transfer = to_base_result(await ledger.icrc1_transfer(args));
+
+            switch(transfer){
+                case(#err(error)){
+                    MapArray.add(failed_transfers, Map.phash, to.owner, { args; error; });
+                };
+                case(_){};
+            };
+
+            transfer;
         };
 
     };
