@@ -14,16 +14,15 @@ module {
     type Time = Time.Time;
     type DecayModel = Decay.DecayModel;
 
-    public type Lock<T> = {
+    public type Lock = {
         id: Nat;
         amount: Nat;
         timestamp: Int;
         decay: Float;
         hotness: Float;
-        data: T;
     };
     
-    public class LockScheduler<T>({
+    public class LockScheduler({
         decay_model: DecayModel;
         get_lock_duration_ns: Float -> Nat;
     }){
@@ -33,11 +32,10 @@ module {
         // Update the hotness of the previous locks
         // Add the lock to the map and return it
         public func new_lock({
-            locks: Map.Map<Nat, Lock<T>>;
+            locks: Map.Map<Nat, Lock>;
             id: Nat;
             amount: Nat;
             timestamp: Time;
-            data: T;
         }) {
 
             // Ensure the lock does not already exist
@@ -46,7 +44,7 @@ module {
             };
 
             // Ensure the timestamp of the new lock is greater than the timestamp of the last lock
-            Option.iterate(Map.peek(locks), func((_, lock): (Nat, Lock<T>)) {
+            Option.iterate(Map.peek(locks), func((_, lock): (Nat, Lock)) {
                 if (lock.timestamp > timestamp) {
                     Debug.trap("The timestamp of the last lock is greater than the timestamp of the new lock");
                 };
@@ -103,17 +101,17 @@ module {
                 hotness += Float.fromInt(previous_lock.amount) * weight;
             };
 
-            Map.set(locks, Map.nhash, id, { id; amount; timestamp; decay; hotness; data; });
+            Map.set(locks, Map.nhash, id, { id; amount; timestamp; decay; hotness; });
         };
 
         // Unlock the elements in the map which duration has expired
         // Return the elements that have been unlocked
         public func try_unlock(
-            locks: Map.Map<Nat, Lock<T>>,
+            locks: Map.Map<Nat, Lock>,
             time: Time,
-        ) : Buffer.Buffer<Lock<T>> {
+        ) : Buffer.Buffer<Lock> {
 
-            let unlocked : Buffer.Buffer<Lock<T>> = Buffer.Buffer(0);
+            let unlocked : Buffer.Buffer<Lock> = Buffer.Buffer(0);
 
             label endless_loop loop {
 

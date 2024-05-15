@@ -5,7 +5,6 @@ import PayementFacade   "../PayementFacade";
 
 import Map              "mo:map/Map";
 
-import Option           "mo:base/Option";
 import Debug            "mo:base/Debug";
 import Buffer           "mo:base/Buffer";
 
@@ -14,7 +13,7 @@ module {
     type Account = Types.Account;
     type DecayModel = Decay.DecayModel;
     type DepositScheduler = DepositScheduler.DepositScheduler;
-    type LockedDeposit = DepositScheduler.LockedDeposit;
+    public type Register = DepositScheduler.Register;
     type TransferResult = PayementFacade.TransferResult;
 
     type LockedAccount = {
@@ -23,55 +22,55 @@ module {
 
     type Time = Int;
     type AddDepositResult = PayementFacade.AddDepositResult;
-    type TransferCallback = DepositScheduler.TransferCallback;
 
     public class DepositController({
-        map_deposits: Map.Map<Nat, Map.Map<Nat, LockedDeposit>>;
+        registers: Map.Map<Nat, Register>;
         deposit_scheduler: DepositScheduler;
     }) {
 
-        public func new_map_deposits(map_id: Nat) {
-            let old = Map.add(map_deposits, Map.nhash, map_id, Map.new<Nat, LockedDeposit>());
-            
-            if (Option.isSome(old)){
-                Debug.trap("A lock map with the ID " # debug_show(map_id) # " already exists");
+        public func new_deposit_register(register_id: Nat) {
+
+            if (Map.has(registers, Map.nhash, register_id)){
+                Debug.trap("A deposit register with the ID " # debug_show(register_id) # " already exists");
             };
+
+            Map.set(registers, Map.nhash, register_id, DepositScheduler.new_register(register_id));
         };
 
         public func add_deposit({
-            map_id: Nat;
+            register_id: Nat;
             caller: Principal;
             account: Account;
             amount: Nat;
             timestamp: Time;
         }) : async* AddDepositResult {
             
-            // Get the deposits
-            let deposits = switch(Map.get(map_deposits, Map.nhash, map_id)){
-                case(null) { Debug.trap("Lock map not found"); };
+            // Get the register
+            let register = switch(Map.get(registers, Map.nhash, register_id)){
+                case(null) { Debug.trap("Deposit register not found"); };
                 case(?v) { v };
             };
 
             // Add the deposit
-            await* deposit_scheduler.add_deposit({ deposits; caller; account; amount; timestamp; });
+            await* deposit_scheduler.add_deposit({ register; caller; account; amount; timestamp; });
         };
 
-        public func try_refund(time: Time) : async* [TransferResult] {
+        type RefundInfo = {
+            register_id: Nat;
+            original_tx_id: Nat;
+        };
+
+        public func try_refund(time: Time) : async* [RefundInfo] {
             
+            let refunds = Buffer.Buffer<RefundInfo>(0);
+
             // Trigger all the refunds
-            let transfers = Buffer.Buffer<async* TransferResult>(0);
-            for ((map_id, deposits) in Map.entries(map_deposits)){
-                for (callback in deposit_scheduler.try_refund(deposits, time).vals()){
-                    transfers.add(callback());
-                };
+            for (register in Map.vals(registers)){
+                let tx_ids = Buffer.fromArray<Nat>(await* deposit_scheduler.try_refund(register, time));
+                refunds.append(Buffer.map(tx_ids, func(tx_id: Nat) : RefundInfo { { register_id = register.id; original_tx_id = tx_id; } }));
             };
 
-            // Wait for the results
-            let results = Buffer.Buffer<TransferResult>(transfers.size());
-            for (transfer in transfers.vals()){
-                results.add(await* transfer);
-            };
-            Buffer.toArray(results);
+            Buffer.toArray(refunds);
         };
 
     };

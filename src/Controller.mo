@@ -4,8 +4,8 @@ import Decay          "Decay";
 import Reward         "Reward";
 import YesNoVote      "votes/YesNoVote";
 import VotePolicy     "votes/VotePolicy";
-import LockController "locks/LockController";
-import LockScheduler  "locks/LockScheduler";
+import DepositController "locks/DepositController";
+import PayementFacade "PayementFacade";
 
 import Map            "mo:map/Map";
 
@@ -15,6 +15,8 @@ import Buffer         "mo:base/Buffer";
 import Int            "mo:base/Int";
 import Float          "mo:base/Float";
 import Option         "mo:base/Option";
+import Result         "mo:base/Result";
+import Array          "mo:base/Array";
 
 module {
 
@@ -23,82 +25,79 @@ module {
     type Choice = Types.Choice;
     type Time = Int;
     type Duration = Types.Duration;
+    type Account = Types.Account;
+
+    type AddDepositResult = PayementFacade.AddDepositResult;
 
     type YesNoAggregate = YesNoVote.YesNoAggregate;
     type YesNoBallot = YesNoVote.YesNoBallot;
     type Vote = VotePolicy.Vote<YesNoAggregate, YesNoBallot>;
-    type Lock = LockScheduler.Lock;
 
     type Register = {
         var index: VoteId;
         votes: Map.Map<VoteId, Vote>;
-        locks: Map.Map<VoteId, Map.Map<Nat, Lock>>;
+        deposits: Map.Map<VoteId, DepositController.Register>;
     };
 
     public type Unlock = { account: Types.Account; refund: Nat; reward: Nat; };
 
-    public class Controller({
-        register: Register;
-        get_lock_duration_ns: Float -> Nat;
-        half_life: Duration; 
-        time_init: Time;
-    }){
-
-        let _decay_model = Decay.DecayModel({
-            half_life;
-            time_init;
-        });
-
-        let _lock_controller = LockController.LockController({
-            locks = register.locks;
-            get_lock_duration_ns;
-            decay_model = _decay_model;
-        });
-
-        let _votes = YesNoVote.build({
-            votes = register.votes;
-            decay_model = _decay_model;
-        });
+    public class Controller(
+        votes: YesNoVote.VoteController,
+        deposits: DepositController.DepositController,
+        decay_model: Decay.DecayModel,
+    ){
 
         public func new_vote(timestamp: Time) : VoteId {
-            let id = register.index;
-            register.index += 1;
-            _votes.new_vote({ id; timestamp; });
-            _lock_controller.new_locks(id);
+
+            // @todo: pay for the vote (to the main account)
+
+            let id = votes.new_vote(timestamp);
+            deposits.new_deposit_register(id);
             id;
         };
 
         public func add_ballot({
-            vote_id: VoteId;
-            tx_id: Nat;
-            choice: Choice;
             timestamp: Time;
+            vote_id: VoteId;
             voter: Principal;
-        }){
-            // Add the lock
-            _lock_controller.add_lock({
-                map_id = vote_id;
-                lock_id = tx_id;
+            account: Account;
+            choice: Choice;
+        }) : async* AddDepositResult {
+            
+            // Perform the deposit
+            let deposit_result = await* deposits.add_deposit({
+                register_id = vote_id;
+                caller = voter;
+                account;
                 amount = Choice.get_amount(choice);
                 timestamp;
             });
 
-            // Compute the contest
-            let vote = _votes.get_vote(vote_id); 
-            let contest = Reward.compute_contest({
-                choice;
-                total_yes = _decay_model.unwrapDecayed(vote.aggregate.yes, timestamp);
-                total_no = _decay_model.unwrapDecayed(vote.aggregate.no, timestamp);
+            Result.iterate(deposit_result, func(tx_id: Nat){
+                
+                // Compute the contest
+                let vote = votes.get_vote(vote_id); 
+                let contest = Reward.compute_contest({
+                    choice;
+                    total_yes = decay_model.unwrapDecayed(vote.aggregate.yes, timestamp);
+                    total_no = decay_model.unwrapDecayed(vote.aggregate.no, timestamp);
+                });
+
+                // Add the ballot
+                votes.add_ballot({ vote_id; ballot = { id = tx_id; timestamp; voter; choice; contest; }; });
             });
 
-            // Add the ballot
-            _votes.add_ballot({ vote_id; ballot = { id = tx_id; timestamp; voter; choice; contest; }; });
+            deposit_result;
         };
 
 
-        public func try_unlock(time: Time) : Buffer.Buffer<Unlock>{
+        public func try_unlock(time: Time) : async* [Nat] {
             
-            let buffer = Buffer.Buffer<Unlock>(0);
+            let refunds = await* deposits.try_refund(time);
+
+            for ({ register_id; original_tx_id; } in Array.vals(refunds)) {
+                
+            };
 
             for ({ total_yes; total_no; ballots; } in Map.vals(register.votes)) {
                 buffer.append(Buffer.map(lock_scheduler.try_unlock({ map = ballots; time; }), func(ballot: Types.Ballot) : Unlock {

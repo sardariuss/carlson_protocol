@@ -32,14 +32,14 @@ module {
         contest: Float;
     };
 
-    public type YesNoVote = VoteController.VoteController<YesNoAggregate, YesNoBallot>;
+    public type VoteController = VoteController.VoteController<YesNoAggregate, YesNoBallot>;
 
     public func build({
-        votes: Map.Map<VoteId, Vote>;
+        register: Register;
         decay_model: Decay.DecayModel;
-    }) : YesNoVote {
+    }) : VoteController {
         VoteController.VoteController({
-            votes;
+            register;
             empty_aggregate;
             add_to_aggregate = decayed_aggregate(decay_model);
             ballot_hash = ballot_hash();

@@ -82,3 +82,9 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
 - Remove prints in LockScheduler.mo
 - Add votes unit tests
 - If a transfer fails, it is added to the map of failed transfers, but its origin is lost
+- Investigate if all the scenarios involving async calls could not leave an intermediate state (e.g. payement done but ballot not added)
+
+
+### REFAC
+- could do a RAII like transfer function (with_transfer(callback)) that leaves a trace if a transfer succeed but callback fails
+- could use a MapUpdated function so one only need a single map for ballots and deposits while stile being able to split the responsabilities

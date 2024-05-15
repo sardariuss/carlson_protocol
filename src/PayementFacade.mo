@@ -31,6 +31,7 @@ module {
     public type AddDepositResult = Result<TxIndex, DepositError>;
 
     public type TransferResult = Result<Nat, ICRC1.TransferError>;
+    public type TransferError = ICRC1.TransferError;
     
     // @todo: is setting created_at_time a good practice?
     public class PayementFacade({

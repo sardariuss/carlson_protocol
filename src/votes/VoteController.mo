@@ -4,7 +4,6 @@ import VotePolicy     "VotePolicy";
 
 import Debug          "mo:base/Debug";
 import Iter           "mo:base/Iter";
-import Option         "mo:base/Option";
 
 module {
 
@@ -21,7 +20,7 @@ module {
     };
    
     public class VoteController<A, B>({
-        votes: Map.Map<VoteId, Vote<A, B>>;
+        register: Register<A, B>;
         empty_aggregate: A;
         add_to_aggregate: UpdatePolicy<A, B>;
         ballot_hash: Map.HashUtils<B>;
@@ -33,20 +32,16 @@ module {
         });
 
         // Creates a new vote with the given ID and add it to the list of votes
-        public func new_vote({
-            id: VoteId;
-            timestamp: Time;
-        }) {
-            let old = Map.add(votes, Map.nhash, id, {
+        public func new_vote(timestamp: Time) : Nat {
+            let id = register.index;
+            register.index += 1;
+            Map.set(register.votes, Map.nhash, id, {
                 id;
                 timestamp;
                 ballots = Set.new<B>();
                 var aggregate = empty_aggregate;
             });
-            
-            if (Option.isSome(old)){
-                Debug.trap("A vote with the ID " # debug_show(id) # " exists");
-            };
+            id;
         };
 
         // Get a vote by its id
@@ -59,16 +54,16 @@ module {
 
         // Find a vote by its id
         public func find_vote(vote_id: VoteId): ?Vote<A, B> {
-            Map.get(votes, Map.nhash, vote_id);
+            Map.get(register.votes, Map.nhash, vote_id);
         };
 
         // Checks if the vote exists
         public func has_vote(vote_id: VoteId): Bool {
-            Map.has(votes, Map.nhash, vote_id);
+            Map.has(register.votes, Map.nhash, vote_id);
         };
 
         public func iter(): Iter.Iter<Vote<A, B>> {
-            Map.vals(votes);
+            Map.vals(register.votes);
         };
 
         // Vote (by adding the given ballot)
