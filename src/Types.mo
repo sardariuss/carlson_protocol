@@ -94,7 +94,7 @@ module {
         #NO: Nat;
     };
 
-    public type Vote = {
+    public type FVote = {
         vote_id: Nat;
         statement: Text;
         total_yes: Decayed; // Total satoshis yes
@@ -104,6 +104,6 @@ module {
 
     public type VotesRegister = {
         var index: Nat;
-        votes: Map.Map<Nat, Vote>;
+        votes: Map.Map<Nat, FVote>;
     };
 }

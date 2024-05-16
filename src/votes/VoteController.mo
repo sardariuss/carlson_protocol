@@ -1,3 +1,5 @@
+import Types          "../Types";
+
 import Map            "mo:map/Map";
 import Set            "mo:map/Set";
 import VotePolicy     "VotePolicy";
@@ -10,6 +12,14 @@ module {
     type Time = Int;
 
     public type VoteId = Nat;
+
+    type FVote = {
+        vote_id: Nat;
+        statement: Text;
+        total_yes: Decayed; // Total satoshis yes
+        total_no: Decayed; // Total satoshis no
+        ballots: Map.Map<Nat, Ballot>;
+    };
 
     type Vote<A, B> = VotePolicy.Vote<A, B>;
     type UpdatePolicy<A, B> = VotePolicy.UpdatePolicy<A, B>;

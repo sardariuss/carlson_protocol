@@ -11,8 +11,8 @@ module {
 
     public type WMap<K, V> = {
         get: K -> ?V;
-        add: (K, V) -> ?V;
-        set: (K, V) -> ();
+//        add: (K, V) -> ?V;
+//        set: (K, V) -> ();
         replace: (K, V -> V) -> ?V;
     };
 
@@ -32,21 +32,21 @@ module {
                 };
             };
 
-            add = func(key: K, value: Partial): ?Partial {
-                switch(Map.add<K, Complete>(map, hash, key, to_complete(value))){
-                    case(null){ null; };
-                    case(?complete) { ?from_complete(complete); };
-                };
-            };
-
-            set = func(key: K, value: Partial) {
-                let updated = switch(Map.get(map, hash, key)){
-                    case(null){ to_complete(value); };
-                    case(?complete) { update(complete, value); };
-                };
-
-                Map.set(map, hash, key, updated);
-            };
+//            add = func(key: K, value: Partial): ?Partial {
+//                switch(Map.add<K, Complete>(map, hash, key, to_complete(value))){
+//                    case(null){ null; };
+//                    case(?complete) { ?from_complete(complete); };
+//                };
+//            };
+//
+//            set = func(key: K, value: Partial) {
+//                let updated = switch(Map.get(map, hash, key)){
+//                    case(null){ to_complete(value); };
+//                    case(?complete) { update(complete, value); };
+//                };
+//
+//                Map.set(map, hash, key, updated);
+//            };
 
             replace = func(key: K, f: (Partial) -> (Partial)) : ?Partial {
                 let complete = switch(Map.get(map, hash, key)){
