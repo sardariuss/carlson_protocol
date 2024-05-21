@@ -17,6 +17,7 @@ module {
         timestamp: Int;
         decay: Float;
         hotness: Float;
+        expiration: Time;
     };
     
     public class LockScheduler({
@@ -28,12 +29,14 @@ module {
         // Deduce the decay from the given timestamp
         // Deduce the hotness of the lock from the previous locks
         // Update the hotness of the previous locks
+        // @todo: shall we return the date of the earliest expiration?
         public func new_lock({
-            lock_iter: Iter<(Nat, Lock)>;
-            lock_update: (Nat, Lock) -> ();
+            iter: Iter<(Nat, Lock)>;
+            update: (Nat, Lock) -> ();
+            add: Lock -> Nat;
             amount: Nat;
             timestamp: Time;
-        }) : Lock {
+        }) : Nat {
 
             // The hotness of a lock is the amount of that lock, plus the sum of the previous lock
             // amounts weighted by their growth, plus the sum of the next lock amounts weighted
@@ -73,37 +76,35 @@ module {
             var hotness = Float.fromInt(amount);
 
             // Iterate over the previous locks
-            for ((id, previous_lock) in lock_iter) {
+            for ((id, previous_lock) in iter) {
 
                 // Compute the weight between the two locks
                 let weight = previous_lock.decay / decay;
                 
                 // Update the hotness of the previous lock
-                lock_update(id, { previous_lock 
-                    with hotness = previous_lock.hotness + Float.fromInt(amount) * weight; });
+                let previous_hotness = previous_lock.hotness + Float.fromInt(amount) * weight;
+                let previous_expiration = previous_lock.timestamp + get_lock_duration_ns(previous_hotness);
+                update(id, { previous_lock with hotness = previous_hotness; expiration = previous_expiration; });
 
                 // Add to the hotness of the new lock
                 hotness += Float.fromInt(previous_lock.amount) * weight;
             };
 
-            { amount; timestamp; decay; hotness; };
+            add({ amount; timestamp; decay; hotness; expiration = timestamp + get_lock_duration_ns(hotness); });
         };
 
-        // Retrieve locks which duration has expired
-        public func try_unlock(
-            lock_iter: Iter<(Nat, Lock)>,
+        // Remove the locks that have expired
+        public func remove_locks(
             time: Time,
-        ) : Buffer.Buffer<(Nat, Lock)> {
+            iter: Iter<(Nat, Lock)>,
+            remove_lock: Nat -> (),
+        ) {
 
-            let unlocked : Buffer.Buffer<(Nat, Lock)> = Buffer.Buffer(0);
-
-            for ((id, lock) in lock_iter) {
-                if (lock.timestamp + get_lock_duration_ns(lock.hotness) <= time) {
-                    unlocked.add((id, lock));
+            for ((id, lock) in iter) {
+                if (lock.expiration <= time) {
+                    remove_lock(id);
                 };
             };
-
-            unlocked;
         };
 
     };
