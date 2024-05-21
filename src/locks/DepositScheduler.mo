@@ -1,4 +1,4 @@
-import LockScheduler "LockScheduler";
+import LockScheduler "LockScheduler2";
 import Types "../Types";
 import PayementFacade "../PayementFacade";
 
@@ -8,12 +8,14 @@ import Option "mo:base/Option";
 import Debug  "mo:base/Debug";
 import Result "mo:base/Result";
 import Buffer "mo:base/Buffer";
+import Iter "mo:base/Iter";
 
 module {
 
     type Account = Types.Account;
     type Lock = LockScheduler.Lock;
     type Buffer<T> = Buffer.Buffer<T>;
+    type Iter<T> = Iter.Iter<T>;
 
     type Time = Int;
     type AddDepositResult = PayementFacade.AddDepositResult;
@@ -29,18 +31,16 @@ module {
     };
 
     type Deposit = {
+        tx_index: Nat;
         account: Account;
         amount: Nat;
         timestamp: Time;
+        decay: Float;
+        hotness: Float;
         state: DepositState;
     };
 
-    type DepositState = {
-        #LOCKED;
-        #PENDING_REFUND: { time: Time };
-        #FAILED_REFUND: { error: PayementFacade.TransferError };
-        #REFUNDED: { tx_index: Nat };
-    };
+    type DepositState = Types.DepositState;
 
     public class DepositScheduler({
         payement: PayementFacade.PayementFacade;
@@ -48,32 +48,28 @@ module {
     }){
 
         public func add_deposit({
-            register: Register;
+            iter: Iter<(Nat, Deposit)>;
+            update: (Nat, Deposit) -> ();
+            add: Deposit -> Nat;
             caller: Principal;
             account: Account;
             amount: Nat;
             timestamp: Time;
         }) : async* AddDepositResult {
 
-            // Ensure the timestamp of is greater than the timestamp of the last lock
-            // @todo: this should be done in the lock scheduler, but because we call an await before
-            // the scheduler we do it here
-            Option.iterate(Map.peek(register.locks), func((_, lock): (Nat, Lock)) {
-                if (lock.timestamp > timestamp) {
-                    Debug.trap("The timestamp of the last lock is greater than given timestamp");
-                };
-            });
-
             // Perform the deposit
             let deposit_result = await* payement.add_deposit({ caller; from = account; amount; time = timestamp; });
 
             // Add the lock if the deposit was successful
-            Result.iterate(deposit_result, func(tx_index: Nat){
-                Map.set(register.deposits, Map.nhash, tx_index, { account; amount; timestamp; state = #LOCKED; });
-                lock_scheduler.new_lock({ locks = register.locks; id = tx_index; amount; timestamp; data = { account; } });
+            Result.mapOk(deposit_result, func(tx_index: Nat){
+                lock_scheduler.new_lock({
+                    iter = to_lock_iter(iter);
+                    update = to_lock_update(update);
+                    add = to_lock_add(add, tx_index, account);
+                    amount;
+                    timestamp;
+                });
             });
-
-            deposit_result;
         };
 
         public func try_refund(
@@ -120,6 +116,30 @@ module {
 
             Buffer.toArray(Buffer.map<Lock, Nat>(unlocked, func(lock: Lock) : Nat { lock.id; }));
         };
+
+        func to_lock_iter(deposit_iter: Iter<(Nat, Deposit)>) : Iter<(Nat, Lock)> {
+            func next() : ?(Nat, Lock) {
+                for ((id, deposit) in deposit_iter){
+                    switch(deposit.state){
+                        case(#LOCKED({expiration})){
+                            return ?(id, { deposit with expiration });
+                        };
+                        case(_) {};
+                    };
+                };
+                null;
+            };
+            { next; }
+        };
+        
+        func to_lock_update(deposit_update: (Nat, Deposit) -> ()) : (Nat, Lock) -> () {
+             
+        };
+        
+        func to_lock_add(deposit_add: Deposit -> Nat) : Lock -> Nat {
+
+        };
+        
 
     };
 }

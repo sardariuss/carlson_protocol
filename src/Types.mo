@@ -73,20 +73,33 @@ module {
         decay_params: DecayParameters;
     };
 
-    public type Ballot = {
+    public type Vote<A, B> = {
+        author: Principal;
         tx_id: Nat;
-        from: Account;
-        choice : Choice;
-        contest: Float;
-        timestamp: Int;
-        hotness: Float;
-        decay: Float;
-        lock_state: LockState;
+        date: Time;
+        var aggregate: A;
+        ballot_register: {
+            var index: Nat;
+            ballots: Map.Map<Nat, Ballot<B>>;
+        };
     };
 
-    public type LockState = {
-        #UNLOCKED;
-        #LOCKED;
+    public type Ballot<B> = {
+        tx_id: Nat;
+        from: Account;
+        date: Time;
+        hotness: Float;
+        decay: Float;
+        deposit_state: DepositState;
+        contest: Float;
+        choice: B;
+    };
+
+    public type DepositState = {
+        #LOCKED: {expiration: Time};
+        #PENDING_REFUND: {since: Time};
+        #OWED: {id: Nat};
+        #REFUNDED: {tx_id: Nat};
     };
 
     public type Choice = {
@@ -94,16 +107,8 @@ module {
         #NO: Nat;
     };
 
-    public type FVote = {
-        vote_id: Nat;
-        statement: Text;
-        total_yes: Decayed; // Total satoshis yes
-        total_no: Decayed; // Total satoshis no
-        ballots: Map.Map<Nat, Ballot>;
-    };
-
-    public type VotesRegister = {
+    public type VotesRegister<A, B> = {
         var index: Nat;
-        votes: Map.Map<Nat, FVote>;
+        votes: Map.Map<Nat, Vote<A, B>>;
     };
 }

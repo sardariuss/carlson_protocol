@@ -23,35 +23,11 @@ module {
     type Iter<T> = Iter.Iter<T>;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    type Vote<A, B> = {
-        author: Principal;
-        tx_id: Nat;
-        date: Time;
-        var aggregate: A;
-        ballot_register: {
-            var index: Nat;
-            ballots: Map.Map<Nat, Ballot<B>>;
-        };
-    };
+    type Vote<A, B> = Types.Vote<A, B>;
 
-    type Ballot<B> = {
-        tx_id: Nat;
-        from: Account;
-        date: Time;
-        hotness: Float;
-        decay: Float;
-        deposit_state: DepositState;
-        contest: Float;
-        choice: B;
-    };
+    type Ballot<B> = Types.Ballot<B>;
 
-    type DepositState = {
-        #LOCKED: {expiration: Time};
-        #PENDING_REFUND: {since: Time};
-        #OWED: {id: Nat};
-        #REFUNDED: {tx_id: Nat};
-    };
-
+    type DepositState = Types.DepositState;
 
     type UpdatePolicy<A, B> = VotePolicy.UpdatePolicy<A, B>;
    

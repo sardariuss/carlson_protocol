@@ -5,6 +5,8 @@ import Time      "mo:base/Time";
 import Buffer    "mo:base/Buffer";
 import Int       "mo:base/Int";
 import Iter      "mo:base/Iter";
+import Option    "mo:base/Option";
+import Debug     "mo:base/Debug";
 
 module {
 
@@ -77,6 +79,9 @@ module {
 
             // Iterate over the previous locks
             for ((id, previous_lock) in iter) {
+
+                // Ensure the timestamp of the previous lock is smaller than the given timestamp
+                assert(previous_lock.timestamp < timestamp);
 
                 // Compute the weight between the two locks
                 let weight = previous_lock.decay / decay;
