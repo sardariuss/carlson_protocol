@@ -11,7 +11,7 @@ import Iter "mo:base/Iter";
 module {
 
     type Account = Types.Account;
-    type LockInfo = LockScheduler.LockInfo;
+    public type LockInfo = LockScheduler.LockInfo;
     type Buffer<T> = Buffer.Buffer<T>;
     type Iter<T> = Iter.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -20,8 +20,8 @@ module {
     type Time = Int;
     type AddDepositResult = Result<Nat, PayementFacade.AddDepositError>; // ID
 
-    type DepositInfo = {
-        tx_index: Nat;
+    public type DepositInfo = {
+        tx_id: Nat;
         account: Account;
         amount: Nat;
         timestamp: Time;
@@ -50,12 +50,12 @@ module {
             let deposit_result = await* payement.add_deposit({ caller; from = account; amount; time = timestamp; });
 
             // Add the lock if the deposit was successful
-            Result.mapOk(deposit_result, func(tx_index: Nat) : Nat {
+            Result.mapOk(deposit_result, func(tx_id: Nat) : Nat {
 
                 // Callback to add the element to the map
                 func new(lock_info: LockInfo) : (Nat, T) {
                     let deposit_info = {
-                        tx_index;
+                        tx_id;
                         account;
                         amount;
                         timestamp;
@@ -100,7 +100,7 @@ module {
                     Map.set(map, Map.nhash, id, update_deposit(elem, { deposit with state; }));
                 };
 
-                // Trigger the refund, but do not wait for it to complete
+                // Trigger the refund and callback, but do not wait for them to complete
                 ignore refund_fct();
             };
 

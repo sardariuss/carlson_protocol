@@ -102,6 +102,13 @@ module {
         #REFUNDED: {tx_id: Nat};
     };
 
+    public type YieldState = {
+        #PENDING;
+        #PENDING_TRANSFER: { amount: Nat; since: Time };
+        #FAILED_TRANSFER; // @todo
+        #TRANSFERRED: { tx_id: Nat };
+    };
+
     public type Choice = {
         #YES: Nat;
         #NO: Nat;
