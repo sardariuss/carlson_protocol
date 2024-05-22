@@ -26,7 +26,7 @@ module {
     public type DepositState = Types.DepositState;
 
     type YieldState = Types.YieldState;
-    type YieldInfo = {
+    public type YieldInfo = {
         account: Account;
         state: YieldState;
     };
@@ -40,30 +40,26 @@ module {
 
         public func add_deposit({
             map: Map<Nat, T>;
-            add_new2: (DepositInfo, LockInfo, YieldInfo) -> (Nat, T);
+            add_new: (DepositInfo, LockInfo) -> (Nat, T);
             caller: Principal;
-            deposit_account: Account;   
-            reward_account: Account;
+            account: Account;
             amount: Nat;
             timestamp: Time;
         }) : async* AddDepositResult {
             await* deposit_scheduler.add_deposit(
-                { map; add_new = func (deposit_info: DepositInfo, lock_info: LockInfo) : (Nat, T) {
-                    let yield_info = { account = reward_account; state = #PENDING; };
-                    add_new2(deposit_info, lock_info, yield_info);
-                }; caller; account = deposit_account; amount; timestamp; });
+                { map; add_new; caller; account; amount; timestamp; });
         };
 
-        public func try_refund_and_reward(
-            map: Map<Nat, T>,
-            reward_amount: T -> Nat,
-            time: Time,
-        ) : async* [Nat] {
+        public func try_refund_and_reward({
+            map: Map<Nat, T>;
+            reward_amount: T -> Nat;
+            time: Time;
+        }) : async* [Nat] {
 
             let refunds = await* deposit_scheduler.try_refund(map, time);
-            for (id in Array.vals(refunds)) {
+            label rewards for (id in Array.vals(refunds)) {
                 let elem = switch(Map.get(map, Map.nhash, id)){
-                    case(null) { Debug.trap("@todo: Element not found"); };
+                    case(null) { Debug.print("Element " #  debug_show(id) # " not found"); continue rewards; };
                     case(?elem) { elem; };
                 };
 
@@ -71,7 +67,7 @@ module {
                 let yield = get_yield(elem);
 
                 // Mark the reward as pending
-                Map.set(map, Map.nhash, id, update_yield(elem, { yield with state = #PENDING_REFUND({since = time; amount;}) }));
+                Map.set(map, Map.nhash, id, update_yield(elem, { yield with state = #PENDING_TRANSFER({since = time; amount;}) }));
 
                 let reward_fct = func() : async* () {
 
@@ -84,8 +80,8 @@ module {
 
                     // Update the yield state
                     let state = switch(reward_result){
-                        case(#ok(tx_id)) { #REFUNDED({tx_id;}); };
-                        case(#err(_)) { #FAILED_REFUND; };
+                        case(#ok(tx_id)) { #TRANSFERRED({tx_id;}); };
+                        case(#err(_)) { #FAILED_TRANSFER; };
                     };
                     Map.set(map, Map.nhash, id, update_yield(elem, { yield with state; }));
                 };

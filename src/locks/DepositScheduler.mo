@@ -59,7 +59,7 @@ module {
                         account;
                         amount;
                         timestamp;
-                        state = #LOCKED({expiration = lock_info.expiration;});
+                        state = to_deposit_state(lock_info.state);
                     };
                     add_new(deposit_info, lock_info);
                 };
@@ -80,9 +80,6 @@ module {
 
                 let deposit = get_deposit(elem);
 
-                // Mark the refund as pending
-                Map.set(map, Map.nhash, id, update_deposit(elem, { deposit with state = #PENDING_REFUND({since = time;}) }));
-
                 let refund_fct = func() : async* () {
 
                     // Perform the refund
@@ -93,11 +90,11 @@ module {
                     });
 
                     // Update the deposit state
-                    let state = switch(refund_result){
-                        case(#ok(tx_id)) { #REFUNDED({tx_id;}); };
-                        case(#err(_)) { #FAILED_REFUND; };
+                    let transfer = switch(refund_result){
+                        case(#ok(tx_id)) { #SUCCESS({tx_id;}); };
+                        case(#err(_)) { #FAILED; };
                     };
-                    Map.set(map, Map.nhash, id, update_deposit(elem, { deposit with state; }));
+                    Map.set(map, Map.nhash, id, update_deposit(elem, { deposit with state =  #UNLOCKED({since = time; transfer; }) }));
                 };
 
                 // Trigger the refund and callback, but do not wait for them to complete
@@ -105,6 +102,13 @@ module {
             };
 
             Buffer.toArray(Buffer.map<(Nat, T), Nat>(unlocked, func((id, elem): (Nat, T)) : Nat { id; }));
+        };
+
+        func to_deposit_state(lock_state: LockScheduler.LockState) : DepositState {
+            switch(lock_state) {
+                case(#LOCKED{until}) { #LOCKED{until}; };
+                case(#UNLOCKED{since}) { #UNLOCKED{since; transfer = #PENDING; }; };
+            };
         };
 
     };

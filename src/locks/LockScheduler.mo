@@ -19,7 +19,12 @@ module {
         timestamp: Int;
         decay: Float;
         hotness: Float;
-        expiration: Time;
+        state: LockState;
+    };
+
+    public type LockState = {
+        #LOCKED: { until: Time; };
+        #UNLOCKED: { since: Time; };
     };
     
     public class LockScheduler<T>({
@@ -27,14 +32,13 @@ module {
         get_lock_duration_ns: Float -> Nat;
         get_lock: T -> LockInfo;
         update_lock: (T, LockInfo) -> T;
-        unlock: T -> T;
     }){
 
         // Creates a new lock with the given amount and timestamp
         // Deduce the decay from the given timestamp
         // Deduce the hotness of the lock from the previous locks
         // Update the hotness of the previous locks
-        // @todo: shall we return the date of the earliest expiration?
+        // @todo: shall we return the date of the earliest until?
         public func new_lock({
             map: Map.Map<Nat, T>;
             new: LockInfo -> (Nat, T);
@@ -80,27 +84,32 @@ module {
             var hotness = Float.fromInt(amount);
 
             // Iterate over the previous locks
-            for ((id, prv) in Map.entries(map)) {
+            label locked for ((id, prv) in Map.entries(map)) {
 
-                let prv_lock = get_lock(prv);
+                let prev_lock = get_lock(prv);
 
                 // Ensure the timestamp of the previous lock is smaller than the given timestamp
-                assert(prv_lock.timestamp < timestamp);
+                assert(prev_lock.timestamp < timestamp);
 
                 // Compute the weight between the two locks
-                let weight = prv_lock.decay / decay;
-                
-                // Update the hotness of the previous lock
-                let prv_hotness = prv_lock.hotness + Float.fromInt(amount) * weight;
-                let prv_expiration = prv_lock.timestamp + get_lock_duration_ns(prv_hotness);
-                Map.set(map, Map.nhash, id, update_lock(prv, { 
-                    prv_lock with 
-                    hotness = prv_hotness;
-                    expiration = prv_expiration;
-                }));
+                let weight = prev_lock.decay / decay;
 
                 // Add to the hotness of the new lock
-                hotness += Float.fromInt(prv_lock.amount) * weight;
+                hotness += Float.fromInt(prev_lock.amount) * weight;
+                
+                // Update the hotness of the previous lock if it is still locked
+                switch(prev_lock.state){
+                    case(#LOCKED({ until })) {
+                        let prv_hotness = prev_lock.hotness + Float.fromInt(amount) * weight;
+                        let prv_until = prev_lock.timestamp + get_lock_duration_ns(prv_hotness);
+                        Map.set(map, Map.nhash, id, update_lock(prv, { 
+                            prev_lock with 
+                            hotness = prv_hotness;
+                            state = #LOCKED { until = prv_until; };
+                        }));
+                    };
+                    case(_) {};
+                };
             };
 
             // Create the new lock
@@ -109,7 +118,7 @@ module {
                 timestamp;
                 decay; 
                 hotness;
-                expiration = timestamp + get_lock_duration_ns(hotness); 
+                state = #LOCKED { until = timestamp + get_lock_duration_ns(hotness); };
             });
             Map.set(map, Map.nhash, id, new_elem);
             id;
@@ -125,10 +134,16 @@ module {
 
             for ((id, elem) in Map.entries(map)) {
                 let lock = get_lock(elem);
-                if (lock.expiration <= time) {
-                    let update = unlock(elem);
-                    Map.set(map, Map.nhash, id, update);
-                    buffer.add((id, update));
+
+                switch(lock.state){
+                    case(#LOCKED({ until })) {
+                        if (until <= time) {
+                            let update = update_lock(elem, { lock with state = #UNLOCKED { since = time; } });
+                            Map.set(map, Map.nhash, id, update);
+                            buffer.add((id, update));
+                        };
+                    };
+                    case(_) {};
                 };
             };
 
