@@ -1,10 +1,6 @@
 import Types          "Types";
-import Choice         "Choice";
 import Decay          "Decay";
-import Reward         "Reward";
-import YesNoVote      "votes/YesNoVote";
-import VotePolicy     "votes/VotePolicy";
-import DepositController "locks/DepositController";
+import VoteTypeController "votes/VoteTypeController";
 import PayementFacade "PayementFacade";
 
 import Map            "mo:map/Map";
@@ -22,30 +18,23 @@ module {
 
     type VoteId = Nat;
     type Decayed = Types.Decayed;
-    type Choice = Types.Choice;
+    type ChoiceType = Types.ChoiceType;
+    type VoteType = Types.VoteType;
     type Time = Int;
     type Duration = Types.Duration;
     type Account = Types.Account;
 
     type AddDepositResult = PayementFacade.AddDepositResult;
 
-    type YesNoAggregate = YesNoVote.YesNoAggregate;
-    type YesNoBallot = YesNoVote.YesNoBallot;
-    type Vote = VotePolicy.Vote<YesNoAggregate, YesNoBallot>;
-
     type Register = {
         var index: VoteId;
-        votes: Map.Map<VoteId, Vote>;
-        deposits: Map.Map<VoteId, DepositController.Register>;
+        votes: Map.Map<VoteId, VoteType>;
     };
 
-    public type Unlock = { account: Types.Account; refund: Nat; reward: Nat; };
-
-    public class Controller(
-        votes: YesNoVote.VoteController,
-        deposits: DepositController.DepositController,
-        decay_model: Decay.DecayModel,
-    ){
+    public class Controller({
+        register: Register;
+        payement_facade: PayementFacade.PayementFacade;
+    }){
 
         public func new_vote(timestamp: Time) : VoteId {
 

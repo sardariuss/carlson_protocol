@@ -29,6 +29,14 @@ module {
     public type UpdatePolicy<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
     public type ComputeContest<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
     public type ComputeScore<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
+
+    public type PutBallotArgs = {
+        caller: Principal;
+        from: Account;
+        reward_account: Account;
+        time: Time;
+        amount: Nat;
+    };
    
     public class VoteController<A, B>({
         update_aggregate: UpdatePolicy<A, B>;
@@ -39,13 +47,11 @@ module {
 
         public func put_ballot({
             vote: Vote<A, B>;
-            caller: Principal;
-            from: Account;
-            reward_account: Account;
-            time: Time;
-            amount: Nat;
             choice: B;
+            args: PutBallotArgs;
         }) : async* Result<Nat, AddDepositError> {
+
+            let { caller; from; reward_account; time; amount; } = args;
 
             func add_new(deposit_info: YieldScheduler.DepositInfo, lock_info: YieldScheduler.LockInfo) : (Nat, Ballot<B>){
 

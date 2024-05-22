@@ -74,7 +74,11 @@ module {
     };
 
     public type VoteType = {
-        #YES_NO_VOTE: Vote<YesNoAggregate, YesNoChoice>;
+        #YES_NO: Vote<YesNoAggregate, YesNoChoice>;
+    };
+
+    public type ChoiceType = {
+        #YES_NO: YesNoChoice;
     };
 
     public type YesNoAggregate = {

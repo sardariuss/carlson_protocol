@@ -27,37 +27,35 @@ module {
 
     type Time = Int;
 
-    type YesNoVote = Vote<YesNoAggregate, YesNoChoice>;
-    type YesNoController = VoteController<YesNoAggregate, YesNoChoice>;
-
-    public class YesNoFactory({
+    public class YesNoController({
         payement: PayementFacade.PayementFacade;
         decay_model: Decay.DecayModel;
         get_lock_duration_ns: Float -> Nat;
     }) {
 
-        let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
-            decay_model;
-            get_lock_duration_ns;
-            get_lock = func (b: YesNoBallot): LockInfo { Conversion.to_lock_info<YesNoChoice>(b); };
-            update_lock = func (b: YesNoBallot, i: LockInfo): YesNoBallot { Conversion.update_lock_info<YesNoChoice>(b, i); };
-        });
+        public func build() : VoteController<YesNoAggregate, YesNoChoice> {
+            
+            let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
+                decay_model;
+                get_lock_duration_ns;
+                get_lock = func (b: YesNoBallot): LockInfo { Conversion.to_lock_info<YesNoChoice>(b); };
+                update_lock = func (b: YesNoBallot, i: LockInfo): YesNoBallot { Conversion.update_lock_info<YesNoChoice>(b, i); };
+            });
 
-        let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({
-            payement;
-            lock_scheduler;
-            get_deposit = func (b: YesNoBallot): DepositInfo { Conversion.to_deposit_info<YesNoChoice>(b); };
-            update_deposit = func (b: YesNoBallot, i: DepositInfo): YesNoBallot { Conversion.update_deposit_info<YesNoChoice>(b, i); };
-        });
+            let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({
+                payement;
+                lock_scheduler;
+                get_deposit = func (b: YesNoBallot): DepositInfo { Conversion.to_deposit_info<YesNoChoice>(b); };
+                update_deposit = func (b: YesNoBallot, i: DepositInfo): YesNoBallot { Conversion.update_deposit_info<YesNoChoice>(b, i); };
+            });
 
-        let yield_scheduler = YieldScheduler.YieldScheduler<YesNoBallot>({
-            payement;
-            deposit_scheduler;
-            get_yield = func (b: YesNoBallot): YieldInfo { Conversion.to_yield_info<YesNoChoice>(b); };
-            update_yield = func (b: YesNoBallot, i: YieldInfo): YesNoBallot { Conversion.update_yield_info<YesNoChoice>(b, i); };
-        });
-
-        public func buildController() : YesNoController {
+            let yield_scheduler = YieldScheduler.YieldScheduler<YesNoBallot>({
+                payement;
+                deposit_scheduler;
+                get_yield = func (b: YesNoBallot): YieldInfo { Conversion.to_yield_info<YesNoChoice>(b); };
+                update_yield = func (b: YesNoBallot, i: YieldInfo): YesNoBallot { Conversion.update_yield_info<YesNoChoice>(b, i); };
+            });
+            
             VoteController.VoteController<YesNoAggregate, YesNoChoice>({
                 update_aggregate;
                 compute_contest;
