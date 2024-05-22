@@ -27,8 +27,8 @@ module {
     public type PayementError = ICRC2.TransferFromError or { #NotAuthorized; };
     public type SendPaymentResult = Result<TxIndex, PayementError>;
     
-    public type DepositError = PayementError or { #DepositTooLow : { min_deposit : Nat; }; };
-    public type AddDepositResult = Result<TxIndex, DepositError>;
+    public type AddDepositError = PayementError or { #DepositTooLow : { min_deposit : Nat; }; };
+    public type AddDepositResult = Result<TxIndex, AddDepositError>;
 
     public type TransferResult = Result<Nat, ICRC1.TransferError>;
     public type TransferError = ICRC1.TransferError;
@@ -64,7 +64,7 @@ module {
             from: Account;
             amount: Nat;
             time: Time;
-        }) : async* Result<Nat, ICRC2.TransferFromError or { #NotAuthorized; #DepositTooLow : { min_deposit : Nat; }; }> {
+        }) : async* AddDepositResult {
 
             if (amount < min_deposit) {
                 return #err(#DepositTooLow{ min_deposit; });

@@ -1,11 +1,9 @@
-import LockScheduler "LockScheduler2";
+import LockScheduler "LockScheduler";
 import Types "../Types";
 import PayementFacade "../PayementFacade";
 
 import Map "mo:map/Map";
 
-import Option "mo:base/Option";
-import Debug  "mo:base/Debug";
 import Result "mo:base/Result";
 import Buffer "mo:base/Buffer";
 import Iter "mo:base/Iter";
@@ -13,46 +11,37 @@ import Iter "mo:base/Iter";
 module {
 
     type Account = Types.Account;
-    type Lock = LockScheduler.Lock;
+    type LockInfo = LockScheduler.LockInfo;
     type Buffer<T> = Buffer.Buffer<T>;
     type Iter<T> = Iter.Iter<T>;
+    type Map<K, V> = Map.Map<K, V>;
+    type Result<T, E> = Result.Result<T, E>;
 
     type Time = Int;
-    type AddDepositResult = PayementFacade.AddDepositResult;
+    type AddDepositResult = Result<Nat, PayementFacade.AddDepositError>; // ID
 
-    public type Register = {
-        id: Nat;
-        deposits: Map.Map<Nat, Deposit>;
-        locks: Map.Map<Nat, Lock>;
-    };
-
-    public func new_register(id: Nat) : Register {
-        { id; deposits = Map.new(); locks = Map.new(); };
-    };
-
-    type Deposit = {
+    type DepositInfo = {
         tx_index: Nat;
         account: Account;
         amount: Nat;
         timestamp: Time;
-        decay: Float;
-        hotness: Float;
         state: DepositState;
     };
 
     type DepositState = Types.DepositState;
 
-    public class DepositScheduler({
+    public class DepositScheduler<T>({
         payement: PayementFacade.PayementFacade;
-        lock_scheduler: LockScheduler.LockScheduler;
+        lock_scheduler: LockScheduler.LockScheduler<T>;
+        update_deposit: (T, DepositInfo) -> T;
+        get_deposit: (T) -> DepositInfo;
     }){
 
         public func add_deposit({
-            iter: Iter<(Nat, Deposit)>;
-            update: (Nat, Deposit) -> ();
-            add: Deposit -> Nat;
+            map: Map<Nat, T>;
+            add_new: (DepositInfo, LockInfo) -> (Nat, T);
             caller: Principal;
-            account: Account;
+            account: Account;   
             amount: Nat;
             timestamp: Time;
         }) : async* AddDepositResult {
@@ -61,37 +50,38 @@ module {
             let deposit_result = await* payement.add_deposit({ caller; from = account; amount; time = timestamp; });
 
             // Add the lock if the deposit was successful
-            Result.mapOk(deposit_result, func(tx_index: Nat){
-                lock_scheduler.new_lock({
-                    iter = to_lock_iter(iter);
-                    update = to_lock_update(update);
-                    add = to_lock_add(add, tx_index, account);
-                    amount;
-                    timestamp;
-                });
+            Result.mapOk(deposit_result, func(tx_index: Nat) : Nat {
+
+                // Callback to add the element to the map
+                func new(lock_info: LockInfo) : (Nat, T) {
+                    let deposit_info = {
+                        tx_index;
+                        account;
+                        amount;
+                        timestamp;
+                        state = #LOCKED({expiration = lock_info.expiration;});
+                    };
+                    add_new(deposit_info, lock_info);
+                };
+
+                // Add the lock
+                lock_scheduler.new_lock({ map; new; amount; timestamp; });
             });
         };
 
         public func try_refund(
-            register: Register,
+            map: Map<Nat, T>,
             time: Time,
         ) : async* [Nat] {
 
-            let unlocked = lock_scheduler.try_unlock(register.locks, time);
+            let unlocked = lock_scheduler.try_unlock(map, time);
 
-            for(lock in unlocked.vals()) {
+            for((id, elem) in unlocked.vals()) {
 
-                // Get the deposit
-                let deposit = switch(Map.get(register.deposits, Map.nhash, lock.id)) {
-                    case(?d) { d; };
-                    case(null) { 
-                        // This case shall never happen, for every lock added a deposit is added
-                        Debug.trap("Deposit with id=" # debug_show(lock.id) # " not found in register with id" # debug_show(register.id));
-                    };
-                };
+                let deposit = get_deposit(elem);
 
                 // Mark the refund as pending
-                Map.set(register.deposits, Map.nhash, lock.id, { deposit with state = #PENDING_REFUND({time}); });
+                Map.set(map, Map.nhash, id, update_deposit(elem, { deposit with state = #PENDING_REFUND({since = time;}) }));
 
                 let refund_fct = func() : async* () {
 
@@ -104,42 +94,18 @@ module {
 
                     // Update the deposit state
                     let state = switch(refund_result){
-                        case(#ok(tx_index)) { #REFUNDED({tx_index;}); };
-                        case(#err(error)) { #FAILED_REFUND({error;}); };
+                        case(#ok(tx_id)) { #REFUNDED({tx_id;}); };
+                        case(#err(_)) { #FAILED_REFUND; };
                     };
-                    Map.set(register.deposits, Map.nhash, lock.id, { deposit with state; });
+                    Map.set(map, Map.nhash, id, update_deposit(elem, { deposit with state; }));
                 };
 
-                // Trigger the refund
+                // Trigger the refund, but do not wait for it to complete
                 ignore refund_fct();
             };
 
-            Buffer.toArray(Buffer.map<Lock, Nat>(unlocked, func(lock: Lock) : Nat { lock.id; }));
+            Buffer.toArray(Buffer.map<(Nat, T), Nat>(unlocked, func((id, elem): (Nat, T)) : Nat { id; }));
         };
-
-        func to_lock_iter(deposit_iter: Iter<(Nat, Deposit)>) : Iter<(Nat, Lock)> {
-            func next() : ?(Nat, Lock) {
-                for ((id, deposit) in deposit_iter){
-                    switch(deposit.state){
-                        case(#LOCKED({expiration})){
-                            return ?(id, { deposit with expiration });
-                        };
-                        case(_) {};
-                    };
-                };
-                null;
-            };
-            { next; }
-        };
-        
-        func to_lock_update(deposit_update: (Nat, Deposit) -> ()) : (Nat, Lock) -> () {
-             
-        };
-        
-        func to_lock_add(deposit_add: Deposit -> Nat) : Lock -> Nat {
-
-        };
-        
 
     };
 }

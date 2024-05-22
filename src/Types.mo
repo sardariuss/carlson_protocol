@@ -98,7 +98,7 @@ module {
     public type DepositState = {
         #LOCKED: {expiration: Time};
         #PENDING_REFUND: {since: Time};
-        #OWED: {id: Nat};
+        #FAILED_REFUND; // @todo
         #REFUNDED: {tx_id: Nat};
     };
 
