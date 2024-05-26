@@ -77,6 +77,10 @@ module {
         #YES_NO: Vote<YesNoAggregate, YesNoChoice>;
     };
 
+    public type BallotType = {
+        #YES_NO: Ballot<YesNoChoice>;
+    };
+
     public type ChoiceType = {
         #YES_NO: YesNoChoice;
     };
@@ -104,6 +108,10 @@ module {
         };
     };
 
+    public type VoteTypeEnum = {
+        #YES_NO;
+    };
+
     public type Ballot<B> = {
         timestamp: Time;
         // Ballot info
@@ -119,7 +127,7 @@ module {
         decay: Float;
         // Reward info
         reward_account: Account;
-        reward_state: YieldState;
+        reward_state: RewardState;
     };
 
     public type DepositState = {
@@ -134,15 +142,15 @@ module {
         };
     };
 
-    public type YieldState = {
+    public type RewardState = {
         #PENDING;
         #PENDING_TRANSFER: { amount: Nat; since: Time };
         #FAILED_TRANSFER; // @todo
         #TRANSFERRED: { tx_id: Nat };
     };
 
-    public type VotesRegister<A, B> = {
+    public type VoteRegister = {
         var index: Nat;
-        votes: Map.Map<Nat, Vote<A, B>>;
+        votes: Map.Map<Nat, VoteType>;
     };
 }

@@ -24,16 +24,17 @@ module {
 
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    public type PayementError = ICRC2.TransferFromError or { #NotAuthorized; };
-    public type SendPaymentResult = Result<TxIndex, PayementError>;
+    public type SendPayementError = ICRC2.TransferFromError or { #NotAuthorized; };
+    public type SendPaymentResult = Result<TxIndex, SendPayementError>;
     
-    public type AddDepositError = PayementError or { #DepositTooLow : { min_deposit : Nat; }; };
+    public type AddDepositError = SendPayementError or { #DepositTooLow : { min_deposit : Nat; }; };
     public type AddDepositResult = Result<TxIndex, AddDepositError>;
 
     public type TransferResult = Result<Nat, ICRC1.TransferError>;
     public type TransferError = ICRC1.TransferError;
     
     // @todo: is setting created_at_time a good practice?
+    // @todo: remove reward from here
     public class PayementFacade({
         payee: Principal;
         ledger: ICRC1.service and ICRC2.service;
@@ -47,7 +48,7 @@ module {
             from: Account;
             amount: Nat;
             time: Time;
-        }) : async* Result<Nat, ICRC2.TransferFromError or { #NotAuthorized; }> {
+        }) : async* SendPaymentResult {
             
             // Transfer to the payee's main account (null subaccount)
             await* transfer_from({

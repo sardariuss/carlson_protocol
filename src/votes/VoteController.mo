@@ -1,6 +1,7 @@
 import Types          "../Types";
 import PayementFacade "../PayementFacade";
-import YieldScheduler  "../locks/YieldScheduler";
+import DepositScheduler "../locks/DepositScheduler";
+import RewardScheduler  "../locks/RewardScheduler";
 
 import Map            "mo:map/Map";
 
@@ -8,6 +9,7 @@ import Iter           "mo:base/Iter";
 import Result         "mo:base/Result";
 import Int            "mo:base/Int";
 import Float          "mo:base/Float";
+import Array          "mo:base/Array";
 
 module {
 
@@ -39,11 +41,30 @@ module {
     };
    
     public class VoteController<A, B>({
+        empty_aggregate: A;
         update_aggregate: UpdatePolicy<A, B>;
         compute_contest: ComputeContest<A, B>;
         compute_score: ComputeScore<A, B>;
-        yield_scheduler: YieldScheduler.YieldScheduler<Ballot<B>>;
+        deposit_scheduler: DepositScheduler.DepositScheduler<Ballot<B>>;
+        reward_scheduler: RewardScheduler.RewardScheduler<Ballot<B>>;
     }){
+
+        public func new_vote({
+            date: Time;
+            author: Principal;
+            tx_id: Nat;
+        }) : Vote<A, B> {
+            {
+                date;
+                author;
+                tx_id;
+                var aggregate = empty_aggregate;
+                ballot_register = {
+                    var index = 0;
+                    ballots = Map.new<Nat, Ballot<B>>();
+                };
+            };
+        };
 
         public func put_ballot({
             vote: Vote<A, B>;
@@ -53,7 +74,7 @@ module {
 
             let { caller; from; reward_account; time; amount; } = args;
 
-            func add_new(deposit_info: YieldScheduler.DepositInfo, lock_info: YieldScheduler.LockInfo) : (Nat, Ballot<B>){
+            func add_new(deposit_info: DepositScheduler.DepositInfo, lock_info: DepositScheduler.LockInfo) : (Nat, Ballot<B>){
 
                 // Update the aggregate
                 vote.aggregate := update_aggregate({aggregate = vote.aggregate; choice; amount; time;});
@@ -83,7 +104,7 @@ module {
             };
 
             // Perform the deposit
-            await* yield_scheduler.add_deposit({
+            await* deposit_scheduler.add_deposit({
                 map = vote.ballot_register.ballots;
                 add_new;
                 caller;
@@ -97,13 +118,40 @@ module {
             vote: Vote<A, B>;
             time: Time
         }) : async* [Nat] {
-            await* yield_scheduler.try_refund_and_reward({
+
+            let ballot_ids = await* deposit_scheduler.try_refund({
                 map = vote.ballot_register.ballots;
-                reward_amount = func({contest; choice; amount;}: Ballot<B>) : Nat {
-                    Int.abs(Float.toInt(contest * compute_score({ aggregate = vote.aggregate; choice; amount; time; }))) * amount;
-                };
                 time;
             });
+
+            label reward_loop for (ballot_id in Array.vals(ballot_ids)){
+                let ballot = switch(Map.get(vote.ballot_register.ballots, Map.nhash, ballot_id)){
+                    case (null) { continue reward_loop; }; // @todo
+                    case (?b) { b; };
+                };
+
+                let score = compute_score({ aggregate = vote.aggregate; choice = ballot.choice; amount = ballot.amount; time; });
+                let reward = Int.abs(Float.toInt(ballot.contest * score)) * ballot.amount;
+
+                await* reward_scheduler.send_reward({
+                    to = ballot;
+                    amount = reward;
+                    time;
+                    update_elem = func(ballot: Ballot<B>) {
+                        Map.set(vote.ballot_register.ballots, Map.nhash, ballot_id, ballot);
+                    };
+                });
+                
+            };
+
+            ballot_ids;
+        };
+
+        public func find_ballot({
+            vote: Vote<A, B>;
+            ballot_id: Nat;
+        }) : ?Ballot<B> {
+            Map.get(vote.ballot_register.ballots, Map.nhash, ballot_id);
         };
 
     };

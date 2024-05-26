@@ -4,7 +4,7 @@ import Conversion "BallotConversion";
 
 import LockScheduler "../locks/LockScheduler";
 import DepositScheduler "../locks/DepositScheduler";
-import YieldScheduler "../locks/YieldScheduler";
+import RewardScheduler "../locks/RewardScheduler";
 import PayementFacade "../PayementFacade";
 import Decay  "../Decay";
 import Reward "../Reward";
@@ -23,46 +23,18 @@ module {
 
     type LockInfo = LockScheduler.LockInfo;
     type DepositInfo = DepositScheduler.DepositInfo;
-    type YieldInfo = YieldScheduler.YieldInfo;
+    type RewardInfo = RewardScheduler.RewardInfo;
 
     type Time = Int;
 
-    public class YesNoController({
-        payement: PayementFacade.PayementFacade;
+    public func build({
+        payement_facade: PayementFacade.PayementFacade;
+        reward_facade: PayementFacade.PayementFacade;
         decay_model: Decay.DecayModel;
         get_lock_duration_ns: Float -> Nat;
-    }) {
+    }) : VoteController<YesNoAggregate, YesNoChoice> {
 
-        public func build() : VoteController<YesNoAggregate, YesNoChoice> {
-            
-            let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
-                decay_model;
-                get_lock_duration_ns;
-                get_lock = func (b: YesNoBallot): LockInfo { Conversion.to_lock_info<YesNoChoice>(b); };
-                update_lock = func (b: YesNoBallot, i: LockInfo): YesNoBallot { Conversion.update_lock_info<YesNoChoice>(b, i); };
-            });
-
-            let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({
-                payement;
-                lock_scheduler;
-                get_deposit = func (b: YesNoBallot): DepositInfo { Conversion.to_deposit_info<YesNoChoice>(b); };
-                update_deposit = func (b: YesNoBallot, i: DepositInfo): YesNoBallot { Conversion.update_deposit_info<YesNoChoice>(b, i); };
-            });
-
-            let yield_scheduler = YieldScheduler.YieldScheduler<YesNoBallot>({
-                payement;
-                deposit_scheduler;
-                get_yield = func (b: YesNoBallot): YieldInfo { Conversion.to_yield_info<YesNoChoice>(b); };
-                update_yield = func (b: YesNoBallot, i: YieldInfo): YesNoBallot { Conversion.update_yield_info<YesNoChoice>(b, i); };
-            });
-            
-            VoteController.VoteController<YesNoAggregate, YesNoChoice>({
-                update_aggregate;
-                compute_contest;
-                compute_score;
-                yield_scheduler;
-            });
-        };
+        let empty_aggregate = { total_yes = 0; total_no = 0; current_yes = #DECAYED(0.0); current_no = #DECAYED(0.0); };
 
         func update_aggregate({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time;}) : YesNoAggregate {
             switch(choice){
@@ -97,6 +69,34 @@ module {
             });
         };
 
+        let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
+            decay_model;
+            get_lock_duration_ns;
+            get_lock = func (b: YesNoBallot): LockInfo { Conversion.to_lock_info<YesNoChoice>(b); };
+            update_lock = func (b: YesNoBallot, i: LockInfo): YesNoBallot { Conversion.update_lock_info<YesNoChoice>(b, i); };
+        });
+
+        let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({
+            payement_facade;
+            lock_scheduler;
+            get_deposit = func (b: YesNoBallot): DepositInfo { Conversion.to_deposit_info<YesNoChoice>(b); };
+            update_deposit = func (b: YesNoBallot, i: DepositInfo): YesNoBallot { Conversion.update_deposit_info<YesNoChoice>(b, i); };
+        });
+
+        let reward_scheduler = RewardScheduler.RewardScheduler<YesNoBallot>({
+            reward_facade;
+            get_reward = func (b: YesNoBallot): RewardInfo { Conversion.to_reward_info<YesNoChoice>(b); };
+            update_reward = func (b: YesNoBallot, i: RewardInfo): YesNoBallot { Conversion.update_reward_info<YesNoChoice>(b, i); };
+        });
+        
+        VoteController.VoteController<YesNoAggregate, YesNoChoice>({
+            empty_aggregate;
+            update_aggregate;
+            compute_contest;
+            compute_score;
+            deposit_scheduler;
+            reward_scheduler;
+        });
     };
 
 };

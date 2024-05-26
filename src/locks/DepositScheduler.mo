@@ -31,7 +31,7 @@ module {
     type DepositState = Types.DepositState;
 
     public class DepositScheduler<T>({
-        payement: PayementFacade.PayementFacade;
+        payement_facade: PayementFacade.PayementFacade;
         lock_scheduler: LockScheduler.LockScheduler<T>;
         update_deposit: (T, DepositInfo) -> T;
         get_deposit: (T) -> DepositInfo;
@@ -47,7 +47,7 @@ module {
         }) : async* AddDepositResult {
 
             // Perform the deposit
-            let deposit_result = await* payement.add_deposit({ caller; from = account; amount; time = timestamp; });
+            let deposit_result = await* payement_facade.add_deposit({ caller; from = account; amount; time = timestamp; });
 
             // Add the lock if the deposit was successful
             Result.mapOk(deposit_result, func(tx_id: Nat) : Nat {
@@ -69,10 +69,10 @@ module {
             });
         };
 
-        public func try_refund(
-            map: Map<Nat, T>,
-            time: Time,
-        ) : async* [Nat] {
+        public func try_refund({
+            map: Map<Nat, T>;
+            time: Time;
+        }) : async* [Nat] {
 
             let unlocked = lock_scheduler.try_unlock(map, time);
 
@@ -83,7 +83,7 @@ module {
                 let refund_fct = func() : async* () {
 
                     // Perform the refund
-                    let refund_result = await* payement.refund_deposit({
+                    let refund_result = await* payement_facade.refund_deposit({
                         amount = deposit.amount;
                         origin_account = deposit.account;
                         time; 
