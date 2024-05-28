@@ -32,16 +32,17 @@ module {
             let reward_fct = func() : async* () {
 
                 // Perform the reward
-                let reward_result = await* reward_facade.grant_reward({
+                let reward_result = await* reward_facade.send_payement({
                     amount;
                     to = reward.account;
+                    from_subaccount = null;
                     time; 
                 });
 
                 // Update the reward state
                 let state = switch(reward_result){
                     case(#ok(tx_id)) { #TRANSFERRED({tx_id;}); };
-                    case(#err(_)) { #FAILED_TRANSFER; };
+                    case(#err({incident_id})) { #FAILED_TRANSFER{incident_id}; };
                 };
 
                 update_elem(update_reward(to, { reward with state; }));

@@ -1,6 +1,5 @@
-import Account           "Account";
 import Types             "Types";
-import MapArray          "utils/MapArray";
+import Account           "Account";
 
 import Map               "mo:map/Map";
 
@@ -9,6 +8,7 @@ import Time              "mo:base/Time";
 import Principal         "mo:base/Principal";
 import Nat64             "mo:base/Nat64";
 import Result            "mo:base/Result";
+import Error             "mo:base/Error";
 
 import ICRC1             "mo:icrc1-mo/ICRC1/service";
 import ICRC2             "mo:icrc2-mo/ICRC2/service";
@@ -19,129 +19,78 @@ module {
     type Account = ICRC1.Account;
     type TxIndex = ICRC1.TxIndex;
 
-    type FailedTransfer = Types.FailedTransfer;
-    type TransferArgs = Types.TransferArgs;
-
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    public type SendPayementError = ICRC2.TransferFromError or { #NotAuthorized; };
-    public type SendPaymentResult = Result<TxIndex, SendPayementError>;
-    
-    public type AddDepositError = SendPayementError or { #DepositTooLow : { min_deposit : Nat; }; };
-    public type AddDepositResult = Result<TxIndex, AddDepositError>;
+    type ErrorCode = Error.ErrorCode;
 
-    public type TransferResult = Result<Nat, ICRC1.TransferError>;
-    public type TransferError = ICRC1.TransferError;
+    public type SendPayementError = { incident_id: Nat; };
+    public type SendPayementResult = Result<TxIndex, SendPayementError>;
+
+    public type PayServiceError = ICRC2.TransferFromError or { #NotAuthorized; } or { #Incident : { incident_id: Nat; }};
+    public type PayServiceResult = Result<TxIndex, PayServiceError>;
+
+    public type IncidentRegister = Types.IncidentRegister;
+    public type Service = Types.Service;
+    public type ServiceTrappedError = Types.ServiceTrappedError;
+    public type Incident = Types.Incident;
     
     // @todo: is setting created_at_time a good practice?
     // @todo: remove reward from here
     public class PayementFacade({
-        payee: Principal;
+        provider: Principal;
         ledger: ICRC1.service and ICRC2.service;
-        failed_transfers: Map.Map<Principal, [FailedTransfer]>;
-        min_deposit: Nat;
+        incident_register: IncidentRegister;
         fee: ?Nat;
     }){
 
-        public func send_payement({
-            caller: Principal;
-            from: Account;
-            amount: Nat;
-            time: Time;
-        }) : async* SendPaymentResult {
-            
-            // Transfer to the payee's main account (null subaccount)
-            await* transfer_from({
-                caller;
-                from;
-                amount;
-                time;
-                to_subaccount = null;
-            });
-        };
-
-        public func add_deposit({
-            caller: Principal;
-            from: Account;
-            amount: Nat;
-            time: Time;
-        }) : async* AddDepositResult {
-
-            if (amount < min_deposit) {
-                return #err(#DepositTooLow{ min_deposit; });
-            };
-
-            // Transfer to the payee's user subaccount
-            await* transfer_from({
-                caller;
-                from;
-                amount;
-                time;
-                to_subaccount = ?Account.pSubaccount(caller);
-            });
-        };
-
-        public func refund_deposit({
-            amount: Nat;
-            origin_account: Account;
-            time: Time;
-        }) : async* TransferResult {
-
-            await* transfer({
-                amount;
-                to = origin_account;
-                time;
-                from_subaccount = ?Account.pSubaccount(origin_account.owner);
-            });
-        };
-
-        public func grant_reward({
-            amount: Nat;
-            to: Account;
-            time: Time;
-        }) : async* TransferResult {
-            
-            await* transfer({
-                amount;
-                to;
-                time;
-                from_subaccount = null;
-            });
-        };
-
-        func transfer_from({
+        public func pay_service({
             caller: Principal;
             from: Account;
             amount: Nat;
             time: Time;
             to_subaccount: ?Blob;
-        }) : async* Result<Nat, ICRC2.TransferFromError or { #NotAuthorized; }> {
+            service: Service;
+        }) : async* PayServiceResult {
             
             // Check if the caller is the owner of the account
             if (from.owner != caller) {
                 return #err(#NotAuthorized);
             };
-            
-            to_base_result(await ledger.icrc2_transfer_from({
-                spender_subaccount = ?Account.pSubaccount(from.owner);
+
+            let args = {
+                spender_subaccount = ?Account.pSubaccount(from.owner); // @todo: not sure about that
                 from;
                 to = {
-                    owner = payee;
+                    owner = provider;
                     subaccount = to_subaccount;
                 };
                 amount;
                 fee;
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(time));
-            }));
-        };
+            };
 
-        func transfer({
+            // Perform the transfer
+            let tx_id = switch(await ledger.icrc2_transfer_from(args)){
+                case(#Ok(tx_id)){ tx_id; };
+                case(#Err(error)){ return #err(error); };
+            };
+            
+            // Deliver the service
+            try {
+                #ok(await* service(tx_id));
+            } catch(error){
+                let incident = #ServiceTrapped({ error_code = Error.code(error); original_transfer = { tx_id; args; }; });
+                #err(#Incident{incident_id = add_incident(incident); });
+            };
+        };      
+
+        public func send_payement({
             amount: Nat;
             to: Account;
             from_subaccount: ?Blob;
             time: Time;
-        }) : async* TransferResult {
+        }) : async* SendPayementResult {
 
             let args = {
                 to;
@@ -151,30 +100,29 @@ module {
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(time));
             };
-        
-            let transfer = to_base_result(await ledger.icrc1_transfer(args));
 
-            switch(transfer){
-                case(#err(error)){
-                    MapArray.add(failed_transfers, Map.phash, to.owner, { args; error; });
+            // Perform the transfer
+            let error = try {
+                switch(await ledger.icrc1_transfer(args)){
+                    case(#Ok(tx_id)){ return #ok(tx_id); }; // Early return
+                    case(#Err(error)){ error; };
                 };
-                case(_){};
+            } catch(err) {
+                #Trapped{ error_code = Error.code(err); };
             };
 
-            transfer;
+            // Add the incident
+            let incident_id = add_incident(#TransferFailed{ args; error; });
+            #err({incident_id});
         };
 
-    };
-
-    func to_base_result<Ok, Err>(icrc1_result: { #Ok: Ok; #Err: Err}) : Result<Ok, Err> {
-        switch(icrc1_result){
-            case(#Ok(ok)) {
-                #ok(ok);
-            };
-            case(#Err(err)) {
-                #err(err);
-            };
+        func add_incident(incident: Incident) : Nat {
+            let incident_id = incident_register.index;
+            incident_register.index := incident_id + 1;
+            Map.set(incident_register.incidents, Map.nhash, incident_id, incident);
+            incident_id;
         };
+
     };
 
 };

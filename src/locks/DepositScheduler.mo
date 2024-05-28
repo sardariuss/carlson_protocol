@@ -7,6 +7,7 @@ import Map "mo:map/Map";
 import Result "mo:base/Result";
 import Buffer "mo:base/Buffer";
 import Iter "mo:base/Iter";
+import Principal "mo:base/Principal";
 
 module {
 
@@ -18,7 +19,7 @@ module {
     type Result<T, E> = Result.Result<T, E>;
 
     type Time = Int;
-    type AddDepositResult = Result<Nat, PayementFacade.AddDepositError>; // ID
+    type PayServiceResult = PayementFacade.PayServiceResult;
 
     public type DepositInfo = {
         tx_id: Nat;
@@ -41,22 +42,18 @@ module {
             map: Map<Nat, T>;
             add_new: (DepositInfo, LockInfo) -> (Nat, T);
             caller: Principal;
-            account: Account;   
+            from: Account;   
             amount: Nat;
             timestamp: Time;
-        }) : async* AddDepositResult {
+        }) : async* PayServiceResult {
 
-            // Perform the deposit
-            let deposit_result = await* payement_facade.add_deposit({ caller; from = account; amount; time = timestamp; });
-
-            // Add the lock if the deposit was successful
-            Result.mapOk(deposit_result, func(tx_id: Nat) : Nat {
+            func create_deposit(tx_id: Nat) : async* Nat {
 
                 // Callback to add the element to the map
                 func new(lock_info: LockInfo) : (Nat, T) {
                     let deposit_info = {
                         tx_id;
-                        account;
+                        account = from;
                         amount;
                         timestamp;
                         state = to_deposit_state(lock_info.state);
@@ -66,6 +63,16 @@ module {
 
                 // Add the lock
                 lock_scheduler.new_lock({ map; new; amount; timestamp; });
+            };
+
+            // Perform the deposit
+            await* payement_facade.pay_service({ 
+                caller;
+                from;
+                amount;
+                time = timestamp;
+                to_subaccount = ?Principal.toBlob(caller); // @todo: create unique deposit account
+                service = create_deposit;
             });
         };
 
@@ -83,18 +90,19 @@ module {
                 let refund_fct = func() : async* () {
 
                     // Perform the refund
-                    let refund_result = await* payement_facade.refund_deposit({
+                    let refund_result = await* payement_facade.send_payement({
                         amount = deposit.amount;
-                        origin_account = deposit.account;
+                        to = deposit.account;
+                        from_subaccount = ?Principal.toBlob(deposit.account.owner); // @todo: use saved deposit account
                         time; 
                     });
 
                     // Update the deposit state
                     let transfer = switch(refund_result){
                         case(#ok(tx_id)) { #SUCCESS({tx_id;}); };
-                        case(#err(_)) { #FAILED; };
+                        case(#err({incident_id})) { #FAILED{incident_id}; };
                     };
-                    Map.set(map, Map.nhash, id, update_deposit(elem, { deposit with state =  #UNLOCKED({since = time; transfer; }) }));
+                    Map.set(map, Map.nhash, id, update_deposit(elem, { deposit with state = #UNLOCKED({ since = time; transfer; }) }));
                 };
 
                 // Trigger the refund and callback, but do not wait for them to complete

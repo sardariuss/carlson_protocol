@@ -1,10 +1,11 @@
-import Map  "mo:map/Map";
+import Error "mo:base/Error";
+import Map   "mo:map/Map";
 
 module {
 
     public type Time = Int;
 
-    // FROM ICRC-1
+    // ICRC-1 TYPES
 
     public type Balance = Nat;
 
@@ -40,6 +41,21 @@ module {
         created_at_time : ?Nat64;
     };
 
+    // FROM ICRC-2 TYPES
+
+    public type TransferFromArgs = {
+        spender_subaccount : ?Blob;
+        from : Account;
+        to : Account;
+        amount : Nat;
+        fee : ?Nat;
+        memo : ?Blob;
+        created_at_time : ?Nat64;
+    };
+
+    // CUSTOM TYPES
+
+    // @todo: remove this type
     public type FailedTransfer = {
         args: TransferArgs;
         error: TransferError;
@@ -136,8 +152,8 @@ module {
             since: Time;
             transfer: {
                 #PENDING;
-                #FAILED; // @todo
-                #SUCCESS: {tx_id: Nat};
+                #FAILED: { incident_id: Nat; };
+                #SUCCESS: { tx_id: Nat };
             };
         };
     };
@@ -145,12 +161,35 @@ module {
     public type RewardState = {
         #PENDING;
         #PENDING_TRANSFER: { amount: Nat; since: Time };
-        #FAILED_TRANSFER; // @todo
+        #FAILED_TRANSFER: { incident_id: Nat; };
         #TRANSFERRED: { tx_id: Nat };
     };
 
     public type VoteRegister = {
         var index: Nat;
         votes: Map.Map<Nat, VoteType>;
+    };
+
+    public type Service = Nat -> async* Nat;
+
+    public type ServiceTrappedError = {
+        original_transfer: {
+            tx_id: TxIndex;
+            args: TransferFromArgs;
+        };
+        error_code: Error.ErrorCode;
+    };
+
+    public type Incident = {
+        #ServiceTrapped: ServiceTrappedError;
+        #TransferFailed: {
+            args: TransferArgs;
+            error: TransferError or { #Trapped : { error_code: Error.ErrorCode; }};
+        };
+    };
+
+    public type IncidentRegister = {
+        var index: Nat;
+        incidents: Map.Map<Nat, Incident>;
     };
 }

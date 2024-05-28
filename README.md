@@ -45,7 +45,7 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
 - BACKEND
   - *DONE* time dilation curve: shall replace the current nominal_duration_per_sat. It aims at preventing absurd locking times (e.g. 10 seconds or 100 years). Curve formula would probably be ax^b, where a=3 (days), and b=ln(2)/ln(10). This way, a hot score of 1 sat would yield 3 days lock, 10 sats a 6 days lock, ... 1 btc a 1 year lock.
   - *DONE* vote proposal, so that everybody can propose a new vote.
-  - *SKIPPED* vote metadata, so that the Carlson protocol canister can be used as a service separated from any other backend/frontend canisters, but still allows to save and retrieve specific votes.
+  - *TODO* vote metadata, so that the Carlson protocol canister can be used as a service separated from any other backend/frontend canisters, but still allows to save and retrieve specific votes.
   - *DONE* vote decay over time (so it gets easier to challenge consensus overtime)
 
 - FRONTEND:
@@ -78,13 +78,9 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
 - Fix initial contest multiplier: 0.5 shall decrease the more tokens are locked with the first ballot
 - The protocol canister shall be the owner of the ledger canister
 - Be able to order the votes by date, popularity or hotness. Be able to filter them by tag.
-- Add reward for users who suggest votes
+- Add reward for users who open new votes
 - Remove prints in LockScheduler.mo
 - Add votes unit tests
-- If a transfer fails, it is added to the map of failed transfers, but its origin is lost
-- Investigate if all the scenarios involving async calls could not leave an intermediate state (e.g. payement done but ballot not added)
 
-
-### REFAC
-- could do a RAII like transfer function (with_transfer(callback)) that leaves a trace if a transfer succeed but callback fails
-- could use a MapUpdated function so one only need a single map for ballots and deposits while stile being able to split the responsabilities
+### Misc improvements
+- Review DepositScheduler and LockScheduler modules: separate responsabilities (lock/unlock, map of hot linked elements, creation of deposits subaccounts)

@@ -17,7 +17,7 @@ module {
 
     public type VoteId = Nat;
 
-    type AddDepositError = PayementFacade.AddDepositError;
+    type PayServiceError = PayementFacade.PayServiceError;
     type Account = Types.Account;
     type Iter<T> = Iter.Iter<T>;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
@@ -70,7 +70,7 @@ module {
             vote: Vote<A, B>;
             choice: B;
             args: PutBallotArgs;
-        }) : async* Result<Nat, AddDepositError> {
+        }) : async* Result<Nat, PayServiceError> {
 
             let { caller; from; reward_account; time; amount; } = args;
 
@@ -108,7 +108,7 @@ module {
                 map = vote.ballot_register.ballots;
                 add_new;
                 caller;
-                account = from;
+                from;
                 amount;
                 timestamp = time;
             });

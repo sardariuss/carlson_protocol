@@ -21,12 +21,12 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type BallotType = Types.BallotType;
 
-    type SendPayementError = PayementFacade.SendPayementError;
+    type PayServiceError = PayementFacade.PayServiceError;
     
     type VoteNotFoundError = { #VoteNotFound: { vote_id: VoteId }; };
     
     public type PutBallotArgs = { vote_id: VoteId; choice_type: ChoiceType; } and VoteTypeController.PutBallotArgs;
-    public type PutBallotResult = Result<Nat, PayementFacade.AddDepositError or VoteNotFoundError>;
+    public type PutBallotResult = Result<Nat, PayementFacade.PayServiceError or VoteNotFoundError>;
 
     public type VoteBallotId = {
         vote_id: VoteId;
@@ -40,7 +40,7 @@ module {
         type_enum: VoteTypeEnum;
     };
 
-    public type NewVoteResult = Result<VoteId, SendPayementError>;
+    public type NewVoteResult = Result<VoteId, PayServiceError>;
 
     type VoteRegister = Types.VoteRegister;
 
@@ -53,29 +53,30 @@ module {
 
         public func new_vote(args: NewVoteArgs) : async* NewVoteResult {
 
-            let payement = await* payement_facade.send_payement({
+            func create_vote(tx_id: Nat) : async* Nat {
+                let vote = vote_type_controller.new_vote({
+                    vote_type_enum = args.type_enum;
+                    date = args.time;
+                    author = args.caller;
+                    tx_id;
+                });
+
+                let vote_id = vote_register.index;
+                vote_register.index := vote_register.index + 1;
+                Map.set(vote_register.votes, Map.nhash, vote_id, vote);
+                vote_id;
+            };
+
+            await* payement_facade.pay_service({
                 caller = args.caller;
                 from = args.from;
                 amount = new_vote_price;
+                to_subaccount = null; // @todo: have a specific subaccount for vote creation
                 time = args.time;
+                service = create_vote;
             });
 
-            let tx_id = switch(payement){
-                case(#err(err)) { return #err(err); };
-                case(#ok(tx_id)) { tx_id; };
-            };
-
-            let vote = vote_type_controller.new_vote({
-                vote_type_enum = args.type_enum;
-                date = args.time;
-                author = args.caller;
-                tx_id;
-            });
-
-            let vote_id = vote_register.index;
-            vote_register.index := vote_register.index + 1;
-            Map.set(vote_register.votes, Map.nhash, vote_id, vote);
-            #ok(vote_id);
+            
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {

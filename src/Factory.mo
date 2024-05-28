@@ -17,21 +17,20 @@ module {
     type FailedTransfer = Types.FailedTransfer;
     type Duration = Types.Duration;
     type Time = Types.Time;
+    type IncidentRegister = Types.IncidentRegister;
 
     public func build({
         vote_register: VoteRegister;
         payement_args: {
-            payee: Principal;
+            provider: Principal;
             ledger: ICRC1.service and ICRC2.service;
-            failed_transfers: Map.Map<Principal, [FailedTransfer]>;
-            min_deposit: Nat;
+            incident_register: IncidentRegister;
             fee: ?Nat;
         };
         reward_args: {
-            payee: Principal;
+            provider: Principal;
             ledger: ICRC1.service and ICRC2.service;
-            failed_transfers: Map.Map<Principal, [FailedTransfer]>;
-            min_deposit: Nat;
+            incident_register: IncidentRegister;
             fee: ?Nat;
         };
         decay_args: {

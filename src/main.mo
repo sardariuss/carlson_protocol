@@ -17,8 +17,7 @@ shared({ caller = admin }) actor class CarlsonProtocol({
     parameters: {
         ballot_half_life: Types.Duration;
         nominal_lock_duration: Types.Duration;
-        add_ballot_min_amount: Nat;
-        new_vote_min_amount: Nat;
+        new_vote_price: Nat;
     }}) = this {
 
     // STABLE MEMBERS
@@ -35,22 +34,24 @@ shared({ caller = admin }) actor class CarlsonProtocol({
     };
 
     // NON-STABLE MEMBER
-    // @todo: review arguments
-    // @todo: is a min amount really necessary? Or just check if the amount is not 0?
     let _controller = Factory.build({
         vote_register = _data.register;
         payement_args = {
-            payee = Principal.fromText("aaaaa-aa"); // @todo: use principal from actor
+            provider = Principal.fromText("aaaaa-aa"); // @todo: use principal from actor
             ledger = _deposit_ledger;
-            failed_transfers = Map.new<Principal, [Types.FailedTransfer]>();
-            min_deposit = _data.parameters.new_vote_min_amount;
+            incident_register = {
+                var index = 0;
+                incidents = Map.new<Nat, Types.Incident>();
+            };
             fee = null;
         };
         reward_args = {
-            payee = Principal.fromText("aaaaa-aa"); // @todo: use principal from actor
+            provider = Principal.fromText("aaaaa-aa"); // @todo: use principal from actor
             ledger = _reward_ledger;
-            failed_transfers = Map.new<Principal, [Types.FailedTransfer]>();
-            min_deposit = 0;
+            incident_register = {
+                var index = 0;
+                incidents = Map.new<Nat, Types.Incident>();
+            };
             fee = null;
         };
         decay_args = {
@@ -58,7 +59,7 @@ shared({ caller = admin }) actor class CarlsonProtocol({
             time_init = Time.now();
         };
         nominal_lock_duration = _data.parameters.nominal_lock_duration;
-        new_vote_price = _data.parameters.new_vote_min_amount;
+        new_vote_price = _data.parameters.new_vote_price;
     });
 
     // Create a new vote

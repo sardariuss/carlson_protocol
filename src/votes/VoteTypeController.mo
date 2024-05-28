@@ -17,7 +17,7 @@ module {
 
     public type VoteId = Nat;
 
-    type AddDepositError = PayementFacade.AddDepositError;
+    type PayServiceError = PayementFacade.PayServiceError;
     type Account = Types.Account;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type BallotType = Types.BallotType;
@@ -38,7 +38,7 @@ module {
             };
         };
 
-        public func put_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PutBallotArgs; }) : async* Result<Nat, AddDepositError> {
+        public func put_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PutBallotArgs; }) : async* Result<Nat, PayServiceError> {
             switch(vote_type, choice_type){
                 case(#YES_NO(vote), #YES_NO(choice)) { await* yes_no_controller.put_ballot({ vote; args; choice; }); };
             };
