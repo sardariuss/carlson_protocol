@@ -183,7 +183,7 @@ shared actor class Main() = this {
         let { tx_id; } = switch(await protocol.add_ballot({
             vote_id;
             from = account_1;
-            choice = #AYE(locked_balance);
+            choice = #YES(locked_balance);
         })){
             case(#Err(err)){
                 Debug.trap("Fail to lock 5 tokens from account_1: " # debug_show(err));

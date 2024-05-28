@@ -53,9 +53,8 @@ dfx canister install protocol --argument '( record {
     deposit_ledger = principal "'${CKBTC_PRINCIPAL}'";
     reward_ledger = principal "'${LEDGER_PRINCIPAL}'";
     parameters = record {
-        hotness_half_life = variant { YEARS = 1 };
+        ballot_half_life = variant { YEARS = 1 };
         nominal_lock_duration = variant { DAYS = 3 };
-        add_ballot_min_amount = 50;
-        new_vote_min_amount = 100;
+        new_vote_price = 100;
     };
 })'

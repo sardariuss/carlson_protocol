@@ -1,64 +1,50 @@
-import Types     "Types";
-import Decay     "Decay";
+import Decay     "../Decay";
 
 import Map       "mo:map/Map";
 
 import Float     "mo:base/Float";
 import Time      "mo:base/Time";
 import Buffer    "mo:base/Buffer";
-import Debug     "mo:base/Debug";
-import Option    "mo:base/Option";
 import Int       "mo:base/Int";
+import Iter      "mo:base/Iter";
 
 module {
 
     type Time = Time.Time;
     type DecayModel = Decay.DecayModel;
+    type Iter<T> = Iter.Iter<T>;
 
-    public type Lock = {
-        id: Nat;
+    public type LockInfo = {
         amount: Nat;
         timestamp: Int;
         decay: Float;
         hotness: Float;
-        lock_state: LockState;
+        state: LockState;
     };
 
     public type LockState = {
-        #LOCKED;
-        #UNLOCKED;
+        #LOCKED: { until: Time; };
+        #UNLOCKED: { since: Time; };
     };
     
     public class LockScheduler<T>({
         decay_model: DecayModel;
         get_lock_duration_ns: Float -> Nat;
-        to_lock: T -> Lock;
-        update_lock: (T, Lock) -> T;
+        get_lock: T -> LockInfo;
+        update_lock: (T, LockInfo) -> T;
     }){
 
-        // Creates a new lock with the given id, amount and timestamp
+        // Creates a new lock with the given amount and timestamp
+        // Deduce the decay from the given timestamp
         // Deduce the hotness of the lock from the previous locks
         // Update the hotness of the previous locks
-        // Add the lock to the map and return it
+        // @todo: shall we return the date of the earliest until?
         public func new_lock({
             map: Map.Map<Nat, T>;
-            id: Nat;
+            new: LockInfo -> (Nat, T);
             amount: Nat;
             timestamp: Time;
-            new: Lock -> T;
-        }) : T {
-
-            // Ensure the lock does not already exist
-            if (Map.has(map, Map.nhash, id)) {
-                Debug.trap("Lock " # debug_show(id) # " already exists in the map");
-            };
-
-            // Ensure the timestamp of the new lock is greater than the timestamp of the last lock
-            Option.iterate(Map.peek(map), func((_, val): (Nat, T)) {
-                if (to_lock(val).timestamp > timestamp) {
-                    Debug.trap("The timestamp of the last lock is greater than the timestamp of the new lock");
-                };
-            });
+        }) : Nat {
 
             // The hotness of a lock is the amount of that lock, plus the sum of the previous lock
             // amounts weighted by their growth, plus the sum of the next lock amounts weighted
@@ -98,70 +84,70 @@ module {
             var hotness = Float.fromInt(amount);
 
             // Iterate over the previous locks
-            for (elem in Map.vals(map)) {
-                
-                let previous_lock = to_lock(elem);
+            label locked for ((id, prv) in Map.entries(map)) {
+
+                let prev_lock = get_lock(prv);
+
+                // Ensure the timestamp of the previous lock is smaller than the given timestamp
+                assert(prev_lock.timestamp < timestamp);
 
                 // Compute the weight between the two locks
-                let weight = previous_lock.decay / decay;
-                
-                // Update the hotness of the previous lock
-                Map.set(map, Map.nhash, previous_lock.id, update_lock(elem, { previous_lock 
-                    with hotness = previous_lock.hotness + Float.fromInt(amount) * weight; }));
+                let weight = prev_lock.decay / decay;
 
                 // Add to the hotness of the new lock
-                hotness += Float.fromInt(previous_lock.amount) * weight;
-            };
-
-            let elem = new({ id; amount; timestamp; decay; hotness; lock_state = #LOCKED;});
-
-            Map.set(map, Map.nhash, id, elem);
-
-            elem;
-        };
-
-        // Unlock the elements in the map which duration has expired
-        // Return the elements that have been unlocked
-        public func try_unlock({
-            map: Map.Map<Nat, T>;
-            time: Time;
-        }) : Buffer.Buffer<T> {
-
-            let new_unlocked : Buffer.Buffer<T> = Buffer.Buffer(0);
-
-            label unlock_loop for (val in Map.vals(filter_locked(map))) {
+                hotness += Float.fromInt(prev_lock.amount) * weight;
                 
-                let lock = to_lock(val);
-
-                //Debug.print("There is a candidate lock with id=" # debug_show(lock.id));
-                
-                // Stop the loop if the duration is not reached yet (the locks are added in order of time)
-                if (lock.timestamp + get_lock_duration_ns(lock.hotness) > time) {
-                    //Debug.print("The lock is not expired yet");
-                    break unlock_loop;
+                // Update the hotness of the previous lock if it is still locked
+                switch(prev_lock.state){
+                    case(#LOCKED({ until })) {
+                        let prv_hotness = prev_lock.hotness + Float.fromInt(amount) * weight;
+                        let prv_until = prev_lock.timestamp + get_lock_duration_ns(prv_hotness);
+                        Map.set(map, Map.nhash, id, update_lock(prv, { 
+                            prev_lock with 
+                            hotness = prv_hotness;
+                            state = #LOCKED { until = prv_until; };
+                        }));
+                    };
+                    case(_) {};
                 };
-
-                //Debug.print("The lock is expired");
-
-                // Update the lock state of the element
-                let elem = update_lock(val, { lock with lock_state = #UNLOCKED });
-
-                // Update the element in the map
-                Map.set<Nat, T>(map, Map.nhash, lock.id, elem);
-
-                // Add the element to the list of new unlocked
-                new_unlocked.add(elem);
             };
 
-            new_unlocked;
+            // Create the new lock
+            let (id, new_elem) = new({ 
+                amount; 
+                timestamp;
+                decay; 
+                hotness;
+                state = #LOCKED { until = timestamp + get_lock_duration_ns(hotness); };
+            });
+            Map.set(map, Map.nhash, id, new_elem);
+            id;
         };
 
-        func filter_locked(
-            map: Map.Map<Nat, T>
-        ) : Map.Map<Nat, T> {
-            Map.filter<Nat, T>(map, Map.nhash, func((_, val): (Nat, T)) : Bool {
-                to_lock(val).lock_state == #LOCKED;
-            });
+        // Unlock the expired locks
+        public func try_unlock(
+            map: Map.Map<Nat, T>,
+            time: Time,
+        ) : Buffer.Buffer<(Nat, T)>{
+
+            let buffer = Buffer.Buffer<(Nat, T)>(0);
+
+            for ((id, elem) in Map.entries(map)) {
+                let lock = get_lock(elem);
+
+                switch(lock.state){
+                    case(#LOCKED({ until })) {
+                        if (until <= time) {
+                            let update = update_lock(elem, { lock with state = #UNLOCKED { since = time; } });
+                            Map.set(map, Map.nhash, id, update);
+                            buffer.add((id, update));
+                        };
+                    };
+                    case(_) {};
+                };
+            };
+
+            buffer;
         };
 
     };
