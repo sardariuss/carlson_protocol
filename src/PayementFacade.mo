@@ -35,7 +35,6 @@ module {
     public type Incident = Types.Incident;
     
     // @todo: is setting created_at_time a good practice?
-    // @todo: remove reward from here
     public class PayementFacade({
         provider: Principal;
         ledger: ICRC1.service and ICRC2.service;
@@ -104,7 +103,7 @@ module {
             // Perform the transfer
             let error = try {
                 switch(await ledger.icrc1_transfer(args)){
-                    case(#Ok(tx_id)){ return #ok(tx_id); }; // Early return
+                    case(#Ok(tx_id)){ return #ok(tx_id); };
                     case(#Err(error)){ error; };
                 };
             } catch(err) {

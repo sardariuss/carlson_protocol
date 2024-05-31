@@ -31,8 +31,8 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 - `deposit_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the ballots (aims to be ckBTC)
 - `reward_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the rewards
 - `parameters.nominal_lock_duration`: the duration of the lock for 1 satoshi
-- `parameters.hotness_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock.
-- `parameters.ballot_min_amount`: the minimum amount a voter has to lock in order to vote.
+- `parameters.ballot_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock. The same parameter is used to make the ballot decay
+- `parameters.new_vote_price`: the price to open up a vote
 
 ## 🚧 Roadmap
 

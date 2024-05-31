@@ -9,12 +9,9 @@ import LockDurationCurve "LockDurationCurve";
 import ICRC1             "mo:icrc1-mo/ICRC1/service";
 import ICRC2             "mo:icrc2-mo/ICRC2/service";
 
-import Map               "mo:map/Map";
-
 module {
 
     type VoteRegister = Types.VoteRegister;
-    type FailedTransfer = Types.FailedTransfer;
     type Duration = Types.Duration;
     type Time = Types.Time;
     type IncidentRegister = Types.IncidentRegister;

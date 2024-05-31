@@ -54,12 +54,6 @@ module {
     };
 
     // CUSTOM TYPES
-
-    // @todo: remove this type
-    public type FailedTransfer = {
-        args: TransferArgs;
-        error: TransferError;
-    };
     
     public type Duration = {
         #YEARS: Nat;
@@ -191,5 +185,10 @@ module {
     public type IncidentRegister = {
         var index: Nat;
         incidents: Map.Map<Nat, Incident>;
+    };
+
+    public type SubaccountType = {
+        #NEW_VOTES_ACCOUNT;
+        #DEPOSIT_BALLOT_ACCOUNT: { id: Nat; };
     };
 }
