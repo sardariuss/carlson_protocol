@@ -74,7 +74,7 @@ module {
 
             let { caller; from; reward_account; time; amount; } = args;
 
-            func add_new(deposit_info: DepositScheduler.DepositInfo, lock_info: DepositScheduler.LockInfo) : (Nat, Ballot<B>){
+            func new_element(deposit_info: DepositScheduler.DepositInfo, lock_info: DepositScheduler.LockInfo) : (Nat, Ballot<B>){
 
                 // Update the aggregate
                 vote.aggregate := update_aggregate({aggregate = vote.aggregate; choice; amount; time;});
@@ -93,7 +93,6 @@ module {
                     contest = compute_contest({ aggregate = vote.aggregate; choice; amount; time; });
                     choice;
                 };
-                Map.set(vote.ballot_register.ballots, Map.nhash, ballot_id, ballot);
 
                 // Return the id and the ballot
                 (ballot_id, ballot);
@@ -102,7 +101,7 @@ module {
             // Perform the deposit
             await* deposit_scheduler.add_deposit({
                 map = vote.ballot_register.ballots;
-                add_new;
+                new_element;
                 caller;
                 from;
                 amount;

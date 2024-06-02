@@ -43,7 +43,7 @@ module {
 
         public func add_deposit({
             map: Map<Nat, T>;
-            add_new: (DepositInfo, LockInfo) -> (Nat, T);
+            new_element: (DepositInfo, LockInfo) -> (Nat, T);
             caller: Principal;
             from: Account;   
             amount: Nat;
@@ -64,7 +64,7 @@ module {
                         timestamp;
                         state = to_deposit_state(lock_info.state);
                     };
-                    add_new(deposit_info, lock_info);
+                    new_element(deposit_info, lock_info);
                 };
 
                 // Add the lock
