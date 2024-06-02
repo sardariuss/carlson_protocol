@@ -1,17 +1,17 @@
-import Types             "Types";
-import Subaccount        "Subaccount";
+import Types      "Types";
+import Subaccount "Subaccount";
 
-import Map               "mo:map/Map";
+import Map        "mo:map/Map";
 
-import Int               "mo:base/Int";
-import Time              "mo:base/Time";
-import Principal         "mo:base/Principal";
-import Nat64             "mo:base/Nat64";
-import Result            "mo:base/Result";
-import Error             "mo:base/Error";
+import Int        "mo:base/Int";
+import Time       "mo:base/Time";
+import Principal  "mo:base/Principal";
+import Nat64      "mo:base/Nat64";
+import Result     "mo:base/Result";
+import Error      "mo:base/Error";
 
-import ICRC1             "mo:icrc1-mo/ICRC1/service";
-import ICRC2             "mo:icrc2-mo/ICRC2/service";
+import ICRC1      "mo:icrc1-mo/ICRC1/service";
+import ICRC2      "mo:icrc2-mo/ICRC2/service";
 
 module {
 
@@ -26,7 +26,7 @@ module {
     public type SendPayementError = { incident_id: Nat; };
     public type SendPayementResult = Result<TxIndex, SendPayementError>;
 
-    public type PayServiceError = ICRC2.TransferFromError or { #NotAuthorized; } or { #Incident : { incident_id: Nat; }};
+    public type PayServiceError = ICRC2.TransferFromError or { #Incident : { incident_id: Nat; }};
     public type PayServiceResult = Result<TxIndex, PayServiceError>;
 
     public type IncidentRegister = Types.IncidentRegister;
@@ -51,13 +51,10 @@ module {
             service: Service;
         }) : async* PayServiceResult {
             
-            // Check if the caller is the owner of the account
-            if (from.owner != caller) {
-                return #err(#NotAuthorized);
-            };
-
             let args = {
-                spender_subaccount = ?Subaccount.from_principal(from.owner); // @todo: not sure about that
+                // According to the ICRC2 specifications, if the from account has been approved with a
+                // different spender subaccount than the one specified, the transfer will be rejected.
+                spender_subaccount = ?Subaccount.from_principal(caller);
                 from;
                 to = {
                     owner = provider;
@@ -71,8 +68,8 @@ module {
 
             // Perform the transfer
             let tx_id = switch(await ledger.icrc2_transfer_from(args)){
-                case(#Ok(tx_id)){ tx_id; };
                 case(#Err(error)){ return #err(error); };
+                case(#Ok(tx_id)){ tx_id; };
             };
             
             // Deliver the service
@@ -82,7 +79,7 @@ module {
                 let incident = #ServiceTrapped({ error_code = Error.code(error); original_transfer = { tx_id; args; }; });
                 #err(#Incident{incident_id = add_incident(incident); });
             };
-        };      
+        };
 
         public func send_payement({
             amount: Nat;
