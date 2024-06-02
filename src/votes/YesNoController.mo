@@ -2,6 +2,7 @@ import Types "../Types";
 import VoteController "VoteController";
 import Conversion "BallotConversion";
 
+import SubaccountIndexer "../SubaccountIndexer";
 import LockScheduler "../locks/LockScheduler";
 import DepositScheduler "../locks/DepositScheduler";
 import RewardScheduler "../locks/RewardScheduler";
@@ -28,6 +29,7 @@ module {
     type Time = Int;
 
     public func build({
+        subaccount_indexer: SubaccountIndexer.SubaccountIndexer;
         payement_facade: PayementFacade.PayementFacade;
         reward_facade: PayementFacade.PayementFacade;
         decay_model: Decay.DecayModel;
@@ -77,6 +79,7 @@ module {
         });
 
         let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({
+            subaccount_indexer;
             payement_facade;
             lock_scheduler;
             get_deposit = func (b: YesNoBallot): DepositInfo { Conversion.to_deposit_info<YesNoChoice>(b); };

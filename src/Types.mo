@@ -54,12 +54,6 @@ module {
     };
 
     // CUSTOM TYPES
-
-    // @todo: remove this type
-    public type FailedTransfer = {
-        args: TransferArgs;
-        error: TransferError;
-    };
     
     public type Duration = {
         #YEARS: Nat;
@@ -137,6 +131,7 @@ module {
         // Deposit info
         tx_id: Nat;
         from: Account;
+        subaccount: Blob;
         deposit_state: DepositState;
         // Lock info
         hotness: Float;
@@ -192,4 +187,10 @@ module {
         var index: Nat;
         incidents: Map.Map<Nat, Incident>;
     };
-}
+
+    public type SubaccountType = {
+        #NEW_VOTE_FEES;
+        #BALLOT_DEPOSITS: { id: Nat; };
+    };
+
+};

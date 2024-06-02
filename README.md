@@ -31,8 +31,8 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 - `deposit_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the ballots (aims to be ckBTC)
 - `reward_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the rewards
 - `parameters.nominal_lock_duration`: the duration of the lock for 1 satoshi
-- `parameters.hotness_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock.
-- `parameters.ballot_min_amount`: the minimum amount a voter has to lock in order to vote.
+- `parameters.ballot_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock. The same parameter is used to make the ballot decay
+- `parameters.new_vote_price`: the price to open up a vote
 
 ## 🚧 Roadmap
 
@@ -59,7 +59,7 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
   
   - Manage to convey how the protocol works in the UI
   - Make a functional test scenario with many users and votes, manage the balances of each user
-  - The Carlson' protocol relies on conditions on time and durations, which kind be tricky to reproduce in a test
+  - The Carlson' protocol relies on conditions on time and durations, which can be tricky to reproduce in a test
 
 ### Later
 
@@ -72,15 +72,16 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
   - to justify: why use a linear function for the contest factor, and a logistic regression for the score?
 - FRONTEND
   - Plug login
+- Todos
+  - Use real ckBTC canister on mainnet
+  - Be able to order the votes by date, popularity or hotness. Be able to filter them by tag.
 
 ### Misc TODOs
 
 - Fix initial contest multiplier: 0.5 shall decrease the more tokens are locked with the first ballot
-- The protocol canister shall be the owner of the ledger canister
-- Be able to order the votes by date, popularity or hotness. Be able to filter them by tag.
 - Add reward for users who open new votes
 - Remove prints in LockScheduler.mo
-- Add votes unit tests
+- Fix and add votes unit tests
 
 ### Misc improvements
 - Review DepositScheduler and LockScheduler modules: separate responsabilities (lock/unlock, map of hot linked elements, creation of deposits subaccounts)

@@ -39,7 +39,7 @@ dfx canister install ledger --argument '( opt record {
     min_burn_amount   = opt 1_000;
     initial_balances  = vec {};
     minting_account   = opt record { 
-      owner = principal "'${DEPLOYER_PRINCIPAL}'";
+      owner = principal "'${LEDGER_PRINCIPAL}'";
       subaccount = null; 
     };
     advanced_settings = null;

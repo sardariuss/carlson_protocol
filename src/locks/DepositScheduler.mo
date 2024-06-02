@@ -1,6 +1,7 @@
 import LockScheduler "LockScheduler";
 import Types "../Types";
 import PayementFacade "../PayementFacade";
+import SubaccountIndexer "../SubaccountIndexer";
 
 import Map "mo:map/Map";
 
@@ -23,7 +24,8 @@ module {
 
     public type DepositInfo = {
         tx_id: Nat;
-        account: Account;
+        from: Account;
+        subaccount: Blob;
         amount: Nat;
         timestamp: Time;
         state: DepositState;
@@ -32,6 +34,7 @@ module {
     type DepositState = Types.DepositState;
 
     public class DepositScheduler<T>({
+        subaccount_indexer: SubaccountIndexer.SubaccountIndexer;
         payement_facade: PayementFacade.PayementFacade;
         lock_scheduler: LockScheduler.LockScheduler<T>;
         update_deposit: (T, DepositInfo) -> T;
@@ -47,14 +50,17 @@ module {
             timestamp: Time;
         }) : async* PayServiceResult {
 
+            let subaccount = subaccount_indexer.new_deposit_subaccount();
+
             func create_deposit(tx_id: Nat) : async* Nat {
 
                 // Callback to add the element to the map
                 func new(lock_info: LockInfo) : (Nat, T) {
                     let deposit_info = {
                         tx_id;
-                        account = from;
+                        from;
                         amount;
+                        subaccount;
                         timestamp;
                         state = to_deposit_state(lock_info.state);
                     };
@@ -71,7 +77,7 @@ module {
                 from;
                 amount;
                 time = timestamp;
-                to_subaccount = ?Principal.toBlob(caller); // @todo: create unique deposit account
+                to_subaccount = ?subaccount;
                 service = create_deposit;
             });
         };
@@ -92,8 +98,8 @@ module {
                     // Perform the refund
                     let refund_result = await* payement_facade.send_payement({
                         amount = deposit.amount;
-                        to = deposit.account;
-                        from_subaccount = ?Principal.toBlob(deposit.account.owner); // @todo: use saved deposit account
+                        to = deposit.from;
+                        from_subaccount = ?deposit.subaccount;
                         time; 
                     });
 

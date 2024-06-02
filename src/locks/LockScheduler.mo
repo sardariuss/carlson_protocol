@@ -38,7 +38,6 @@ module {
         // Deduce the decay from the given timestamp
         // Deduce the hotness of the lock from the previous locks
         // Update the hotness of the previous locks
-        // @todo: shall we return the date of the earliest until?
         public func new_lock({
             map: Map.Map<Nat, T>;
             new: LockInfo -> (Nat, T);

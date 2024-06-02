@@ -1,6 +1,7 @@
-import Types          "Types";
+import Types              "Types";
 import VoteTypeController "votes/VoteTypeController";
-import PayementFacade "PayementFacade";
+import PayementFacade     "PayementFacade";
+import Subaccount         "Subaccount";
 
 import Map            "mo:map/Map";
 
@@ -71,11 +72,10 @@ module {
                 caller = args.caller;
                 from = args.from;
                 amount = new_vote_price;
-                to_subaccount = null; // @todo: have a specific subaccount for vote creation
+                to_subaccount = ?Subaccount.from_subaccount_type(#NEW_VOTE_FEES);
                 time = args.time;
                 service = create_vote;
             });
-
             
         };
 

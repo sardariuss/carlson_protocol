@@ -22,9 +22,7 @@ module {
     //                     ··
     //                    ·
     // 
-    public class LockDurationCurve({
-        nominal_lock_duration: Types.Duration;
-    }){
+    public class LockDurationCurve(nominal_lock_duration: Types.Duration){
 
         let nominal_lock_duration_ns = Duration.toTime(nominal_lock_duration);
         let scale_factor = Float.log(2.0) / Float.log(10.0);

@@ -40,7 +40,6 @@ module {
         {
             yes_no_ballot with
             state = yes_no_ballot.deposit_state;
-            account = yes_no_ballot.from;
         };
     };
 
