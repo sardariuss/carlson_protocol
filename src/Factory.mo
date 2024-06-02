@@ -5,6 +5,7 @@ import Controller "Controller";
 import PayementFacade "PayementFacade";
 import Decay "Decay";
 import LockDurationCurve "LockDurationCurve";
+import SubaccountIndexer "SubaccountIndexer";
 
 import ICRC1             "mo:icrc1-mo/ICRC1/service";
 import ICRC2             "mo:icrc2-mo/ICRC2/service";
@@ -16,35 +17,46 @@ module {
     type Time = Types.Time;
     type IncidentRegister = Types.IncidentRegister;
 
-    public func build({
-        vote_register: VoteRegister;
-        payement_args: {
-            provider: Principal;
-            ledger: ICRC1.service and ICRC2.service;
-            incident_register: IncidentRegister;
-            fee: ?Nat;
+    type BuildArguments = {
+        stable_data: {
+            subaccount_register: SubaccountIndexer.SubaccountRegister;
+            vote_register: VoteRegister;
+            payement: {
+                ledger: ICRC1.service and ICRC2.service;
+                incident_register: IncidentRegister;
+            };
+            reward: {
+                ledger: ICRC1.service and ICRC2.service;
+                incident_register: IncidentRegister;
+            };
+            parameters: {
+                nominal_lock_duration: Duration;
+                new_vote_price: Nat;
+                decay: {
+                    half_life: Duration;
+                    time_init: Time;
+                };
+            };
         };
-        reward_args: {
-            provider: Principal;
-            ledger: ICRC1.service and ICRC2.service;
-            incident_register: IncidentRegister;
-            fee: ?Nat;
-        };
-        decay_args: {
-            half_life: Duration;
-            time_init: Time;
-        };
-        nominal_lock_duration: Duration;
-        new_vote_price: Nat;
-    }) : Controller.Controller {
+        provider: Principal;
+    };
 
-        let payement_facade = PayementFacade.PayementFacade(payement_args);
-        let reward_facade = PayementFacade.PayementFacade(reward_args);
+    public func build(args: BuildArguments) : Controller.Controller {
 
-        let decay_model = Decay.DecayModel(decay_args);
-        let lock_duration_curve = LockDurationCurve.LockDurationCurve({nominal_lock_duration});
+        let { stable_data; provider; } = args;
+        let { subaccount_register; vote_register; payement; reward; parameters; } = stable_data;
+        let { nominal_lock_duration; new_vote_price; decay; } = parameters;
+
+        let subaccount_indexer = SubaccountIndexer.SubaccountIndexer(subaccount_register);
+
+        let payement_facade = PayementFacade.PayementFacade({payement with provider; fee = null });
+        let reward_facade = PayementFacade.PayementFacade({reward with provider; fee = null });
+
+        let decay_model = Decay.DecayModel(decay);
+        let lock_duration_curve = LockDurationCurve.LockDurationCurve(nominal_lock_duration);
 
         let yes_no_controller = YesNoController.build({
+            subaccount_indexer;
             payement_facade;
             reward_facade;
             decay_model;

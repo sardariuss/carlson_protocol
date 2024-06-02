@@ -131,6 +131,7 @@ module {
         // Deposit info
         tx_id: Nat;
         from: Account;
+        subaccount: Blob;
         deposit_state: DepositState;
         // Lock info
         hotness: Float;
@@ -188,7 +189,8 @@ module {
     };
 
     public type SubaccountType = {
-        #NEW_VOTES_ACCOUNT;
-        #DEPOSIT_BALLOT_ACCOUNT: { id: Nat; };
+        #NEW_VOTE_FEES;
+        #BALLOT_DEPOSITS: { id: Nat; };
     };
-}
+
+};

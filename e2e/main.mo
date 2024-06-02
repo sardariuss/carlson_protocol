@@ -1,5 +1,5 @@
 import CarlsonProtocol    "../src/main";
-import Account            "../src/Account";
+import Subaccount         "../src/Subaccount";
 import Types              "../src/Types";
 import Duration           "../src/Duration";
 
@@ -124,7 +124,7 @@ shared actor class Main() = this {
             };
         };
 
-        let account_1 = { owner; subaccount = ?Account.n32Subaccount(1); };
+        let account_1 = { owner; subaccount = ?Subaccount.from_n32(1); };
 
         // Create a new vote
         let vote_id = switch(await protocol.new_vote({
@@ -164,11 +164,11 @@ shared actor class Main() = this {
             expected_allowance = null;
             expires_at = null;
             fee = ?fee;
-            from_subaccount = ?Account.n32Subaccount(1);
+            from_subaccount = ?Subaccount.from_n32(1);
             memo = null;
             spender = {
                 owner = Principal.fromActor(protocol);
-                subaccount = ?Account.pSubaccount(owner);
+                subaccount = ?Subaccount.from_principal(owner);
             };
         })){
             case(#Err(err)){

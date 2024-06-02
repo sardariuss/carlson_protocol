@@ -84,16 +84,12 @@ module {
                 vote.ballot_register.index := vote.ballot_register.index + 1;
 
                 // Add the ballot
-                let ballot = {
-                    tx_id = deposit_info.tx_id;
-                    from;
+                let ballot = { deposit_info with
                     reward_account;
-                    timestamp = time;
                     hotness = lock_info.hotness;
                     decay = lock_info.decay;
                     deposit_state = deposit_info.state;
                     reward_state = #PENDING;
-                    amount;
                     contest = compute_contest({ aggregate = vote.aggregate; choice; amount; time; });
                     choice;
                 };

@@ -1,5 +1,5 @@
 import Types             "Types";
-import Account           "Account";
+import Subaccount        "Subaccount";
 
 import Map               "mo:map/Map";
 
@@ -57,7 +57,7 @@ module {
             };
 
             let args = {
-                spender_subaccount = ?Account.pSubaccount(from.owner); // @todo: not sure about that
+                spender_subaccount = ?Subaccount.from_principal(from.owner); // @todo: not sure about that
                 from;
                 to = {
                     owner = provider;

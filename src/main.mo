@@ -23,12 +23,22 @@ shared({ caller = admin }) actor class CarlsonProtocol({
 
     // STABLE MEMBERS
     stable let _stable = {
-        deposit_incident = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
-        reward_incident = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
-        deposit_ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(deposit_ledger));
-        reward_ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(reward_ledger));
+        subaccount_register = { var deposit_index = 0; };
         vote_register = { var index = 0; votes = Map.new<Nat, Types.VoteType>(); }; 
-        parameters = parameters;
+        payement = {
+            ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(deposit_ledger));
+            incident_register = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
+        };
+        reward = {
+            ledger : ICRC1.service and ICRC2.service = actor(Principal.toText(reward_ledger));
+            incident_register = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
+        };
+        parameters = { parameters with 
+            decay = {
+                half_life = parameters.ballot_half_life;
+                time_init = Time.now();
+            };
+        };
     };
 
     // NON-STABLE MEMBER
@@ -48,25 +58,8 @@ shared({ caller = admin }) actor class CarlsonProtocol({
         };
         
         _controller := ?Factory.build({
-            vote_register = _stable.vote_register;
-            payement_args = {
-                provider = Principal.fromActor(this);
-                ledger = _stable.deposit_ledger;
-                incident_register = _stable.deposit_incident;
-                fee = null;
-            };
-            reward_args = {
-                provider = Principal.fromActor(this);
-                ledger = _stable.reward_ledger;
-                incident_register = _stable.reward_incident;
-                fee = null;
-            };
-            decay_args = {
-                half_life = _stable.parameters.ballot_half_life;
-                time_init = Time.now();
-            };
-            nominal_lock_duration = _stable.parameters.nominal_lock_duration;
-            new_vote_price = _stable.parameters.new_vote_price;
+            stable_data = _stable;
+            provider = Principal.fromActor(this);
         });
     };
 
@@ -108,15 +101,15 @@ shared({ caller = admin }) actor class CarlsonProtocol({
     };
 
     // Get the failed refunds for the given principal
-    public query func get_deposit_incidents() : async [(Nat, Types.Incident)] 
+    public query func get_payement_incidents() : async [(Nat, Types.Incident)] 
     {
-        Map.toArray(_stable.deposit_incident.incidents);
+        Map.toArray(_stable.payement.incident_register.incidents);
     };
 
     // Get the failed rewards for the given principal
     public query func get_reward_incidents() : async [(Nat, Types.Incident)] 
     {
-        Map.toArray(_stable.reward_incident.incidents);
+        Map.toArray(_stable.reward.incident_register.incidents);
     };
 
     func getController() : Controller.Controller {
