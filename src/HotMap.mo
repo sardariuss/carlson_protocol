@@ -1,10 +1,12 @@
 import Decay   "Decay";
+import WMap    "utils/WMap";
 
 import Map     "mo:map/Map";
 
 import Float   "mo:base/Float";
 import Int     "mo:base/Int";
 import Option  "mo:base/Option";
+import Iter    "mo:base/Iter";
 
 module {
 
@@ -24,8 +26,10 @@ module {
         hotness: Float; 
     };
 
+    type ToElem<V, H> = H -> V;
+
     type ToHot<V, H> = {
-        v: V;
+        elem: V;
         decay: Float;
         hotness: Float;
     } -> H;
@@ -38,13 +42,16 @@ module {
 
     public class HotMap<K, V, H>({
         map: Map<K, H>;
-        k_hash: Map.HashUtils<K>;
+        hash: Map.HashUtils<K>;
         get_inputs: GetInputs<V>;
         get_outputs: GetOutputs<H>;
         to_hot: ToHot<V, H>;
+        to_elem: ToElem<V, H>;
         update_hotness: UpdateHot<H>;
         decay_model: DecayModel;
     }){
+
+        let _wmap = WMap.WMap<K, H>(map, hash);
 
         public func set(k: K, v: V) {
 
@@ -84,7 +91,7 @@ module {
             let { amount; timestamp; } = get_inputs(v);
 
             // Ensure the timestamp of the previous element is smaller than the given timestamp
-            Option.iterate(Map.peek(map), func((_, previous) : (K, H)) {
+            Option.iterate(_wmap.peek(), func((_, previous) : (K, H)) {
                 assert(get_outputs(previous).timestamp < timestamp);
             });
 
@@ -93,7 +100,7 @@ module {
             var hotness : Float = 0;
 
             // Iterate over the previous elements
-            for ((prev_k, prv_v) in Map.entries(map)) {
+            for ((prev_k, prv_v) in _wmap.entries()) {
 
                 let previous = get_outputs(prv_v);
 
@@ -104,13 +111,79 @@ module {
                 hotness += previous.amount * weight;
 
                 // Add to the hotness of the previous lock
-                Map.set(map, k_hash, prev_k, update_hotness({ 
+                _wmap.set(prev_k, update_hotness({ 
                     elem = prv_v;
                     hotness = previous.hotness + amount * weight; 
                 }));
             };
 
-            Map.set(map, k_hash, k, to_hot({ v; decay; hotness; }));
+            _wmap.set(k, to_hot({ elem = v; decay; hotness; }));
+        };
+
+        public func get(key: K): ?V {
+            Option.map(_wmap.get(key), func(h: H) : V { to_elem(h);});
+        };
+            
+        public func has(key: K): Bool {
+            _wmap.has(key);
+        };
+            
+        public func put(key: K, value: V): ?V {
+            let old = get(key);
+            set(key, value);
+            old;
+        };
+            
+        public func remove(key: K): ?V {
+            Option.map(_wmap.remove(key), func(h: H) : V { to_elem(h);});
+        };
+            
+        public func delete(key: K) {
+            _wmap.delete(key);
+        };
+            
+        public func filter(fn: (key: K, value: V) -> Bool): Map<K, V> {
+            _wmap.filter(fn);
+        };
+            
+        public func keys(): Iter.Iter<K> {
+            _wmap.keys();
+        };
+            
+        public func vals(): Iter.Iter<V> {
+            _wmap.vals();
+        };
+            
+        public func entries(): Iter.Iter<(K, V)> {
+            _wmap.entries();
+        };
+            
+        public func forEach(fn: (key: K, value: V) -> ()) {
+            _wmap.forEach(fn);
+        };
+            
+        public func some(fn: (key: K, value: V) -> Bool): Bool {
+            _wmap.some(fn);
+        };
+            
+        public func every(fn: (key: K, value: V) -> Bool): Bool {
+            _wmap.every(fn);
+        };
+            
+        public func find(fn: (key: K, value: V) -> Bool): ?(K, V) {
+            _wmap.find(fn);
+        };
+            
+        public func findDesc(fn: (key: K, value: V) -> Bool): ?(K, V) {
+            _wmap.findDesc(fn);
+        };
+            
+        public func clear() {
+            _wmap.clear();
+        };
+            
+        public func size(): Nat {
+            _wmap.size();
         };
         
     };
