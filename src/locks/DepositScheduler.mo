@@ -3,6 +3,9 @@ import Types "../Types";
 import PayementFacade "../PayementFacade";
 import SubaccountIndexer "../SubaccountIndexer";
 
+import Locks "Locks";
+import IMap "../map/IMap";
+
 import Map "mo:map/Map";
 
 import Result "mo:base/Result";
