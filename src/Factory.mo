@@ -4,7 +4,7 @@ import VoteTypeController "votes/VoteTypeController";
 import Controller "Controller";
 import PayementFacade "PayementFacade";
 import Decay "Decay";
-import LockDurationCurve "LockDurationCurve";
+import TimeoutCalculator "TimeoutCalculator";
 import SubaccountIndexer "SubaccountIndexer";
 
 import ICRC1             "mo:icrc1-mo/ICRC1/service";
@@ -53,14 +53,17 @@ module {
         let reward_facade = PayementFacade.PayementFacade({reward with provider; fee = null });
 
         let decay_model = Decay.DecayModel(decay);
-        let lock_duration_curve = LockDurationCurve.LockDurationCurve(nominal_lock_duration);
+
+        let timeout_calculator = TimeoutCalculator.PowerScaler({
+            nominal_duration = nominal_lock_duration;
+        });
 
         let yes_no_controller = YesNoController.build({
             subaccount_indexer;
             payement_facade;
             reward_facade;
             decay_model;
-            get_lock_duration_ns = lock_duration_curve.get_lock_duration_ns;
+            timeout_calculator;
         });
 
         let vote_type_controller = VoteTypeController.VoteTypeController({

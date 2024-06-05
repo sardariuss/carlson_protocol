@@ -1,4 +1,5 @@
 import HotMap "HotMap";
+import TimeoutCalculator "../TimeoutCalculator";
 
 import Map "mo:map/Map";
 import Set "mo:map/Set";
@@ -8,6 +9,7 @@ import Buffer "mo:base/Buffer";
 module {
     
     type Time = Int;
+    type ITimeoutCalculator = TimeoutCalculator.ITimeoutCalculator;
 
     public type LockRegister<V> = {
         var index: Nat;
@@ -17,7 +19,8 @@ module {
     
     public class LockScheduler<V>({
         hot_map: HotMap.HotMap<Nat, V>;
-        unlock_condition: (V, Time) -> Bool;
+        timeout_calculator: ITimeoutCalculator;
+        hot_info: V -> HotMap.HotInfo;
     }){
 
         public func add_lock({
@@ -45,7 +48,7 @@ module {
 
             for ((key, elem) in Map.entries(register.map)) {
                 
-                if (unlock_condition(elem, time)) {
+                if (timeout_calculator.timeout_date(hot_info(elem)) <= time) {
                     buffer.add((key, elem));
                     Set.delete(register.locks, Map.nhash, key);
                 };

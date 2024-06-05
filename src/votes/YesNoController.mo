@@ -1,4 +1,5 @@
 import Types "../Types";
+import TimeoutCalculator "../TimeoutCalculator";
 import VoteController "VoteController";
 import Conversion "BallotConversion";
 
@@ -25,6 +26,7 @@ module {
     type YesNoBallot = Types.Ballot<YesNoChoice>;
     type YesNoChoice = Types.YesNoChoice;
     type RefundState = Types.RefundState;
+    type Duration = Types.Duration;
 
     type HotInfo = DepositScheduler.HotInfo;
     type DepositInfo = DepositScheduler.DepositInfo;
@@ -37,15 +39,10 @@ module {
         payement_facade: PayementFacade.PayementFacade;
         reward_facade: PayementFacade.PayementFacade;
         decay_model: Decay.DecayModel;
-        get_lock_duration_ns: Float -> Nat;
+        timeout_calculator: TimeoutCalculator.ITimeoutCalculator;
     }) : VoteController<YesNoAggregate, YesNoChoice> {
 
         let empty_aggregate = { total_yes = 0; total_no = 0; current_yes = #DECAYED(0.0); current_no = #DECAYED(0.0); };
-
-        // @todo: put this somewhere else?
-        func time_unlock(ballot: YesNoBallot) : Time {
-            ballot.timestamp + get_lock_duration_ns(ballot.hotness);
-        };
 
         func update_aggregate({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time;}) : YesNoAggregate {
             switch(choice){
@@ -84,19 +81,23 @@ module {
             decay_model;
             get_elem = func (b: YesNoBallot): HotInfo { b; };
             update_elem = func (b: YesNoBallot, i: HotInfo): YesNoBallot {
-                // Update the hotness and the deposit state
-                let deposit_state = switch(b.deposit_state){
-                    case(#LOCKED(_)) { #LOCKED{ until = time_unlock(b); }; };
-                    case(other) { other; };
+                { 
+                    b with 
+                    hotness = b.hotness; 
+                    // Update the locked state if applicable
+                    deposit_state = switch(b.deposit_state){
+                        case(#LOCKED(_)) { #LOCKED{ until = timeout_calculator.timeout_date(b); }; };
+                        case(other) { other; };
+                    };
                 };
-                { b with hotness = b.hotness; deposit_state; };
             };
             key_hash = Map.nhash;
         });
 
         let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
             hot_map;
-            unlock_condition = func (b: YesNoBallot, time: Time) : Bool { time_unlock(b) <= time; };
+            timeout_calculator;
+            hot_info = func (b: YesNoBallot): HotInfo { b; };
         });
 
         let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({
