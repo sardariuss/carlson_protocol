@@ -1,10 +1,10 @@
-import HotMap "HotMap";
+import HotMap            "HotMap";
 import TimeoutCalculator "../TimeoutCalculator";
 
-import Map "mo:map/Map";
-import Set "mo:map/Set";
+import Map               "mo:map/Map";
+import Set               "mo:map/Set";
 
-import Buffer "mo:base/Buffer";
+import Buffer            "mo:base/Buffer";
 
 module {
     

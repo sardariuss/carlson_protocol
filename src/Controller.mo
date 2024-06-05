@@ -1,14 +1,14 @@
 import Types              "Types";
 import VoteTypeController "votes/VoteTypeController";
-import PayementFacade     "PayementFacade";
-import Subaccount         "Subaccount";
+import PayementFacade     "payement/PayementFacade";
+import Subaccount         "payement/Subaccount";
 
-import Map            "mo:map/Map";
+import Map                "mo:map/Map";
 
-import Int            "mo:base/Int";
-import Result         "mo:base/Result";
-import Buffer         "mo:base/Buffer";
-import Array          "mo:base/Array";
+import Int                "mo:base/Int";
+import Result             "mo:base/Result";
+import Buffer             "mo:base/Buffer";
+import Array              "mo:base/Array";
 
 module {
 
@@ -49,7 +49,7 @@ module {
         vote_register: VoteRegister;
         payement_facade: PayementFacade.PayementFacade;
         vote_type_controller: VoteTypeController.VoteTypeController;
-        new_vote_price: Nat;
+        new_vote_fee: Nat;
     }){
 
         public func new_vote(args: NewVoteArgs) : async* NewVoteResult {
@@ -71,7 +71,7 @@ module {
             await* payement_facade.pay_service({
                 caller = args.caller;
                 from = args.from;
-                amount = new_vote_price;
+                amount = new_vote_fee;
                 to_subaccount = ?Subaccount.from_subaccount_type(#NEW_VOTE_FEES);
                 time = args.time;
                 service = create_vote;

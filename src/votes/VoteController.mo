@@ -1,16 +1,17 @@
-import Types          "../Types";
-import PayementFacade "../PayementFacade";
-import DepositScheduler "../locks/DepositScheduler";
-import RewardScheduler  "../locks/RewardScheduler";
+import Types             "../Types";
+import TimeoutCalculator "../TimeoutCalculator";
+import PayementFacade    "../payement/PayementFacade";
+import DepositScheduler  "../locks/DepositScheduler";
+import RewardScheduler   "../locks/RewardScheduler";
 
-import Map            "mo:map/Map";
-import Set            "mo:map/Set";
+import Map              "mo:map/Map";
+import Set              "mo:map/Set";
 
-import Iter           "mo:base/Iter";
-import Result         "mo:base/Result";
-import Int            "mo:base/Int";
-import Float          "mo:base/Float";
-import Array          "mo:base/Array";
+import Iter             "mo:base/Iter";
+import Result           "mo:base/Result";
+import Int              "mo:base/Int";
+import Float            "mo:base/Float";
+import Array            "mo:base/Array";
 
 module {
 
@@ -48,6 +49,7 @@ module {
         compute_score: ComputeScore<A, B>;
         deposit_scheduler: DepositScheduler.DepositScheduler<Ballot<B>>;
         reward_scheduler: RewardScheduler.RewardScheduler<Ballot<B>>;
+        timeout_calculator: TimeoutCalculator.ITimeoutCalculator;
     }){
 
         public func new_vote({
@@ -76,7 +78,9 @@ module {
 
             let { caller; from; reward_account; time; amount; } = args;
 
-            func new_element(deposit_info: DepositScheduler.DepositInfo, lock_info: DepositScheduler.HotInfo) : Ballot<B> {
+            func new_element(deposit_info: DepositScheduler.DepositInfo, hot_info: DepositScheduler.HotInfo) : Ballot<B> {
+
+                let { hotness; decay; } = hot_info;
 
                 // Update the aggregate
                 vote.aggregate := update_aggregate({aggregate = vote.aggregate; choice; amount; time;});
@@ -84,9 +88,9 @@ module {
                 // Add the ballot
                 let ballot = { deposit_info with
                     reward_account;
-                    hotness = lock_info.hotness;
-                    decay = lock_info.decay;
-                    deposit_state = #LOCKED{ until = 0; }; // @todo: set the correct value from hotness
+                    hotness;
+                    decay;
+                    deposit_state = #LOCKED{ until = timeout_calculator.timeout_date({ deposit_info with hotness; }); };
                     reward_state = #PENDING;
                     contest = compute_contest({ aggregate = vote.aggregate; choice; amount; time; });
                     choice;

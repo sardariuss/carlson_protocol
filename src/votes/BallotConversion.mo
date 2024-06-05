@@ -1,7 +1,7 @@
-import Types "../Types";
+import Types            "../Types";
 
 import DepositScheduler "../locks/DepositScheduler";
-import RewardScheduler "../locks/RewardScheduler";
+import RewardScheduler  "../locks/RewardScheduler";
 
 module {
 

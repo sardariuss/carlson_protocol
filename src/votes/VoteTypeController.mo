@@ -1,9 +1,9 @@
-import Types "../Types";
-import PayementFacade "../PayementFacade";
+import VoteController "VoteController";
+import Types          "../Types";
+import PayementFacade "../payement/PayementFacade";
 
 import Result         "mo:base/Result";
-import VoteController "VoteController";
-import Option        "mo:base/Option";
+import Option         "mo:base/Option";
 
 module {
 

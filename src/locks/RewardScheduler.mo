@@ -1,5 +1,5 @@
-import Types "../Types";
-import PayementFacade "../PayementFacade";
+import Types          "../Types";
+import PayementFacade "../payement/PayementFacade";
 
 module {
 

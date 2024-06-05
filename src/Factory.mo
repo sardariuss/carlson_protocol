@@ -1,14 +1,14 @@
-import Types "Types";
-import YesNoController "votes/YesNoController";
+import Types              "Types";
+import Controller         "Controller";
+import Decay              "Decay";
+import TimeoutCalculator  "TimeoutCalculator";
+import VoteFactory        "votes/VoteFactory";
 import VoteTypeController "votes/VoteTypeController";
-import Controller "Controller";
-import PayementFacade "PayementFacade";
-import Decay "Decay";
-import TimeoutCalculator "TimeoutCalculator";
-import SubaccountIndexer "SubaccountIndexer";
+import PayementFacade     "payement/PayementFacade";
+import SubaccountIndexer  "payement/SubaccountIndexer";
 
-import ICRC1             "mo:icrc1-mo/ICRC1/service";
-import ICRC2             "mo:icrc2-mo/ICRC2/service";
+import ICRC1              "mo:icrc1-mo/ICRC1/service";
+import ICRC2              "mo:icrc2-mo/ICRC2/service";
 
 module {
 
@@ -31,7 +31,7 @@ module {
             };
             parameters: {
                 nominal_lock_duration: Duration;
-                new_vote_price: Nat;
+                new_vote_fee: Nat;
                 decay: {
                     half_life: Duration;
                     time_init: Time;
@@ -45,7 +45,7 @@ module {
 
         let { stable_data; provider; } = args;
         let { subaccount_register; vote_register; payement; reward; parameters; } = stable_data;
-        let { nominal_lock_duration; new_vote_price; decay; } = parameters;
+        let { nominal_lock_duration; new_vote_fee; decay; } = parameters;
 
         let subaccount_indexer = SubaccountIndexer.SubaccountIndexer(subaccount_register);
 
@@ -58,7 +58,7 @@ module {
             nominal_duration = nominal_lock_duration;
         });
 
-        let yes_no_controller = YesNoController.build({
+        let yes_no_controller = VoteFactory.build_yes_no({
             subaccount_indexer;
             payement_facade;
             reward_facade;
@@ -74,7 +74,7 @@ module {
             vote_register;
             payement_facade;
             vote_type_controller;
-            new_vote_price;
+            new_vote_fee;
         });
     };
 

@@ -1,4 +1,4 @@
-import Types     "Types";
+import Types     "../Types";
 
 import Nat8      "mo:base/Nat8";
 import Nat32     "mo:base/Nat32";

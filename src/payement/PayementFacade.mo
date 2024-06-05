@@ -1,4 +1,4 @@
-import Types      "Types";
+import Types      "../Types";
 import Subaccount "Subaccount";
 
 import Map        "mo:map/Map";

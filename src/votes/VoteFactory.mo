@@ -1,20 +1,20 @@
-import Types "../Types";
+import VoteController    "VoteController";
+import Conversion        "BallotConversion";
+import Types             "../Types";
 import TimeoutCalculator "../TimeoutCalculator";
-import VoteController "VoteController";
-import Conversion "BallotConversion";
 
-import SubaccountIndexer "../SubaccountIndexer";
-import LockScheduler "../locks/LockScheduler";
-import DepositScheduler "../locks/DepositScheduler";
-import RewardScheduler "../locks/RewardScheduler";
-import HotMap "../locks/HotMap";
-import PayementFacade "../PayementFacade";
-import Decay  "../Decay";
-import Reward "../Reward";
+import SubaccountIndexer "../payement/SubaccountIndexer";
+import PayementFacade    "../payement/PayementFacade";
+import LockScheduler     "../locks/LockScheduler";
+import DepositScheduler  "../locks/DepositScheduler";
+import RewardScheduler   "../locks/RewardScheduler";
+import HotMap            "../locks/HotMap";
+import Decay             "../Decay";
+import Incentives        "../Incentives";
 
-import Map "mo:map/Map";
+import Map               "mo:map/Map";
 
-import Float "mo:base/Float";
+import Float             "mo:base/Float";
 
 module {
 
@@ -34,7 +34,7 @@ module {
 
     type Time = Int;
 
-    public func build({
+    public func build_yes_no({
         subaccount_indexer: SubaccountIndexer.SubaccountIndexer;
         payement_facade: PayementFacade.PayementFacade;
         reward_facade: PayementFacade.PayementFacade;
@@ -60,7 +60,7 @@ module {
         };
 
         func compute_contest({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
-            Reward.compute_contest({ 
+            Incentives.compute_contest({ 
                 choice;
                 amount = Float.fromInt(amount);
                 total_yes = decay_model.unwrapDecayed(aggregate.current_yes, time);
@@ -69,7 +69,7 @@ module {
         };
 
         func compute_score({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
-            Reward.compute_score({
+            Incentives.compute_score({
                 choice;
                 amount;
                 total_yes = decay_model.unwrapDecayed(aggregate.current_yes, time);
@@ -121,6 +121,7 @@ module {
             compute_score;
             deposit_scheduler;
             reward_scheduler;
+            timeout_calculator;
         });
     };
 

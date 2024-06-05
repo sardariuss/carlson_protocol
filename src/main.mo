@@ -18,7 +18,7 @@ shared({ caller = admin }) actor class CarlsonProtocol({
     parameters: {
         ballot_half_life: Types.Duration;
         nominal_lock_duration: Types.Duration;
-        new_vote_price: Nat;
+        new_vote_fee: Nat;
     }}) = this {
 
     // STABLE MEMBERS
