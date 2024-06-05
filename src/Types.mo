@@ -1,5 +1,6 @@
 import Error "mo:base/Error";
 import Map   "mo:map/Map";
+import Set   "mo:map/Set";
 
 module {
 
@@ -114,7 +115,8 @@ module {
         var aggregate: A;
         ballot_register: {
             var index: Nat;
-            ballots: Map.Map<Nat, Ballot<B>>;
+            map: Map.Map<Nat, Ballot<B>>;
+            locks: Set.Set<Nat>;
         };
     };
 
@@ -141,16 +143,18 @@ module {
         reward_state: RewardState;
     };
 
-    public type DepositState = {
-        #LOCKED: {until: Time};
-        #UNLOCKED: {
-            since: Time;
-            transfer: {
-                #PENDING;
-                #FAILED: { incident_id: Nat; };
-                #SUCCESS: { tx_id: Nat };
-            };
+    public type RefundState = {
+        since: Time;
+        transfer: {
+            #PENDING;
+            #FAILED: { incident_id: Nat; };
+            #SUCCESS: { tx_id: Nat };
         };
+    };
+
+    public type DepositState = {
+        #LOCKED: { until: Time; };
+        #REFUNDED: RefundState;
     };
 
     public type RewardState = {

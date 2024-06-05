@@ -80,8 +80,4 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
 
 - Fix initial contest multiplier: 0.5 shall decrease the more tokens are locked with the first ballot
 - Add reward for users who open new votes
-- Remove prints in LockScheduler.mo
 - Fix and add votes unit tests
-
-### Misc improvements
-- Review DepositScheduler and LockScheduler modules: separate responsabilities (lock/unlock, map of hot linked elements, creation of deposits subaccounts)

@@ -1,4 +1,5 @@
 import LockScheduler "LockScheduler";
+import HotMap "HotMap";
 import Types "../Types";
 import PayementFacade "../PayementFacade";
 import SubaccountIndexer "../SubaccountIndexer";
@@ -13,7 +14,7 @@ import Principal "mo:base/Principal";
 module {
 
     type Account = Types.Account;
-    public type LockInfo = LockScheduler.LockInfo;
+    public type HotInfo = HotMap.HotInfo;
     type Buffer<T> = Buffer.Buffer<T>;
     type Iter<T> = Iter.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -21,6 +22,7 @@ module {
 
     type Time = Int;
     type PayServiceResult = PayementFacade.PayServiceResult;
+    type RefundState = Types.RefundState;
 
     public type DepositInfo = {
         tx_id: Nat;
@@ -28,7 +30,6 @@ module {
         subaccount: Blob;
         amount: Nat;
         timestamp: Time;
-        state: DepositState;
     };
 
     type DepositState = Types.DepositState;
@@ -37,13 +38,13 @@ module {
         subaccount_indexer: SubaccountIndexer.SubaccountIndexer;
         payement_facade: PayementFacade.PayementFacade;
         lock_scheduler: LockScheduler.LockScheduler<T>;
-        update_deposit: (T, DepositInfo) -> T;
+        tag_refunded: (T, RefundState) -> T;
         get_deposit: (T) -> DepositInfo;
     }){
 
         public func add_deposit({
-            map: Map<Nat, T>;
-            new_element: (DepositInfo, LockInfo) -> (Nat, T);
+            register: LockScheduler.LockRegister<T>;
+            new_element: (DepositInfo, HotInfo) -> T;
             caller: Principal;
             from: Account;   
             amount: Nat;
@@ -55,20 +56,19 @@ module {
             func create_deposit(tx_id: Nat) : async* Nat {
 
                 // Callback to add the element to the map
-                func new(lock_info: LockInfo) : (Nat, T) {
+                func new(hot_info: HotInfo) : T {
                     let deposit_info = {
                         tx_id;
                         from;
                         amount;
                         subaccount;
                         timestamp;
-                        state = to_deposit_state(lock_info.state);
                     };
-                    new_element(deposit_info, lock_info);
+                    new_element(deposit_info, hot_info);
                 };
 
                 // Add the lock
-                lock_scheduler.new_lock({ map; new; amount; timestamp; });
+                lock_scheduler.add_lock({ register; new; amount; timestamp; }).0;
             };
 
             // Perform the deposit
@@ -83,12 +83,13 @@ module {
         };
 
         public func try_refund({
-            map: Map<Nat, T>;
+            register: LockScheduler.LockRegister<T>;
             time: Time;
         }) : async* [Nat] {
 
-            let unlocked = lock_scheduler.try_unlock(map, time);
+            let unlocked = lock_scheduler.try_unlock({register; time; });
 
+            // For each unlocked deposit, refund the locked amount to the sender
             for((id, elem) in unlocked.vals()) {
 
                 let deposit = get_deposit(elem);
@@ -108,21 +109,14 @@ module {
                         case(#ok(tx_id)) { #SUCCESS({tx_id;}); };
                         case(#err({incident_id})) { #FAILED{incident_id}; };
                     };
-                    Map.set(map, Map.nhash, id, update_deposit(elem, { deposit with state = #UNLOCKED({ since = time; transfer; }) }));
+                    Map.set(register.map, Map.nhash, id, tag_refunded(elem, { transfer; since = time; }));
                 };
 
-                // Trigger the refund and callback, but do not wait for them to complete
+                // Trigger the refund but do not wait for them to complete
                 ignore refund_fct();
             };
 
             Buffer.toArray(Buffer.map<(Nat, T), Nat>(unlocked, func((id, elem): (Nat, T)) : Nat { id; }));
-        };
-
-        func to_deposit_state(lock_state: LockScheduler.LockState) : DepositState {
-            switch(lock_state) {
-                case(#LOCKED{until}) { #LOCKED{until}; };
-                case(#UNLOCKED{since}) { #UNLOCKED{since; transfer = #PENDING; }; };
-            };
         };
 
     };
