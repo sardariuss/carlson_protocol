@@ -4,6 +4,7 @@ import DepositScheduler "../locks/DepositScheduler";
 import RewardScheduler  "../locks/RewardScheduler";
 
 import Map            "mo:map/Map";
+import Set            "mo:map/Set";
 
 import Iter           "mo:base/Iter";
 import Result         "mo:base/Result";
@@ -61,7 +62,8 @@ module {
                 var aggregate = empty_aggregate;
                 ballot_register = {
                     var index = 0;
-                    ballots = Map.new<Nat, Ballot<B>>();
+                    map = Map.new<Nat, Ballot<B>>();
+                    locks = Set.new<Nat>();
                 };
             };
         };
@@ -74,33 +76,28 @@ module {
 
             let { caller; from; reward_account; time; amount; } = args;
 
-            func new_element(deposit_info: DepositScheduler.DepositInfo, lock_info: DepositScheduler.LockInfo) : (Nat, Ballot<B>){
+            func new_element(deposit_info: DepositScheduler.DepositInfo, lock_info: DepositScheduler.HotInfo) : Ballot<B> {
 
                 // Update the aggregate
                 vote.aggregate := update_aggregate({aggregate = vote.aggregate; choice; amount; time;});
-
-                // Get the next ballot id
-                let ballot_id = vote.ballot_register.index;
-                vote.ballot_register.index := vote.ballot_register.index + 1;
 
                 // Add the ballot
                 let ballot = { deposit_info with
                     reward_account;
                     hotness = lock_info.hotness;
                     decay = lock_info.decay;
-                    deposit_state = deposit_info.state;
+                    deposit_state = #LOCKED{ until = 0; }; // @todo: set the correct value from hotness
                     reward_state = #PENDING;
                     contest = compute_contest({ aggregate = vote.aggregate; choice; amount; time; });
                     choice;
                 };
 
-                // Return the id and the ballot
-                (ballot_id, ballot);
+                ballot;
             };
 
             // Perform the deposit
             await* deposit_scheduler.add_deposit({
-                map = vote.ballot_register.ballots;
+                register = vote.ballot_register;
                 new_element;
                 caller;
                 from;
@@ -115,12 +112,12 @@ module {
         }) : async* [Nat] {
 
             let ballot_ids = await* deposit_scheduler.try_refund({
-                map = vote.ballot_register.ballots;
+                register = vote.ballot_register;
                 time;
             });
 
             label reward_loop for (ballot_id in Array.vals(ballot_ids)){
-                let ballot = switch(Map.get(vote.ballot_register.ballots, Map.nhash, ballot_id)){
+                let ballot = switch(Map.get(vote.ballot_register.map, Map.nhash, ballot_id)){
                     case (null) { continue reward_loop; }; // @todo
                     case (?b) { b; };
                 };
@@ -133,7 +130,7 @@ module {
                     amount = reward;
                     time;
                     update_elem = func(ballot: Ballot<B>) {
-                        Map.set(vote.ballot_register.ballots, Map.nhash, ballot_id, ballot);
+                        Map.set(vote.ballot_register.map, Map.nhash, ballot_id, ballot);
                     };
                 });
                 
@@ -146,7 +143,7 @@ module {
             vote: Vote<A, B>;
             ballot_id: Nat;
         }) : ?Ballot<B> {
-            Map.get(vote.ballot_register.ballots, Map.nhash, ballot_id);
+            Map.get(vote.ballot_register.map, Map.nhash, ballot_id);
         };
 
     };

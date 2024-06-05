@@ -6,9 +6,12 @@ import SubaccountIndexer "../SubaccountIndexer";
 import LockScheduler "../locks/LockScheduler";
 import DepositScheduler "../locks/DepositScheduler";
 import RewardScheduler "../locks/RewardScheduler";
+import HotMap "../locks/HotMap";
 import PayementFacade "../PayementFacade";
 import Decay  "../Decay";
 import Reward "../Reward";
+
+import Map "mo:map/Map";
 
 import Float "mo:base/Float";
 
@@ -21,8 +24,9 @@ module {
     type YesNoAggregate = Types.YesNoAggregate;
     type YesNoBallot = Types.Ballot<YesNoChoice>;
     type YesNoChoice = Types.YesNoChoice;
+    type RefundState = Types.RefundState;
 
-    type LockInfo = LockScheduler.LockInfo;
+    type HotInfo = DepositScheduler.HotInfo;
     type DepositInfo = DepositScheduler.DepositInfo;
     type RewardInfo = RewardScheduler.RewardInfo;
 
@@ -37,6 +41,11 @@ module {
     }) : VoteController<YesNoAggregate, YesNoChoice> {
 
         let empty_aggregate = { total_yes = 0; total_no = 0; current_yes = #DECAYED(0.0); current_no = #DECAYED(0.0); };
+
+        // @todo: put this somewhere else?
+        func time_unlock(ballot: YesNoBallot) : Time {
+            ballot.timestamp + get_lock_duration_ns(ballot.hotness);
+        };
 
         func update_aggregate({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time;}) : YesNoAggregate {
             switch(choice){
@@ -71,19 +80,31 @@ module {
             });
         };
 
-        let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
+        let hot_map = HotMap.HotMap<Nat, YesNoBallot>({
             decay_model;
-            get_lock_duration_ns;
-            get_lock = func (b: YesNoBallot): LockInfo { Conversion.to_lock_info<YesNoChoice>(b); };
-            update_lock = func (b: YesNoBallot, i: LockInfo): YesNoBallot { Conversion.update_lock_info<YesNoChoice>(b, i); };
+            get_elem = func (b: YesNoBallot): HotInfo { b; };
+            update_elem = func (b: YesNoBallot, i: HotInfo): YesNoBallot {
+                // Update the hotness and the deposit state
+                let deposit_state = switch(b.deposit_state){
+                    case(#LOCKED(_)) { #LOCKED{ until = time_unlock(b); }; };
+                    case(other) { other; };
+                };
+                { b with hotness = b.hotness; deposit_state; };
+            };
+            key_hash = Map.nhash;
+        });
+
+        let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
+            hot_map;
+            unlock_condition = func (b: YesNoBallot, time: Time) : Bool { time_unlock(b) <= time; };
         });
 
         let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({
             subaccount_indexer;
             payement_facade;
             lock_scheduler;
-            get_deposit = func (b: YesNoBallot): DepositInfo { Conversion.to_deposit_info<YesNoChoice>(b); };
-            update_deposit = func (b: YesNoBallot, i: DepositInfo): YesNoBallot { Conversion.update_deposit_info<YesNoChoice>(b, i); };
+            get_deposit = func (b: YesNoBallot): DepositInfo { b; };
+            tag_refunded = func (b: YesNoBallot, s: RefundState): YesNoBallot { Conversion.tag_refunded<YesNoChoice>(b, s); };
         });
 
         let reward_scheduler = RewardScheduler.RewardScheduler<YesNoBallot>({

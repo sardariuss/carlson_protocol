@@ -174,13 +174,13 @@ suite("LockScheduler", func(){
 
         // Try to unlock after the lock0's time_left is over shall succeed
         assert(lock_scheduler.try_unlock({ map; time = t0 + hotness_to_duration(lock0.hotness) + 1; }).size() == 1);
-        verify(unwrap_lock(Map.get(map, Map.nhash, 0)).lock_state, #UNLOCKED, equal_lock_state);
+        verify(unwrap_lock(Map.get(map, Map.nhash, 0)).lock_state, #REFUNDED, equal_lock_state);
         verify(unwrap_lock(Map.get(map, Map.nhash, 1)).lock_state, #LOCKED, equal_lock_state);
 
         // Try to unlock after the lock1's time_left is over shall succeed
         assert(lock_scheduler.try_unlock({ map; time = t1 + hotness_to_duration(lock1.hotness) + 1; }).size() == 1);
-        verify(unwrap_lock(Map.get(map, Map.nhash, 0)).lock_state, #UNLOCKED, equal_lock_state);
-        verify(unwrap_lock(Map.get(map, Map.nhash, 1)).lock_state, #UNLOCKED, equal_lock_state);
+        verify(unwrap_lock(Map.get(map, Map.nhash, 0)).lock_state, #REFUNDED, equal_lock_state);
+        verify(unwrap_lock(Map.get(map, Map.nhash, 1)).lock_state, #REFUNDED, equal_lock_state);
     });
     
 })
