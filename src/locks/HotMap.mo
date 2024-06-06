@@ -2,6 +2,8 @@ import Decay     "../Decay";
 
 import Map       "mo:map/Map";
 
+import IMap      "../map/IMap";
+
 import Float     "mo:base/Float";
 import Option    "mo:base/Option";
 import Debug     "mo:base/Debug";
@@ -12,37 +14,42 @@ module {
     type DecayModel = Decay.DecayModel;
 
     public type HotInfo = {
-        amount: Nat;
-        timestamp: Int;
         decay: Float;
         hotness: Float;
     };
+
+    type Composite<S> = { slice: S } and HotInfo;
+
+    type CompositeConverters<V, S> = {
+        to: V -> Composite<S>;
+        from: Composite<S> -> V;
+    };
     
-    public class HotMap<K, V>({
+    public class HotMap<K, V, S>({
         decay_model: DecayModel;
-        get_elem: V -> HotInfo;
-        update_elem: (V, HotInfo) -> V;
-        key_hash: Map.HashUtils<K>;
-    }){
+        get_info: S -> { amount: Nat; timestamp: Time };
+        converters: CompositeConverters<V, S>;
+    }) {
 
         // Creates a new elem with the given amount and timestamp
         // Deduce the decay from the given timestamp
         // Deduce the hotness of the elem from the previous elems
         // Update the hotness of the previous elems
-        public func add_new({
-            map: Map.Map<K, V>;
-            key: K;
-            new: HotInfo -> V;
-            amount: Nat;
-            timestamp: Time;
-        }) : V {
+        public func set_from_slice(
+            map: Map.Map<K, V>,
+            key_hash: Map.HashUtils<K>,
+            key: K,
+            slice: S,
+        ) : V {
+
+            let { amount; timestamp } = get_info(slice);
 
             if (Map.has(map, key_hash, key)) {
                 Debug.trap("Cannot add a elem with a key that is already in the map");
             };
 
             Option.iterate(Map.peek(map), func((_, previous) : (K, V)) {
-                if (get_elem(previous).timestamp >= timestamp) {
+                if (get_info(converters.to(previous).slice).timestamp >= timestamp) {
                     Debug.trap("Cannot add a elem with a timestamp inferior than the previous elem");
                 };
             });
@@ -87,23 +94,22 @@ module {
             // Iterate over the previous elems
             for ((id, prv) in Map.entries(map)) {
 
-                let prev_elem = get_elem(prv);
+                let previous = converters.to(prv);
 
                 // Compute the weight between the two elems
-                let weight = prev_elem.decay / decay;
+                let weight = previous.decay / decay;
 
                 // Add to the hotness of the new elem
-                hotness += Float.fromInt(prev_elem.amount) * weight;
+                hotness += Float.fromInt(get_info(previous.slice).amount) * weight;
                 
                 // Update the hotness of the previous elem
-                Map.set(map, key_hash, id, update_elem(prv, { 
-                    prev_elem with 
-                    hotness = prev_elem.hotness + Float.fromInt(amount) * weight
+                Map.set(map, key_hash, id, converters.from({ 
+                    previous with hotness = previous.hotness + Float.fromInt(amount) * weight
                 }));
             };
 
             // Add the new elem
-            let elem = new({ amount; timestamp; decay; hotness; });
+            let elem = converters.from({ slice; decay; hotness; });
             Map.set(map, key_hash, key, elem);
             elem;
         };

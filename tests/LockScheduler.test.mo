@@ -1,6 +1,7 @@
 import Duration         "../src/Duration";
 import Decay            "../src/Decay";
-import LockScheduler    "../src/LockScheduler";
+import LockScheduler    "../src/locks/LockScheduler";
+import HotMap           "../src/locks/HotMap";
 import Types            "../src/Types";
 
 import { verify; testify; } = "utils/Testify";
@@ -20,7 +21,10 @@ suite("LockScheduler", func(){
 
     type Time = Time.Time;
     type Duration = Types.Duration;
-    type Lock =  LockScheduler.Lock;
+    type Lock = {
+        amount: Nat;
+        hotness: Float;
+    };
     type LockScheduler = LockScheduler.LockScheduler<Lock>;
 
     // For the test, every "satoshi" of hotness is equivalent to 5 minutes of lock duration
@@ -32,10 +36,10 @@ suite("LockScheduler", func(){
         Float.fromInt(Duration.toTime(duration)) / Float.fromInt(Duration.toTime(#MINUTES(5)));
     };
 
-    func lock_passthrough(lock: LockScheduler.Lock) : LockScheduler.Lock { lock; };
-    func update_lock(_: LockScheduler.Lock, lock: LockScheduler.Lock) : LockScheduler.Lock { lock; };
+    func lock_passthrough(lock: Lock) : Lock { lock; };
+    func update_lock(_: Lock, lock: Lock) : Lock { lock; };
 
-    func try_repetitive_unlock(lock_scheduler: LockScheduler, map: Map.Map<Nat, Lock>, time_now: Time, target_time: Time) : [LockScheduler.Lock] {
+    func try_repetitive_unlock(lock_scheduler: LockScheduler, map: Map.Map<Nat, Lock>, time_now: Time, target_time: Time) : [Lock] {
         let buffer = Buffer.Buffer<Lock>(0);
         // Arbitrarily take 10 timestamps between time_now and target_time
         for (i in Iter.range(0, 9)) {
@@ -45,7 +49,7 @@ suite("LockScheduler", func(){
         Buffer.toArray(buffer);
     };
 
-    func unwrap_lock(lock: ?LockScheduler.Lock) : LockScheduler.Lock {
+    func unwrap_lock(lock: ?Lock) : Lock {
         switch(lock) {
             case (?l) { l; };
             case (null) { Debug.trap("Failed to unwrap lock"); };

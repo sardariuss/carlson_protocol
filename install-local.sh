@@ -55,6 +55,6 @@ dfx canister install protocol --argument '( record {
     parameters = record {
         ballot_half_life = variant { YEARS = 1 };
         nominal_lock_duration = variant { DAYS = 3 };
-        new_vote_price = 100;
+        new_vote_fee = 100;
     };
 })'

@@ -24,51 +24,46 @@ module {
     type PayServiceResult = PayementFacade.PayServiceResult;
     type RefundState = Types.RefundState;
 
-    public type DepositInfo = {
-        tx_id: Nat;
+    public type SliceInfo = {
         from: Account;
-        subaccount: Blob;
         amount: Nat;
         timestamp: Time;
     };
 
+    public type DepositInfo = {
+        deposit_state: DepositState;
+        subaccount: Blob; 
+        tx_id: Nat;
+    };
+
     type DepositState = Types.DepositState;
 
-    public class DepositScheduler<T>({
+    type Composite<S> = { slice: S } and DepositInfo;
+
+    public class DepositScheduler<V, S>({
         subaccount_indexer: SubaccountIndexer.SubaccountIndexer;
         payement_facade: PayementFacade.PayementFacade;
-        lock_scheduler: LockScheduler.LockScheduler<T>;
-        tag_refunded: (T, RefundState) -> T;
-        get_deposit: (T) -> DepositInfo;
+        lock_scheduler: LockScheduler.LockScheduler<V, Composite<S>>;
+        to_composite: V -> Composite<S>;
+        update_value: (V, DepositInfo) -> V;
+        get_info: S -> SliceInfo;
     }){
 
         public func add_deposit({
-            register: LockScheduler.LockRegister<T>;
-            new_element: (DepositInfo, HotInfo) -> T;
+            register: LockScheduler.LockRegister<V>;
             caller: Principal;
-            from: Account;   
-            amount: Nat;
-            timestamp: Time;
+            elem: S;
+            callback: () -> ();
         }) : async* PayServiceResult {
 
+            let { from; amount; timestamp; } = get_info(elem);
             let subaccount = subaccount_indexer.new_deposit_subaccount();
 
-            func create_deposit(tx_id: Nat) : async* Nat {
-
-                // Callback to add the element to the map
-                func new(hot_info: HotInfo) : T {
-                    let deposit_info = {
-                        tx_id;
-                        from;
-                        amount;
-                        subaccount;
-                        timestamp;
-                    };
-                    new_element(deposit_info, hot_info);
-                };
-
+            func service(tx_id: Nat) : async* Nat {
+                // Execute the callback
+                callback();
                 // Add the lock
-                lock_scheduler.add_lock({ register; new; amount; timestamp; }).0;
+                lock_scheduler.add_lock({ register; lock = { slice = elem; subaccount; tx_id; deposit_state = #LOCKED{ until = 0; }}; }).0; // @todo
             };
 
             // Perform the deposit
@@ -78,28 +73,29 @@ module {
                 amount;
                 time = timestamp;
                 to_subaccount = ?subaccount;
-                service = create_deposit;
+                service;
             });
         };
 
         public func try_refund({
-            register: LockScheduler.LockRegister<T>;
+            register: LockScheduler.LockRegister<V>;
             time: Time;
         }) : async* [Nat] {
 
-            let unlocked = lock_scheduler.try_unlock({register; time; });
+            let unlocked = lock_scheduler.try_unlock({ register; time; });
 
             // For each unlocked deposit, refund the locked amount to the sender
             for((id, elem) in unlocked.vals()) {
 
-                let deposit = get_deposit(elem);
+                let deposit = to_composite(elem);
+                let { from; amount; } = get_info(deposit.slice);
 
                 let refund_fct = func() : async* () {
 
                     // Perform the refund
                     let refund_result = await* payement_facade.send_payement({
-                        amount = deposit.amount;
-                        to = deposit.from;
+                        amount;
+                        to = from;
                         from_subaccount = ?deposit.subaccount;
                         time; 
                     });
@@ -109,14 +105,14 @@ module {
                         case(#ok(tx_id)) { #SUCCESS({tx_id;}); };
                         case(#err({incident_id})) { #FAILED{incident_id}; };
                     };
-                    Map.set(register.map, Map.nhash, id, tag_refunded(elem, { transfer; since = time; }));
+                    Map.set(register.map, Map.nhash, id, update_value(elem, { deposit with deposit_state = #REFUNDED({ transfer; since = time; }) }));
                 };
 
                 // Trigger the refund but do not wait for them to complete
                 ignore refund_fct();
             };
 
-            Buffer.toArray(Buffer.map<(Nat, T), Nat>(unlocked, func((id, elem): (Nat, T)) : Nat { id; }));
+            Buffer.toArray(Buffer.map<(Nat, V), Nat>(unlocked, func((id, elem): (Nat, V)) : Nat { id; }));
         };
 
     };

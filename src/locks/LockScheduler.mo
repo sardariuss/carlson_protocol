@@ -1,4 +1,3 @@
-import HotMap            "HotMap";
 import TimeoutCalculator "../TimeoutCalculator";
 
 import Map               "mo:map/Map";
@@ -16,24 +15,24 @@ module {
         map: Map.Map<Nat, V>;
         locks: Set.Set<Nat>;
     };
+
+    type SetFromSlice<K, V, S> = (map: Map.Map<K, V>, hash: Map.HashUtils<K>, key: K, value: S) -> V;
     
-    public class LockScheduler<V>({
-        hot_map: HotMap.HotMap<Nat, V>;
-        timeout_calculator: ITimeoutCalculator;
-        hot_info: V -> HotMap.HotInfo;
+    // @todo: have a class Register<K> and add K argument
+    public class LockScheduler<V, S>({
+        timeout_calculator: V -> Time;
+        set_from_slice: SetFromSlice<Nat, V, S>;
     }){
 
         public func add_lock({
             register: LockRegister<V>;
-            new: HotMap.HotInfo -> V;
-            amount: Nat;
-            timestamp: Time;
+            lock: S;
         }) : (Nat, V) {
 
             let key = register.index;
             register.index := register.index + 1;
 
-            let elem = hot_map.add_new({ map = register.map; key; new; amount; timestamp; });
+            let elem = set_from_slice(register.map, Map.nhash, key, lock);
             Set.add(register.locks, Map.nhash, key);
 
             (key, elem);
@@ -48,7 +47,7 @@ module {
 
             for ((key, elem) in Map.entries(register.map)) {
                 
-                if (timeout_calculator.timeout_date(hot_info(elem)) <= time) {
+                if (timeout_calculator(elem) <= time) {
                     buffer.add((key, elem));
                     Set.delete(register.locks, Map.nhash, key);
                 };

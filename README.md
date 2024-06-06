@@ -17,11 +17,11 @@ The Carlson Protocol is a decentralized voting system where people vote using bi
 
 ## How does it work?
 
-The Carlson protocol allows to participate on votes that really matters to you. To participate to a vote, pick your side ('Aye' or 'Nay') and choose an amount of satoshi to use for that vote: the greater the amount, the greater the power (1 satoshi = 1 vote). The satoshis will be transfered back to you after a period of time that can vary so that:
+The Carlson protocol allows to participate on votes that really matters to you. To participate to a vote, pick your side ('Yes' or 'No') and choose an amount of satoshi to use for that vote: the greater the amount, the greater the power (1 satoshi = 1 vote). The satoshis will be transfered back to you after a period of time that can vary so that:
  - the greater the total of satoshis locked in a vote (including the ones from your ballot), the longer the satoshis from your ballot will be locked. But note that every satoshi locked is pondered by how much time has passed between that ballot and yours, so that the more time has passed, the least effect these satoshis have on your lock.
  - your ballot locking period will also be extended by the satoshis from every ballot that comes after you (also reduced by how much time has passed in-between).
 
- Once the satoshis are unlocked, the protocol rewards the voters with additional tokens that are minted with the configured (ICRC) token. The reward is based on the numbers of tokens you locked, the number of 'Aye' or 'Nay' satoshis at the time you voted, and the number of 'Aye' or 'Nay' satoshis at the time of the unlock, so that:
+ Once the satoshis are unlocked, the protocol rewards the voters with additional tokens that are minted with the configured (ICRC) token. The reward is based on the numbers of tokens you locked, the number of 'Yes' or 'No' satoshis at the time you voted, and the number of 'Yes' or 'No' satoshis at the time of the unlock, so that:
  - the further your vote was to the result of the vote at the time of the lock, the greater the reward
  - the closer your vote is to the result of the vote at the time of unlock, the greater the reward.
 This incentivize user to vote "against the crowd", so that if they are right at the moment they vote but the crowd is wrong, if the tendency of the vote indeed changes over time, they will get rewarded more than the users who voted "with the crowd" and that now are wrong.
@@ -32,7 +32,7 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 - `reward_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the rewards
 - `parameters.nominal_lock_duration`: the duration of the lock for 1 satoshi
 - `parameters.ballot_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock. The same parameter is used to make the ballot decay
-- `parameters.new_vote_price`: the price to open up a vote
+- `parameters.new_vote_fee`: the price to open up a vote
 
 ## 🚧 Roadmap
 
@@ -52,7 +52,7 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
   - II login + ckBTC account + Carlson (reward token) account
   - display the list of votes (ordered by date)
   - vote details: total amount locked, current vote results, current lock duration
-  - put ballot: select 'AYE'/'NAY', input number of satoshis, preview lock duration, preview contest multiplier, place the vote
+  - put ballot: select 'YES'/'NO', input number of satoshis, preview lock duration, preview contest multiplier, place the vote
   - profile page: list of current locks with amount and time left, list of old locks with amount won
 
 #### Challenges:
@@ -65,10 +65,10 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
 
 - BACKEND
   - create and parametrize the Carlson ledger (new token). For this, we need to implement the logic for 3) and 4). In the Carlson protocol, the reward shall be proportional to to:
-        1) the contest multiplier of the ballot, determined at the start of the lock
-        2) the vote results, determined at the end of the lock
-        3) the proportion of the ballot's ckBTC amount compared to the overall ckBTC amount of tokens locked in the protocol for the duration of that lock.
-        4) the minting velocity of the token (set to be halved every 2 years or so).
+    1) the contest multiplier of the ballot, determined at the start of the lock
+    2) the vote results, determined at the end of the lock
+    3) the proportion of the ballot's ckBTC amount compared to the overall ckBTC amount of tokens locked in the protocol for the duration of that lock.
+    4) the minting velocity of the token (set to be halved every 2 years or so).
   - to justify: why use a linear function for the contest factor, and a logistic regression for the score?
 - FRONTEND
   - Plug login
@@ -81,3 +81,4 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
 - Fix initial contest multiplier: 0.5 shall decrease the more tokens are locked with the first ballot
 - Add reward for users who open new votes
 - Fix and add votes unit tests
+- Fix async* not awaited* and hence doing nothing?
