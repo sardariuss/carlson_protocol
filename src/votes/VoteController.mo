@@ -1,4 +1,5 @@
 import Types             "../Types";
+import BallotBuilder     "../BallotBuilder";
 import TimeoutCalculator "../TimeoutCalculator";
 import PayementFacade    "../payement/PayementFacade";
 import DepositScheduler  "../locks/DepositScheduler";
@@ -76,37 +77,41 @@ module {
             args: PutBallotArgs;
         }) : async* Result<Nat, PayServiceError> {
 
-            let { caller; from; reward_account; time; amount; } = args;
+            let { time; amount; } = args;
 
-            func new_element(deposit_info: DepositScheduler.DepositInfo, hot_info: DepositScheduler.HotInfo) : Ballot<B> {
-
-                let { hotness; decay; } = hot_info;
-
-                // Update the aggregate
-                vote.aggregate := update_aggregate({aggregate = vote.aggregate; choice; amount; time;});
-
-                // Add the ballot
-                let ballot = { deposit_info with
-                    reward_account;
-                    hotness;
-                    decay;
-                    deposit_state = #LOCKED{ until = timeout_calculator.timeout_date({ deposit_info with hotness; }); };
-                    reward_state = #PENDING;
-                    contest = compute_contest({ aggregate = vote.aggregate; choice; amount; time; });
+            let builder = BallotBuilder.BallotBuilder<B>();    
+            builder.add_ballot({
+                timestamp = time;
+                choice;
+                amount;
+                contest = compute_contest({
+                    aggregate = vote.aggregate;
                     choice;
-                };
+                    amount;
+                    time;
+                })
+            });
+            builder.add_reward({
+                reward_account = args.reward_account;
+                reward_state = #PENDING;
+            });
 
-                ballot;
+            // Update the aggregate only once the deposit is done
+            let callback = func(ballot: Ballot<B>) {
+                vote.aggregate := update_aggregate({ 
+                    aggregate = vote.aggregate;
+                    choice = ballot.choice;
+                    amount = ballot.amount; 
+                    time = ballot.timestamp;
+                });
             };
 
             // Perform the deposit
             await* deposit_scheduler.add_deposit({
                 register = vote.ballot_register;
-                new_element;
-                caller;
-                from;
-                amount;
-                timestamp = time;
+                builder;
+                callback;
+                args;
             });
         };
 

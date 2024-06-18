@@ -11,6 +11,8 @@ module {
     type Time = Int;
     type ITimeoutCalculator = TimeoutCalculator.ITimeoutCalculator;
 
+    public type ILockInfoBuilder<T> = HotMap.IHotInfoBuilder<T>;
+
     public type LockRegister<V> = {
         var index: Nat;
         map: Map.Map<Nat, V>;
@@ -25,7 +27,7 @@ module {
 
         public func add_lock({
             register: LockRegister<V>;
-            new: HotMap.HotInfo -> V;
+            builder: ILockInfoBuilder<V>;
             amount: Nat;
             timestamp: Time;
         }) : (Nat, V) {
@@ -33,7 +35,7 @@ module {
             let key = register.index;
             register.index := register.index + 1;
 
-            let elem = hot_map.add_new({ map = register.map; key; new; amount; timestamp; });
+            let elem = hot_map.add_new({ map = register.map; key; builder; amount; timestamp; });
             Set.add(register.locks, Map.nhash, key);
 
             (key, elem);

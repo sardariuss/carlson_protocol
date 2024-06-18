@@ -11,6 +11,11 @@ module {
     type Time = Int;
     type DecayModel = Decay.DecayModel;
 
+    public type IHotInfoBuilder<V> = {
+        add_hot: ({ hotness: Float; decay: Float; }) -> ();
+        build: () -> V;
+    };
+
     public type HotInfo = {
         amount: Nat;
         timestamp: Int;
@@ -32,7 +37,7 @@ module {
         public func add_new({
             map: Map.Map<K, V>;
             key: K;
-            new: HotInfo -> V;
+            builder: IHotInfoBuilder<V>;
             amount: Nat;
             timestamp: Time;
         }) : V {
@@ -103,7 +108,8 @@ module {
             };
 
             // Add the new elem
-            let elem = new({ amount; timestamp; decay; hotness; });
+            builder.add_hot({ hotness; decay; });
+            let elem = builder.build();
             Map.set(map, key_hash, key, elem);
             elem;
         };

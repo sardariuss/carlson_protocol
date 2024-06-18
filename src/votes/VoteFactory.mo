@@ -28,7 +28,7 @@ module {
     type RefundState = Types.RefundState;
     type Duration = Types.Duration;
 
-    type HotInfo = DepositScheduler.HotInfo;
+    type HotInfo = HotMap.HotInfo;
     type DepositInfo = DepositScheduler.DepositInfo;
     type RewardInfo = RewardScheduler.RewardInfo;
 
