@@ -1,5 +1,4 @@
 import LockScheduler    "LockScheduler";
-import HotMap           "HotMap";
 import Types             "../Types";
 import PayementFacade    "../payement/PayementFacade";
 import SubaccountIndexer "../payement/SubaccountIndexer";
@@ -14,7 +13,6 @@ import Principal        "mo:base/Principal";
 module {
 
     type Account = Types.Account;
-    public type HotInfo = HotMap.HotInfo;
     type Buffer<T> = Buffer.Buffer<T>;
     type Iter<T> = Iter.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -24,12 +22,23 @@ module {
     type PayServiceResult = PayementFacade.PayServiceResult;
     type RefundState = Types.RefundState;
 
+    type IDepositInfoBuilder<T> = LockScheduler.ILockInfoBuilder<T> and {
+        add_deposit: ({ tx_id: Nat; from: Account; subaccount: Blob; }) -> ();
+    };
+
     public type DepositInfo = {
         tx_id: Nat;
         from: Account;
         subaccount: Blob;
         amount: Nat;
         timestamp: Time;
+    };
+
+    public type AddDepositArgs = {
+        caller: Principal;
+        from: Account;
+        time: Time;
+        amount: Nat;
     };
 
     type DepositState = Types.DepositState;
@@ -44,42 +53,28 @@ module {
 
         public func add_deposit({
             register: LockScheduler.LockRegister<T>;
-            new_element: (DepositInfo, HotInfo) -> T;
-            caller: Principal;
-            from: Account;   
-            amount: Nat;
-            timestamp: Time;
+            builder: IDepositInfoBuilder<T>;
+            callback: T -> ();
+            args: AddDepositArgs;
         }) : async* PayServiceResult {
 
+            let { from; time; amount; } = args;
             let subaccount = subaccount_indexer.new_deposit_subaccount();
 
-            func create_deposit(tx_id: Nat) : async* Nat {
-
-                // Callback to add the element to the map
-                func new(hot_info: HotInfo) : T {
-                    let deposit_info = {
-                        tx_id;
-                        from;
-                        amount;
-                        subaccount;
-                        timestamp;
-                    };
-                    new_element(deposit_info, hot_info);
-                };
-
-                // Add the lock
-                lock_scheduler.add_lock({ register; new; amount; timestamp; }).0;
+            // Define the service to be called once the payement is done
+            func service(tx_id: Nat) : async* Nat {
+                // Add the deposit inside the element itself
+                builder.add_deposit({ tx_id; from; subaccount; });
+                // Add the lock for that deposit in the scheduler
+                let (id, deposit) = lock_scheduler.add_lock({ register; builder; amount; timestamp = time; });
+                // Perform the callback
+                callback(deposit);
+                // Return the deposit id
+                id;
             };
 
             // Perform the deposit
-            await* payement_facade.pay_service({ 
-                caller;
-                from;
-                amount;
-                time = timestamp;
-                to_subaccount = ?subaccount;
-                service = create_deposit;
-            });
+            await* payement_facade.pay_service({ args and { to_subaccount = ?subaccount; service; } });
         };
 
         public func try_refund({

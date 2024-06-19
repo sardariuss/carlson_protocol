@@ -124,24 +124,31 @@ module {
         #YES_NO;
     };
 
-    public type Ballot<B> = {
+    public type BallotInfo<B> = {
         timestamp: Time;
-        // Ballot info
         choice: B;
         amount: Nat;
         contest: Float;
-        // Deposit info
+    };
+
+    public type DepositInfo = {
         tx_id: Nat;
         from: Account;
         subaccount: Blob;
         deposit_state: DepositState;
-        // Lock info
+    };
+
+    public type HotInfo = {
         hotness: Float;
         decay: Float;
-        // Reward info
+    };
+
+    public type RewardInfo = {
         reward_account: Account;
         reward_state: RewardState;
     };
+
+    public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and RewardInfo;
 
     public type RefundState = {
         since: Time;

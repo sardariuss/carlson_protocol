@@ -1,5 +1,6 @@
 import Types            "../Types";
 
+import HotMap           "../locks/HotMap";
 import DepositScheduler "../locks/DepositScheduler";
 import RewardScheduler  "../locks/RewardScheduler";
 
@@ -8,7 +9,7 @@ module {
     type Ballot<B> = Types.Ballot<B>;
     type RefundState = Types.RefundState;
 
-    type HotInfo = DepositScheduler.HotInfo;
+    type HotInfo = HotMap.HotInfo;
     type DepositInfo = DepositScheduler.DepositInfo;
     type RewardInfo = RewardScheduler.RewardInfo;
 
