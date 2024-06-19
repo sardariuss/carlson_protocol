@@ -1,15 +1,15 @@
-import Decay     "../Decay";
+import Interfaces "../Interfaces";
 
-import Map       "mo:map/Map";
+import Map        "mo:map/Map";
 
-import Float     "mo:base/Float";
-import Option    "mo:base/Option";
-import Debug     "mo:base/Debug";
+import Float      "mo:base/Float";
+import Option     "mo:base/Option";
+import Debug      "mo:base/Debug";
 
 module {
 
     type Time = Int;
-    type DecayModel = Decay.DecayModel;
+    type IDecayModel = Interfaces.IDecayModel;
 
     public type IHotInfoBuilder<V> = {
         add_hot: ({ hotness: Float; decay: Float; }) -> ();
@@ -24,7 +24,7 @@ module {
     };
     
     public class HotMap<K, V>({
-        decay_model: DecayModel;
+        decay_model: IDecayModel;
         get_elem: V -> HotInfo;
         update_elem: (V, HotInfo) -> V;
         key_hash: Map.HashUtils<K>;
@@ -85,7 +85,7 @@ module {
             //            + (decay_0 / decay_i  ) * amount_0   + ... + (decay_i-1 / decay_i) * amount_i-1
             //            + (decay_i / decay_i+1) * amount_i+1 + ... + (decay_i  / decay_n ) * amount_n
 
-            let decay = decay_model.computeDecay(timestamp);
+            let decay = decay_model.compute_decay(timestamp);
 
             var hotness = Float.fromInt(amount);
 

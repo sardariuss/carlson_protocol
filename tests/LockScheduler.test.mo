@@ -118,7 +118,7 @@ suite("LockScheduler", func(){
                 id = 0;
                 amount = 4;
                 timestamp = t0;
-                decay = decay_model.computeDecay(t0);
+                decay = decay_model.compute_decay(t0);
                 hotness = duration_to_hotness(#MINUTES(20));
                 lock_state = #LOCKED;
             },
@@ -144,7 +144,7 @@ suite("LockScheduler", func(){
                 id = 1;
                 amount = 6;
                 timestamp = t1;
-                decay = decay_model.computeDecay(t1);
+                decay = decay_model.compute_decay(t1);
                 hotness = lock1.hotness;
                 lock_state = #LOCKED;
             },
@@ -159,7 +159,7 @@ suite("LockScheduler", func(){
                 id = 0;
                 amount = 4;
                 timestamp = t0;
-                decay = decay_model.computeDecay(t0);
+                decay = decay_model.compute_decay(t0);
                 hotness = lock0.hotness;
                 lock_state = #LOCKED;
             },

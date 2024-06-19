@@ -27,19 +27,19 @@ module {
         let _lambda = Float.log(2.0) / Float.fromInt(Duration.toTime(half_life));
         let _shift = Float.fromInt(time_init) * _lambda;
 
-        public func createDecayed(value: Float, time: Time) : Decayed {
-            #DECAYED(value * computeDecay(time));
+        public func create_decayed(value: Float, time: Time) : Decayed {
+            #DECAYED(value * compute_decay(time));
         };
 
-        public func unwrapDecayed(decayed: Decayed, now: Time) : Float {
+        public func unwrap_decayed(decayed: Decayed, now: Time) : Float {
             switch(decayed) {
                 case (#DECAYED(value)) {
-                    value / computeDecay(now);
+                    value / compute_decay(now);
                 };
             };
         };
 
-        public func computeDecay(time: Time) : Float {
+        public func compute_decay(time: Time) : Float {
             Float.exp(_lambda * Float.fromInt(time) - _shift);
         };
         

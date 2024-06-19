@@ -63,7 +63,7 @@ module {
 
             // Define the service to be called once the payement is done
             func service(tx_id: Nat) : async* Nat {
-                // Add the deposit inside the element itself
+                // Set the deposit information inside the element itself
                 builder.add_deposit({ tx_id; from; subaccount; });
                 // Add the lock for that deposit in the scheduler
                 let (id, deposit) = lock_scheduler.add_lock({ register; builder; amount; timestamp = time; });

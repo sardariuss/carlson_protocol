@@ -49,12 +49,12 @@ module {
                 case(#YES) {{
                     aggregate with 
                     total_yes = aggregate.total_yes + amount;
-                    current_yes = Decay.add(aggregate.current_yes, decay_model.createDecayed(Float.fromInt(amount), time)); 
+                    current_yes = Decay.add(aggregate.current_yes, decay_model.create_decayed(Float.fromInt(amount), time)); 
                 }};
                 case(#NO) {{
                     aggregate with 
                     total_no = aggregate.total_no + amount;
-                    current_no = Decay.add(aggregate.current_no, decay_model.createDecayed(Float.fromInt(amount), time)); 
+                    current_no = Decay.add(aggregate.current_no, decay_model.create_decayed(Float.fromInt(amount), time)); 
                 }};
             };
         };
@@ -63,8 +63,8 @@ module {
             Incentives.compute_contest({ 
                 choice;
                 amount = Float.fromInt(amount);
-                total_yes = decay_model.unwrapDecayed(aggregate.current_yes, time);
-                total_no = decay_model.unwrapDecayed(aggregate.current_no, time);
+                total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
+                total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
             });
         };
 
@@ -72,8 +72,8 @@ module {
             Incentives.compute_score({
                 choice;
                 amount;
-                total_yes = decay_model.unwrapDecayed(aggregate.current_yes, time);
-                total_no = decay_model.unwrapDecayed(aggregate.current_no, time);
+                total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
+                total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
             });
         };
 
