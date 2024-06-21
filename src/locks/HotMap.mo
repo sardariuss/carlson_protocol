@@ -3,30 +3,35 @@ import Interfaces "../Interfaces";
 import Map        "mo:map/Map";
 
 import Float      "mo:base/Float";
-import Option     "mo:base/Option";
-import Debug      "mo:base/Debug";
+import Result     "mo:base/Result";
 
 module {
 
     type Time = Int;
     type IDecayModel = Interfaces.IDecayModel;
+    type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    public type IHotInfoBuilder<V> = {
-        add_hot: ({ hotness: Float; decay: Float; }) -> ();
+    public type IHotElemBuilder<V> = {
+        add_hot: HotOutput -> ();
         build: () -> V;
     };
 
-    public type HotInfo = {
+    public type HotInput = {
         amount: Nat;
-        timestamp: Int;
+        timestamp: Time;
+    };
+
+    public type HotOutput = {
         decay: Float;
         hotness: Float;
     };
+
+    public type HotElem = HotInput and HotOutput;
     
     public class HotMap<K, V>({
         decay_model: IDecayModel;
-        get_elem: V -> HotInfo;
-        update_elem: (V, HotInfo) -> V;
+        get_elem: V -> HotElem;
+        update_elem: (V, HotElem) -> V;
         key_hash: Map.HashUtils<K>;
     }){
 
@@ -37,20 +42,24 @@ module {
         public func add_new({
             map: Map.Map<K, V>;
             key: K;
-            builder: IHotInfoBuilder<V>;
-            amount: Nat;
-            timestamp: Time;
-        }) : V {
+            builder: IHotElemBuilder<V>;
+            args: HotInput;
+        }) : Result<V, Text> {
 
-            if (Map.has(map, key_hash, key)) {
-                Debug.trap("Cannot add a elem with a key that is already in the map");
+            if (Map.has(map, key_hash, key)){
+                return #err("Cannot add a elem with a key that is already in the map");
             };
 
-            Option.iterate(Map.peek(map), func((_, previous) : (K, V)) {
-                if (get_elem(previous).timestamp >= timestamp) {
-                    Debug.trap("Cannot add a elem with a timestamp inferior than the previous elem");
+            let { amount; timestamp; } = args;
+
+            switch(Map.peek(map)){
+                case(null) {};
+                case(?(_, previous)){
+                    if (get_elem(previous).timestamp > timestamp) {
+                        return #err("Cannot add an elem with a timestamp inferior than the previous elem");
+                    };
                 };
-            });
+            };
 
             // The hotness of an elem is the amount of that elem, plus the sum of the previous elem
             // amounts weighted by their growth, plus the sum of the next elem amounts weighted
@@ -111,7 +120,7 @@ module {
             builder.add_hot({ hotness; decay; });
             let elem = builder.build();
             Map.set(map, key_hash, key, elem);
-            elem;
+            #ok(elem);
         };
 
     };

@@ -54,7 +54,7 @@ module {
 
         public func new_vote(args: NewVoteArgs) : async* NewVoteResult {
 
-            func create_vote(tx_id: Nat) : async* Nat {
+            func create_vote({tx_id: Nat}) : async* { error: ?Text } {
                 let vote = vote_type_controller.new_vote({
                     vote_type_enum = args.type_enum;
                     date = args.time;
@@ -65,7 +65,7 @@ module {
                 let vote_id = vote_register.index;
                 vote_register.index := vote_register.index + 1;
                 Map.set(vote_register.votes, Map.nhash, vote_id, vote);
-                vote_id;
+                { error = null };
             };
 
             await* payement_facade.pay_service({

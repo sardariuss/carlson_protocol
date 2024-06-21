@@ -31,7 +31,7 @@ module {
 
     public type IncidentRegister = Types.IncidentRegister;
     public type Service = Types.Service;
-    public type ServiceTrappedError = Types.ServiceTrappedError;
+    public type ServiceError = Types.ServiceError;
     public type Incident = Types.Incident;
     
     // @todo: is setting created_at_time a good practice?
@@ -72,11 +72,20 @@ module {
                 case(#Ok(tx_id)){ tx_id; };
             };
             
-            // Deliver the service
             try {
-                #ok(await* service(tx_id));
+                // Deliver the service
+                let { error } = await* service({tx_id});
+                switch(error){
+                    case(?error) { 
+                        let incident = #ServiceFailed({ error; original_transfer = { tx_id; args; }; });
+                        #err(#Incident{incident_id = add_incident(incident); });
+                    };
+                    case(null) {
+                        #ok(tx_id);
+                    };
+                };
             } catch(error){
-                let incident = #ServiceTrapped({ error_code = Error.code(error); original_transfer = { tx_id; args; }; });
+                let incident = #ServiceTrapped({ error = Error.message(error); original_transfer = { tx_id; args; }; });
                 #err(#Incident{incident_id = add_incident(incident); });
             };
         };

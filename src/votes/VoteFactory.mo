@@ -28,7 +28,7 @@ module {
     type RefundState = Types.RefundState;
     type Duration = Types.Duration;
 
-    type HotInfo = HotMap.HotInfo;
+    type HotElem = HotMap.HotElem;
     type DepositInfo = DepositScheduler.DepositInfo;
     type RewardInfo = RewardScheduler.RewardInfo;
 
@@ -79,14 +79,14 @@ module {
 
         let hot_map = HotMap.HotMap<Nat, YesNoBallot>({
             decay_model;
-            get_elem = func (b: YesNoBallot): HotInfo { b; };
-            update_elem = func (b: YesNoBallot, i: HotInfo): YesNoBallot {
+            get_elem = func (b: YesNoBallot): HotElem { b; };
+            update_elem = func (b: YesNoBallot, i: HotElem): YesNoBallot {
                 { 
                     b with 
-                    hotness = b.hotness; 
+                    hotness = i.hotness; 
                     // Update the locked state if applicable
                     deposit_state = switch(b.deposit_state){
-                        case(#LOCKED(_)) { #LOCKED{ until = timeout_calculator.timeout_date(b); }; };
+                        case(#LOCKED(_)) { #LOCKED{ until = timeout_calculator.timeout_date(i); }; };
                         case(other) { other; };
                     };
                 };
@@ -97,7 +97,7 @@ module {
         let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
             hot_map;
             timeout_calculator;
-            hot_info = func (b: YesNoBallot): HotInfo { b; };
+            hot_info = func (b: YesNoBallot): HotElem { b; };
         });
 
         let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({

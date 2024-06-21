@@ -9,14 +9,14 @@ module {
     type Ballot<B> = Types.Ballot<B>;
     type RefundState = Types.RefundState;
 
-    type HotInfo = HotMap.HotInfo;
+    type HotElem = HotMap.HotElem;
     type DepositInfo = DepositScheduler.DepositInfo;
     type RewardInfo = RewardScheduler.RewardInfo;
 
     type Time = Int;
 
-    public func update_hot_info<B>(yes_no_ballot: Ballot<B>, info: HotInfo): Ballot<B> {
-        { yes_no_ballot with hotness = info.hotness; decay = info.decay; };
+    public func update_hot_info<B>(yes_no_ballot: Ballot<B>, elem: HotElem): Ballot<B> {
+        { yes_no_ballot with elem; };
     };
 
     public func tag_refunded<B>(yes_no_ballot: Ballot<B>, state: RefundState): Ballot<B> {

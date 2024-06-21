@@ -75,140 +75,140 @@ module {
         public let bool = {
             equal : Testify<Bool> = {
                 toText = func (t : Bool) : Text { if (t) { "true" } else { "false" } };
-                compare    = func (x : Bool, y : Bool) : Bool { x == y };
+                compare = func (x : Bool, y : Bool) : Bool { x == y };
             };
         };
 
         public let nat = {
             equal : Testify<Nat> = {
                 toText = intToText;
-                compare    = func (x : Nat, y : Nat) : Bool { x == y };
+                compare = func (x : Nat, y : Nat) : Bool { x == y };
             };
         };
 
         public let nat8 = {
             equal : Testify<Nat8> = {
                 toText = func (n : Nat8) : Text = intToText(Prim.nat8ToNat(n));
-                compare    = func (x : Nat8, y : Nat8) : Bool { x == y };
+                compare = func (x : Nat8, y : Nat8) : Bool { x == y };
             };
         };
 
         public let nat16 = {
             equal : Testify<Nat16> = {
                 toText = func (n : Nat16) : Text = intToText(Prim.nat16ToNat(n));
-                compare    = func (x : Nat16, y : Nat16) : Bool { x == y };
+                compare = func (x : Nat16, y : Nat16) : Bool { x == y };
             };
         };
 
         public let nat32 = {
                 equal : Testify<Nat32> = {
                 toText = func (n : Nat32) : Text = intToText(Prim.nat32ToNat(n));
-                compare    = func (x : Nat32, y : Nat32) : Bool { x == y };
+                compare = func (x : Nat32, y : Nat32) : Bool { x == y };
             };
         };
 
         public let nat64 = {
             equal : Testify<Nat64> = {
                 toText = func (n : Nat64) : Text = intToText(Prim.nat64ToNat(n));
-                compare    = func (x : Nat64, y : Nat64) : Bool { x == y };
+                compare = func (x : Nat64, y : Nat64) : Bool { x == y };
             };
         };
 
         public let int = {
             equal : Testify<Int> = {
                 toText = intToText;
-                compare    = func (x : Int, y : Int) : Bool { x == y };
+                compare = func (x : Int, y : Int) : Bool { x == y };
             };
         };
 
         public let int8 = {
             equal : Testify<Int8> = {
                 toText = func (i : Int8) : Text = intToText(Prim.int8ToInt(i));
-                compare    = func (x : Int8, y : Int8) : Bool { x == y };
+                compare = func (x : Int8, y : Int8) : Bool { x == y };
             };
         };
 
         public let int16 = {
             equal : Testify<Int16> = {
                 toText = func (i : Int16) : Text = intToText(Prim.int16ToInt(i));
-                compare    = func (x : Int16, y : Int16) : Bool { x == y };
+                compare = func (x : Int16, y : Int16) : Bool { x == y };
             };
         };
 
         public let int32 = {
             equal : Testify<Int32> = {
                 toText = func (i : Int32) : Text = intToText(Prim.int32ToInt(i));
-                compare    = func (x : Int32, y : Int32) : Bool { x == y };
+                compare = func (x : Int32, y : Int32) : Bool { x == y };
             };
         };
 
         public let int64 = {
             equal : Testify<Int64> = {
                 toText = func (i : Int64) : Text =    intToText(Prim.int64ToInt(i));
-                compare    = func (x : Int64, y : Int64) : Bool { x == y };
+                compare = func (x : Int64, y : Int64) : Bool { x == y };
             };
         };
 
         public let float = {
             equal : Testify<Float> = {
                 toText = func (f : Float) : Text = Prim.floatToText(f);
-                compare    = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, FLOAT_EPSILON); };
+                compare = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, FLOAT_EPSILON); };
             };
             equalEpsilon9 : Testify<Float> = {
                 toText = func (f : Float) : Text = Prim.floatToText(f);
-                compare    = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, 1e-9); };
+                compare = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, 1e-9); };
             };
             equalEpsilon6 : Testify<Float> = {
                 toText = func (f : Float) : Text = Prim.floatToText(f);
-                compare    = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, 1e-6); };
+                compare = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, 1e-6); };
             };
             equalEpsilon3 : Testify<Float> = {
                 toText = func (f : Float) : Text = Prim.floatToText(f);
-                compare    = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, 1e-3); };
+                compare = func (x : Float, y : Float) : Bool { Float.equalWithin(x, y, 1e-3); };
             };
             greaterThan : Testify<Float> = {
                 toText = func (f : Float) : Text = Prim.floatToText(f);
-                compare    = func (x : Float, y : Float) : Bool { x > y };
+                compare = func (x : Float, y : Float) : Bool { x > y };
             };
             greaterThanOrEqual : Testify<Float> = {
                 toText = func (f : Float) : Text = Prim.floatToText(f);
-                compare    = func (x : Float, y : Float) : Bool { x >= y };
+                compare = func (x : Float, y : Float) : Bool { x >= y };
             };
             lessThan : Testify<Float> = {
                 toText = func (f : Float) : Text = Prim.floatToText(f);
-                compare    = func (x : Float, y : Float) : Bool { x < y };
+                compare = func (x : Float, y : Float) : Bool { x < y };
             };
             lessThanOrEqual : Testify<Float> = {
                 toText = func (f : Float) : Text = Prim.floatToText(f);
-                compare    = func (x : Float, y : Float) : Bool { x <= y };
+                compare = func (x : Float, y : Float) : Bool { x <= y };
             };
         };
 
         public let char = {
             equal : Testify<Char> = {
                 toText = func (c : Char) : Text = Prim.charToText(c);
-                compare    = func (x : Char, y : Char) : Bool { x == y };
+                compare = func (x : Char, y : Char) : Bool { x == y };
             };
         };
 
         public let text = {
             equal : Testify<Text> = {
                 toText = func (t : Text) : Text { t };
-                compare    = func (x : Text, y : Text) : Bool { x == y };
+                compare = func (x : Text, y : Text) : Bool { x == y };
             };
         };
 
         public let blob = {
             equal : Testify<Blob> = {
                 toText = func (b : Blob) : Text { encodeBlob(b) };
-                compare    = func (x : Blob, y : Blob) : Bool { x == y };
+                compare = func (x : Blob, y : Blob) : Bool { x == y };
             };
         };
 
         public let error = {
             equal : Testify<Error> = {
                 toText = func (e : Error) : Text { Prim.errorMessage(e) };
-                compare    = func (x : Error, y : Error) : Bool {
+                compare = func (x : Error, y : Error) : Bool {
                     Prim.errorCode(x)    == Prim.errorCode(y) and 
                     Prim.errorMessage(x) == Prim.errorMessage(y);
                 };
@@ -225,7 +225,7 @@ module {
         public let principal = {
             equal : Testify<Principal> = {
                 toText = func (p : Principal) : Text { debug_show(p) };
-                compare    = func (x : Principal, y : Principal) : Bool { x == y };
+                compare = func (x : Principal, y : Principal) : Bool { x == y };
             };
         };
 

@@ -5,7 +5,7 @@ import SubaccountIndexer "../payement/SubaccountIndexer";
 
 import Map              "mo:map/Map";
 
-import Result           "mo:base/Result";
+import Result     "mo:base/Result";
 import Buffer           "mo:base/Buffer";
 import Iter             "mo:base/Iter";
 import Principal        "mo:base/Principal";
@@ -16,7 +16,7 @@ module {
     type Buffer<T> = Buffer.Buffer<T>;
     type Iter<T> = Iter.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
-    type Result<T, E> = Result.Result<T, E>;
+    type Result<Ok, Err> = Result.Result<Ok, Err>;
 
     type Time = Int;
     type PayServiceResult = PayementFacade.PayServiceResult;
@@ -62,15 +62,19 @@ module {
             let subaccount = subaccount_indexer.new_deposit_subaccount();
 
             // Define the service to be called once the payement is done
-            func service(tx_id: Nat) : async* Nat {
+            func service({tx_id: Nat}) : async* { error: ?Text } {
                 // Set the deposit information inside the element itself
                 builder.add_deposit({ tx_id; from; subaccount; });
                 // Add the lock for that deposit in the scheduler
-                let (id, deposit) = lock_scheduler.add_lock({ register; builder; amount; timestamp = time; });
-                // Perform the callback
-                callback(deposit);
-                // Return the deposit id
-                id;
+                let result = lock_scheduler.add_lock({ register; builder; amount; timestamp = time; });
+                let error = switch(result){
+                    case(#err(err)) { ?err; };
+                    case(#ok((_, deposit))) {
+                        callback(deposit);
+                        null;
+                    };
+                };
+                { error };
             };
 
             // Perform the deposit

@@ -1,10 +1,13 @@
 import Error "mo:base/Error";
 import Map   "mo:map/Map";
 import Set   "mo:map/Set";
+import Result "mo:base/Result";
 
 module {
 
     public type Time = Int;
+
+    type Result<Ok, Err> = Result.Result<Ok, Err>;
 
     // ICRC-1 TYPES
 
@@ -176,18 +179,19 @@ module {
         votes: Map.Map<Nat, VoteType>;
     };
 
-    public type Service = Nat -> async* Nat;
+    public type Service = { tx_id: Nat; } -> async* { error: ?Text; };
 
-    public type ServiceTrappedError = {
+    public type ServiceError = {
         original_transfer: {
             tx_id: TxIndex;
             args: TransferFromArgs;
         };
-        error_code: Error.ErrorCode;
+        error: Text;
     };
 
     public type Incident = {
-        #ServiceTrapped: ServiceTrappedError;
+        #ServiceTrapped: ServiceError;
+        #ServiceFailed: ServiceError;
         #TransferFailed: {
             args: TransferArgs;
             error: TransferError or { #Trapped : { error_code: Error.ErrorCode; }};

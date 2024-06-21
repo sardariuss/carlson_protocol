@@ -1,4 +1,4 @@
-import Mocks "Mocks";
+import MockTypes "MockTypes";
 import BaseMock "BaseMock";
 import Interfaces "../../src/Interfaces";
 
@@ -18,7 +18,7 @@ module {
         };
     };
 
-    public class DecayMock() : Interfaces.IDecayModel and Mocks.IMock<Return> {
+    public class DecayMock() : Interfaces.IDecayModel and MockTypes.IMock<Return> {
 
         let base = BaseMock.BaseMock<Return, Method>({
             to_text = func(arg: Method) : Text {
@@ -55,8 +55,12 @@ module {
             Debug.trap("Unexpected argument for compute_decay!");
         };
 
-        public func expect_call(args: Return) {
-            base.expect_call(args);
+        public func expect_call(arg: Return) {
+            base.expect_call(arg);
+        };
+
+        public func expect_calls(args: [Return]) {
+            base.expect_calls(args);
         };
 
         public func teardown() {
