@@ -20,15 +20,13 @@ module {
         buffer.add(MODULE_VERSION);
         // Add the type    (1 byte)
         switch(subaccount_type){
-            case(#NEW_VOTE_FEES)      { buffer.add(0); };
-            case(#BALLOT_DEPOSITS(_)) { buffer.add(1); };
+            case(#BALLOT_DEPOSITS(_)) { buffer.add(0); };
         };
         // Add extra information if applicable
         switch(subaccount_type){
             case(#BALLOT_DEPOSITS{ id }) {
                 buffer.append(Buffer.fromArray(nat64_to_bytes(Nat64.fromNat(id)))); // @todo: Traps on overflow
             };
-            case(_) {};
         };
         finalize_subaccount(buffer);
     };

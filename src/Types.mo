@@ -114,7 +114,6 @@ module {
     public type Vote<A, B> = {
         date: Time;
         author: Principal;
-        tx_id: Nat;
         var aggregate: A;
         ballot_register: {
             var index: Nat;
@@ -204,7 +203,6 @@ module {
     };
 
     public type SubaccountType = {
-        #NEW_VOTE_FEES;
         #BALLOT_DEPOSITS: { id: Nat; };
     };
 

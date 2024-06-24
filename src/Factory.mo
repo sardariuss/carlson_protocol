@@ -31,7 +31,6 @@ module {
             };
             parameters: {
                 nominal_lock_duration: Duration;
-                new_vote_fee: Nat;
                 decay: {
                     half_life: Duration;
                     time_init: Time;
@@ -45,7 +44,7 @@ module {
 
         let { stable_data; provider; } = args;
         let { subaccount_register; vote_register; payement; reward; parameters; } = stable_data;
-        let { nominal_lock_duration; new_vote_fee; decay; } = parameters;
+        let { nominal_lock_duration; decay; } = parameters;
 
         let subaccount_indexer = SubaccountIndexer.SubaccountIndexer(subaccount_register);
 
@@ -72,9 +71,7 @@ module {
 
         Controller.Controller({
             vote_register;
-            payement_facade;
             vote_type_controller;
-            new_vote_fee;
         });
     };
 

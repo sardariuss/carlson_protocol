@@ -18,7 +18,6 @@ shared({ caller = admin }) actor class CarlsonProtocol({
     parameters: {
         ballot_half_life: Types.Duration;
         nominal_lock_duration: Types.Duration;
-        new_vote_fee: Nat;
     }}) = this {
 
     // STABLE MEMBERS
@@ -67,9 +66,8 @@ shared({ caller = admin }) actor class CarlsonProtocol({
     public shared({caller}) func new_vote({
         from: ICRC1.Account;
         type_enum: Types.VoteTypeEnum;
-    }) : async Controller.NewVoteResult 
-    {
-        await* getController().new_vote({caller; from; time = Time.now(); type_enum;});
+    }) : async Nat {
+        getController().new_vote({caller; from; time = Time.now(); type_enum;});
     };
 
     // Add a ballot on the given vote identified by its vote_id
@@ -79,8 +77,7 @@ shared({ caller = admin }) actor class CarlsonProtocol({
         from: Types.Account;
         reward_account: Types.Account;
         amount: Nat;
-    }) : async Controller.PutBallotResult 
-    {
+    }) : async Controller.PutBallotResult {
         await* getController().put_ballot({caller; vote_id; choice_type; from; reward_account; amount; time = Time.now();});
     };
 
@@ -95,20 +92,17 @@ shared({ caller = admin }) actor class CarlsonProtocol({
     public query func find_ballot({
         vote_id: Nat; 
         ballot_id: Nat;
-    }) : async ?Types.BallotType 
-    {
+    }) : async ?Types.BallotType {
         getController().find_ballot({vote_id; ballot_id;});
     };
 
     // Get the failed refunds for the given principal
-    public query func get_payement_incidents() : async [(Nat, Types.Incident)] 
-    {
+    public query func get_payement_incidents() : async [(Nat, Types.Incident)] {
         Map.toArray(_stable.payement.incident_register.incidents);
     };
 
     // Get the failed rewards for the given principal
-    public query func get_reward_incidents() : async [(Nat, Types.Incident)] 
-    {
+    public query func get_reward_incidents() : async [(Nat, Types.Incident)] {
         Map.toArray(_stable.reward.incident_register.incidents);
     };
 

@@ -56,12 +56,10 @@ module {
         public func new_vote({
             date: Time;
             author: Principal;
-            tx_id: Nat;
         }) : Vote<A, B> {
             {
                 date;
                 author;
-                tx_id;
                 var aggregate = empty_aggregate;
                 ballot_register = {
                     var index = 0;

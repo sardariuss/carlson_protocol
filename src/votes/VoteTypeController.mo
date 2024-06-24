@@ -32,9 +32,9 @@ module {
         yes_no_controller: VoteController.VoteController<YesNoAggregate, YesNoChoice>;
     }){
 
-        public func new_vote({ vote_type_enum: VoteTypeEnum; date: Time; author: Principal; tx_id: Nat; }) : VoteType {
+        public func new_vote({ vote_type_enum: VoteTypeEnum; date: Time; author: Principal; }) : VoteType {
             switch(vote_type_enum){
-                case(#YES_NO) { #YES_NO(yes_no_controller.new_vote({date; author; tx_id;})); }
+                case(#YES_NO) { #YES_NO(yes_no_controller.new_vote({date; author;})); }
             };
         };
 
