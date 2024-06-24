@@ -1,7 +1,7 @@
-import Duration         "../src/Duration";
-import Decay            "../src/Decay";
-import LockScheduler    "../src/LockScheduler";
-import Types            "../src/Types";
+import Types            "../src/protocol/Types";
+import Duration         "../src/protocol/Duration";
+import Decay            "../src/protocol/Decay";
+import LockScheduler    "../src/protocol/locks/LockScheduler";
 
 import { verify; testify; } = "utils/Testify";
 

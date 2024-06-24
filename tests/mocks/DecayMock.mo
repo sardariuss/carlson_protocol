@@ -1,6 +1,6 @@
 import MockTypes "MockTypes";
 import BaseMock "BaseMock";
-import Interfaces "../../src/Interfaces";
+import Interfaces "../../src/protocol/Interfaces";
 
 import Debug "mo:base/Debug";
 

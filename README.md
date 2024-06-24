@@ -44,7 +44,7 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
 - BACKEND
   - *DONE* time dilation curve: shall replace the current nominal_duration_per_sat. It aims at preventing absurd locking times (e.g. 10 seconds or 100 years). Curve formula would probably be ax^b, where a=3 (days), and b=ln(2)/ln(10). This way, a hot score of 1 sat would yield 3 days lock, 10 sats a 6 days lock, ... 1 btc a 1 year lock.
   - *DONE* vote proposal, so that everybody can propose a new vote.
-  - *TODO* be able to query the votes per author
+  - *TO REDEFINE* vote metadata, so that the Carlson protocol canister can be used as a service separated from any other backend/frontend canisters, but still allows to save and retrieve specific votes.
   - *DONE* vote decay over time (so it gets easier to challenge consensus overtime)
 
 - FRONTEND:
@@ -80,3 +80,4 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
 - Fix initial contest multiplier: 0.5 shall decrease the more tokens are locked with the first ballot
 - Add reward for users who open new votes
 - Fix and add votes unit tests
+- Do not allow to open a vote to an anonymous principal

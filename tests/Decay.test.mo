@@ -1,5 +1,5 @@
-import Decay "../src/Decay";
-import Duration "../src/Duration";
+import Decay "../src/protocol/Decay";
+import Duration "../src/protocol/Duration";
 
 import { test; suite; } "mo:test";
 import Time "mo:base/Time";

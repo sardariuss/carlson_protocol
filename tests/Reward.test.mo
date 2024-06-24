@@ -1,4 +1,4 @@
-import Incentives "../src/Incentives";
+import Incentives "../src/protocol/Incentives";
 
 import { test; suite; } "mo:test";
 

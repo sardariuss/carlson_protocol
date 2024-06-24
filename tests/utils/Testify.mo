@@ -1,4 +1,4 @@
-import HotMap      "../../src/locks/HotMap";
+import HotMap      "../../src/protocol/locks/HotMap";
 
 import Array       "mo:base/Array";
 import Debug       "mo:base/Debug";
@@ -80,7 +80,7 @@ module {
     };
 
     /// Submodule of primitive testify functions (excl. 'Any', 'None' and 'Null').
-    /// https://github.com/dfinity/motoko/blob/master/src/prelude/prelude.mo
+    /// https://github.com/dfinity/motoko/blob/master/src/protocol/prelude/prelude.mo
     public module Testify {
 
         public let bool = {
