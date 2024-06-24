@@ -7,9 +7,9 @@
 
 The Carlson Protocol is a decentralized voting system where people vote using bitcoins. These bitcoins are transferred back to the user after a period of time that can vary according to specific rules. When reimbursed, users get rewarded with additional tokens that depend on how their past vote aligns with the current view.
 
-✨ **The Carlson Protocol leverages how much people care**. If you don't care enough about a vote, you will find better usage for your bitcoins elsewhere.
+✨ **The Carlson Protocol leverages how much people care**. If you don't care enough about a vote, you won't be willing to lock tokens for it.
 
-⚔️ **The Carlson Protocol is a double-edged sword**. The more bitcoins you lock in a vote, the greater your voice, but the lesser the reward and the longer your bitcoins will stay locked.
+⚔️ **The Carlson Protocol is a double-edged sword**. The more bitcoins you lock in a vote, the greater your voice, but the lesser the reward per coin and the longer the lock.
 
 🗽 **The Carlson Protocol is stateless**. Votes never end, and results decay. Even the most one-sided votes will decay over time, offering the opportunity to reevaluate past consensus.
 

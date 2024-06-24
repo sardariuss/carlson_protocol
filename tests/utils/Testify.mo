@@ -1,8 +1,19 @@
+import HotMap      "../../src/locks/HotMap";
+
+import Array       "mo:base/Array";
 import Debug       "mo:base/Debug";
 import Float       "mo:base/Float";
+import Result      "mo:base/Result";
+import Nat         "mo:base/Nat";
+import Text        "mo:base/Text";
+import Int         "mo:base/Int";
 import Prim        "mo:⛔";
 
 module {
+
+    type HotElem = HotMap.HotElem;
+
+    type Result<Ok, Err> = Result.Result<Ok, Err>;
 
     let FLOAT_EPSILON : Float = 1e-12;
 
@@ -76,6 +87,50 @@ module {
             equal : Testify<Bool> = {
                 toText = func (t : Bool) : Text { if (t) { "true" } else { "false" } };
                 compare = func (x : Bool, y : Bool) : Bool { x == y };
+            };
+        };
+
+        public func result<Ok, Err>(ok_testify: Testify<Ok>, err_testify: Testify<Err>) : { equal: Testify<Result<Ok, Err>> } {
+            {
+                equal = {
+                    toText = func (r : Result<Ok, Err>) : Text {
+                        switch (r) {
+                            case(#ok(ok))   { ok_testify.toText(ok);   };
+                            case(#err(err)) { err_testify.toText(err); };
+                        };
+                    };
+                    compare = func (x : Result<Ok, Err>, y : Result<Ok, Err>) : Bool {
+                        switch (x, y) {
+                            case(#ok(a), #ok(b))   { ok_testify.compare(a, b);  };
+                            case(#err(a), #err(b)) { err_testify.compare(a, b); };
+                            case(_, _)             { false;                     };
+                        };
+                    };
+                };
+            };
+        };
+
+        public func array<T>(testify: Testify<T>) : { equal: Testify<[T]> } {
+            {
+                equal = {
+                    toText = func (a : [T]) : Text {
+                        "[ " # Text.join(", ", Array.map(a, testify.toText).vals()) # " ]";
+                    };
+                    compare = func (x : [T], y : [T]) : Bool {
+                        let (x_it, y_it) = (x.vals(), y.vals());
+                        loop {
+                            switch (x_it.next(), y_it.next()) {
+                                case (null, null) { return true; };
+                                case (?a, ?b) {
+                                    if (not testify.compare(a, b)) { 
+                                        return false; 
+                                    };
+                                };
+                                case (_, _) { return false; };
+                            };
+                        };
+                    };
+                };
             };
         };
 
@@ -211,6 +266,20 @@ module {
                 compare = func (x : Error, y : Error) : Bool {
                     Prim.errorCode(x)    == Prim.errorCode(y) and 
                     Prim.errorMessage(x) == Prim.errorMessage(y);
+                };
+            };
+        };
+
+        public let hot_elem = {
+            equal : Testify<HotElem> = {
+                toText = func (e : HotElem) : Text { 
+                    debug_show(e);
+                 };
+                compare = func (x : HotElem, y : HotElem) : Bool { 
+                    x.amount    == y.amount                            and 
+                    x.timestamp == y.timestamp                         and 
+                    Float.equalWithin(x.decay, y.decay, 1e-12)         and 
+                    Float.equalWithin(x.hotness, y.hotness, 1e-1);
                 };
             };
         };
