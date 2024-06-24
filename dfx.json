@@ -21,6 +21,14 @@
     "e2e": {
       "main": "e2e/main.mo",
       "type": "motoko"
+    },
+    "frontend": {
+      "frontend": {
+        "entrypoint": "src/frontend/index.html"
+      },
+      "dependencies": ["protocol"],
+      "source": ["dist"],
+      "type": "assets"
     }
   },
   "defaults": {
