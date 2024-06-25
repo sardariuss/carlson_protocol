@@ -27,7 +27,7 @@
         "entrypoint": "src/frontend/index.html"
       },
       "dependencies": ["protocol"],
-      "source": ["dist"],
+      "source": ["src/frontend/dist"],
       "type": "assets"
     }
   },

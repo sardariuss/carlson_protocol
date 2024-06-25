@@ -9,7 +9,7 @@ dotenv.config();
 export default defineConfig({
   root: 'src/frontend',
   build: {
-    outDir: '../../dist',
+    outDir: 'dist',
     emptyOutDir: true,
   },
   optimizeDeps: {
