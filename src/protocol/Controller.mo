@@ -1,61 +1,47 @@
 import Types              "Types";
 import VoteTypeController "votes/VoteTypeController";
-import PayementFacade     "payement/PayementFacade";
 
 import Map                "mo:map/Map";
+import Set                "mo:map/Set";
 
 import Int                "mo:base/Int";
-import Result             "mo:base/Result";
 import Buffer             "mo:base/Buffer";
 import Array              "mo:base/Array";
+import Option             "mo:base/Option";
 
 module {
 
-    type VoteId = Nat;
-    type ChoiceType = Types.ChoiceType;
-    type VoteType = Types.VoteType;
-    type YesNoBallot = Types.Ballot<Types.YesNoChoice>;
-    type VoteTypeEnum = Types.VoteTypeEnum;
     type Time = Int;
-    type Account = Types.Account;
-    type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type BallotType = Types.BallotType;
-    
-    type VoteNotFoundError = { #VoteNotFound: { vote_id: VoteId }; };
-    
-    public type PutBallotArgs = { vote_id: VoteId; choice_type: ChoiceType; } and VoteTypeController.PutBallotArgs;
-    public type PutBallotResult = Result<Nat, PayementFacade.PayServiceError or VoteNotFoundError>;
-
-    public type VoteBallotId = {
-        vote_id: VoteId;
-        ballot_id: Nat;
-    };
-
-    public type NewVoteArgs = {
-        caller: Principal;
-        from: Account;
-        time: Time;
-        type_enum: VoteTypeEnum;
-    };
-
     type VoteRegister = Types.VoteRegister;
+    type VoteType = Types.VoteType;
+    type BallotType = Types.BallotType;
+    type NewVoteArgs = Types.NewVoteArgs;
+    type PutBallotArgs = Types.PutBallotArgs;
+    type PutBallotResult = Types.PutBallotResult;
+    type VoteBallotId = Types.VoteBallotId;
 
     public class Controller({
         vote_register: VoteRegister;
         vote_type_controller: VoteTypeController.VoteTypeController;
     }){
 
-        public func new_vote(args: NewVoteArgs) : VoteId {
+        public func new_vote(args: NewVoteArgs) : Nat {
 
+            // Get the next vote_id
+            let vote_id = vote_register.index;
+            vote_register.index := vote_register.index + 1;
+
+            // Add the vote
             let vote = vote_type_controller.new_vote({
                 vote_type_enum = args.type_enum;
                 date = args.time;
-                author = args.caller;
+                origin = args.origin;
             });
-
-            let vote_id = vote_register.index;
-            vote_register.index := vote_register.index + 1;
             Map.set(vote_register.votes, Map.nhash, vote_id, vote);
+
+            // Add the vote_id to the origin's votes
+            Set.add(Option.get(Map.get(vote_register.by_origin, Map.phash, args.origin), Set.new<Nat>()), Map.nhash, vote_id);
+            
             vote_id;
         };
 
@@ -84,7 +70,14 @@ module {
             Buffer.toArray(buffer);
         };
 
-        public func find_ballot({vote_id: VoteId; ballot_id: Nat;}) : ?BallotType {
+        public func get_votes({origin: Principal;}) : [VoteType] {
+            let vote_ids = Option.get(Map.get(vote_register.by_origin, Map.phash, origin), Set.new<Nat>());
+            Set.toArrayMap(vote_ids, func(vote_id: Nat) : ?VoteType {
+                Map.get(vote_register.votes, Map.nhash, vote_id);
+            });
+        };
+
+        public func find_ballot({vote_id: Nat; ballot_id: Nat;}) : ?BallotType {
             
             let vote_type = switch(Map.get(vote_register.votes, Map.nhash, vote_id)){
                 case(?v) { v; };

@@ -18,6 +18,11 @@
       "main": "src/protocol/main.mo",
       "type": "motoko"
     },
+    "backend": {
+      "main": "src/protocol/main.mo",
+      "type": "motoko",
+      "dependencies": ["protocol"]
+    },
     "e2e": {
       "main": "e2e/main.mo",
       "type": "motoko"

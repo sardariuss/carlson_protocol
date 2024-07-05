@@ -57,6 +57,18 @@ module {
         created_at_time : ?Nat64;
     };
 
+    // SHARED TYPES
+
+    public type SVoteType = {
+        #YES_NO: SVote<YesNoAggregate>;
+    };
+
+    public type SVote<A> = {
+        date: Time;
+        origin: Principal;
+        aggregate: A;
+    };
+
     // CUSTOM TYPES
     
     public type Duration = {
@@ -113,7 +125,7 @@ module {
 
     public type Vote<A, B> = {
         date: Time;
-        author: Principal;
+        origin: Principal;
         var aggregate: A;
         ballot_register: {
             var index: Nat;
@@ -176,6 +188,7 @@ module {
     public type VoteRegister = {
         var index: Nat;
         votes: Map.Map<Nat, VoteType>;
+        by_origin: Map.Map<Principal, Set.Set<Nat>>;
     };
 
     public type Service = { tx_id: Nat; } -> async* { error: ?Text; };
@@ -204,6 +217,47 @@ module {
 
     public type SubaccountType = {
         #BALLOT_DEPOSITS: { id: Nat; };
+    };
+
+    public type NewVoteArgs = {
+        origin: Principal;
+        time: Time;
+        type_enum: VoteTypeEnum;
+    };
+
+    public type PutBallotArgs = {
+        vote_id: Nat;
+        choice_type: ChoiceType;
+        caller: Principal;
+        from: Account;
+        reward_account: Account;
+        time: Time;
+        amount: Nat;
+    };
+
+    public type TransferFromError = {
+        #BadFee :  { expected_fee : Nat };
+        #BadBurn :  { min_burn_amount : Nat };
+        // The [from] account does not hold enough funds for the transfer.
+        #InsufficientFunds :  { balance : Nat };
+        // The caller exceeded its allowance.
+        #InsufficientAllowance :  { allowance : Nat };
+        #TooOld;
+        #CreatedInFuture:  { ledger_time : Nat64 };
+        #Duplicate :  { duplicate_of : Nat };
+        #TemporarilyUnavailable;
+        #GenericError :  { error_code : Nat; message : Text };
+    };
+    
+    public type PutBallotError = TransferFromError or { 
+        #Incident : { incident_id: Nat; }; 
+        #VoteNotFound: { vote_id: Nat };
+    };
+    public type PutBallotResult = Result<Nat, PutBallotError>;
+
+    public type VoteBallotId = {
+        vote_id: Nat;
+        ballot_id: Nat;
     };
 
 };
