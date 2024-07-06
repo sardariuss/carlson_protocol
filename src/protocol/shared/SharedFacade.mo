@@ -18,8 +18,8 @@ module {
 
     public class SharedFacade(controller: Controller.Controller) {
 
-        public func new_vote(args: NewVoteArgs) : VoteId {
-            controller.new_vote(args);
+        public func new_vote(args: NewVoteArgs) : SVoteType {
+            SharedConversions.shareVoteType(controller.new_vote(args));
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {

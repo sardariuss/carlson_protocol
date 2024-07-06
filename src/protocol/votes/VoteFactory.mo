@@ -121,7 +121,6 @@ module {
             compute_score;
             deposit_scheduler;
             reward_scheduler;
-            timeout_calculator;
         });
     };
 

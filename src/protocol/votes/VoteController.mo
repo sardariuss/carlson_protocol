@@ -1,6 +1,5 @@
 import Types             "../Types";
 import BallotBuilder     "../BallotBuilder";
-import TimeoutCalculator "../TimeoutCalculator";
 import PayementFacade    "../payement/PayementFacade";
 import DepositScheduler  "../locks/DepositScheduler";
 import RewardScheduler   "../locks/RewardScheduler";
@@ -50,14 +49,15 @@ module {
         compute_score: ComputeScore<A, B>;
         deposit_scheduler: DepositScheduler.DepositScheduler<Ballot<B>>;
         reward_scheduler: RewardScheduler.RewardScheduler<Ballot<B>>;
-        timeout_calculator: TimeoutCalculator.ITimeoutCalculator;
     }){
 
         public func new_vote({
+            vote_id: Nat;
             date: Time;
             origin: Principal;
         }) : Vote<A, B> {
             {
+                vote_id;
                 date;
                 origin;
                 var aggregate = empty_aggregate;

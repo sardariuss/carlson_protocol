@@ -1,16 +1,40 @@
+import ProtocolTypes "../protocol/Types";
+
 import Map "mo:map/Map";
+import Array "mo:base/Array";
+import Principal "mo:base/Principal";
 
 import Protocol "canister:protocol";
 
-shared({ caller = admin }) actor class Backend() {
 
-    let votes = Map.new<Nat, Text>();
+shared({ caller = admin }) actor class Backend() = this {
 
-    public shared func add_grunt(text: Text) : async () {
+    type YesNoAggregate = ProtocolTypes.YesNoAggregate;
+    type SVoteType = ProtocolTypes.SVoteType;
+    type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate> and {
+        text: ?Text;
+    };
 
-        let vote_id = await Protocol.new_vote({ type_enum = #YES_NO });
+    let _texts = Map.new<Nat, Text>();
 
-        Map.set(votes, Map.nhash, vote_id, text);
+    public shared func add_grunt(text: Text) : async SYesNoVote {
+        switch(await Protocol.new_vote({ type_enum = #YES_NO })){
+            case(#YES_NO(vote)) {
+                Map.set(_texts, Map.nhash, vote.vote_id, text); 
+                { vote with text = ?text; };
+            };
+        };
+    };
+
+    public composite query func get_grunts() : async [SYesNoVote] {
+        let votes = await Protocol.get_votes({ origin = Principal.fromActor(this); });
+        Array.map(votes, func(vote_type: SVoteType) : SYesNoVote {
+            switch(vote_type){
+                case(#YES_NO(vote)) { 
+                    { vote with text = Map.get<Nat, Text>(_texts, Map.nhash, vote.vote_id); };
+                };
+            };
+        });
     };
 
 };

@@ -70,7 +70,7 @@ shared({ caller = admin }) actor class CarlsonProtocol({
     // Create a new vote
     public shared({caller}) func new_vote({
         type_enum: Types.VoteTypeEnum;
-    }) : async Nat {
+    }) : async Types.SVoteType {
         getFacade().new_vote({ origin = caller; time = Time.now(); type_enum; });
     };
 

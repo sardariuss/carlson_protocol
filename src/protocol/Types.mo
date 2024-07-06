@@ -64,6 +64,7 @@ module {
     };
 
     public type SVote<A> = {
+        vote_id: Nat;
         date: Time;
         origin: Principal;
         aggregate: A;
@@ -124,6 +125,7 @@ module {
     };
 
     public type Vote<A, B> = {
+        vote_id: Nat;
         date: Time;
         origin: Principal;
         var aggregate: A;
