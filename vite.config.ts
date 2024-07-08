@@ -31,11 +31,13 @@ export default defineConfig({
     react(),
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),
-    environment({ BACKEND_CANISTER_ID: '' }),
   ],
   test: {
     environment: 'jsdom',
     setupFiles: 'setupTests.ts',
     cache: { dir: '../../node_modules/.vitest' },
+  },
+  resolve: {
+    preserveSymlinks: true, // this is the fix!
   },
 });

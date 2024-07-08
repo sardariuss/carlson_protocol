@@ -19,13 +19,12 @@
       "type": "motoko"
     },
     "backend": {
-      "main": "src/protocol/main.mo",
+      "main": "src/backend/main.mo",
       "type": "motoko",
-      "dependencies": ["protocol"]
-    },
-    "e2e": {
-      "main": "e2e/main.mo",
-      "type": "motoko"
+      "dependencies": ["protocol"],
+      "declarations": {
+        "node_compatibility": true
+      }
     },
     "frontend": {
       "frontend": {
