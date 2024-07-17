@@ -27,6 +27,8 @@ module {
 
         public func new_vote(args: NewVoteArgs) : VoteType {
 
+            let { type_enum; time; origin; } = args;
+
             // Get the next vote_id
             let vote_id = vote_register.index;
             vote_register.index := vote_register.index + 1;
@@ -34,15 +36,17 @@ module {
             // Add the vote
             let vote = vote_type_controller.new_vote({
                 vote_id;
-                vote_type_enum = args.type_enum;
-                date = args.time;
-                origin = args.origin;
+                vote_type_enum = type_enum;
+                date = time;
+                origin;
             });
             Map.set(vote_register.votes, Map.nhash, vote_id, vote);
 
-            // Add the vote_id to the origin's votes
-            Set.add(Option.get(Map.get(vote_register.by_origin, Map.phash, args.origin), Set.new<Nat>()), Map.nhash, vote_id);
-            
+            // Update the by_origin map
+            let by_origin = Option.get(Map.get(vote_register.by_origin, Map.phash, origin), Set.new<Nat>());
+            Set.add(by_origin, Set.nhash, vote_id);
+            Map.set(vote_register.by_origin, Map.phash, origin, by_origin);
+
             vote;
         };
 
