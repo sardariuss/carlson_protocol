@@ -10,11 +10,9 @@ import React from 'react';
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <AgentProvider withProcessEnv>
-      <ActorProvider idlFactory={idlFactory} canisterId={canisterId}>
-        <HashRouter>
-          <App/>
-        </HashRouter>
-      </ActorProvider>
+      <HashRouter>
+        <App/>
+      </HashRouter>
     </AgentProvider>
   </React.StrictMode>
 );

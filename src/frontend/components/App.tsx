@@ -1,24 +1,21 @@
-import Grunts from "./Grunts";
 import Header from "./Header";
 import Footer from "./Footer";
 
-import { Route, Routes }   from "react-router-dom";
-//import { ActorProvider, useAuth } from "@ic-reactor/react";
-//import { useActorStore, useAuth, useQueryCall } from "./actors"
-import { useQueryCall, useUpdateCall, useAuth } from '@ic-reactor/react';
+import { SYesNoVote } from "@/declarations/backend/backend.did";
+import { backendActor } from "./actors"
 
 function App () {
 
-  const {login, logout, authenticated, identity} = useAuth()
+  const {login, logout, authenticated, identity} = backendActor.useAuth()
 
-  const { call: fetchGrunts, data: grunts } = useQueryCall({
+  const { call: fetchGrunts, data: grunts } = backendActor.useQueryCall({
     functionName: 'get_grunts',
     onSuccess: (data) => {
       console.log(data)
     }
   });
 
-  const { call: addGrunt, loading } = useUpdateCall({
+  const { call: addGrunt, loading } = backendActor.useUpdateCall({
     functionName: 'add_grunt',
     args: ["First grunt!"],
     onSuccess: (data) => {
@@ -43,9 +40,9 @@ function App () {
           </button>
           <ul>
             {
-              grunts && grunts.length > 0 ? (
-                grunts.map((grunt, index) => (
-                  <li key={index}>{grunt}</li>
+              Array.isArray(grunts) ? (
+                grunts.map((grunt: SYesNoVote, index) => (
+                  <li key={index}>{grunt.text}</li>
                 ))
               ) : (
                 <li>No grunts available</li>
