@@ -57,3 +57,7 @@ dfx canister install protocol --argument '( record {
         nominal_lock_duration = variant { DAYS = 3 };
     };
 })'
+
+dfx canister install backend
+
+dfx deploy frontend
