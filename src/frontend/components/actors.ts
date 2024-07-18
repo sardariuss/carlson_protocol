@@ -1,12 +1,10 @@
 // actor.ts
-import { createReactor }                   from "@ic-reactor/react"
+import { createActorContext }              from "@ic-reactor/react"
 import { backend, canisterId, idlFactory } from "../../declarations/backend"
 
 export type Backend = typeof backend
 
-export const backendActor = createReactor<Backend>({
+export const { ActorProvider: BackendActorProvider, ...backendActor } = createActorContext<Backend>({
   canisterId,
   idlFactory,
-  host: "https://localhost:4943",
-  withProcessEnv: true,
 })
