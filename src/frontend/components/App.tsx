@@ -3,10 +3,11 @@ import Footer from "./Footer";
 
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { backendActor } from "./actors"
+import { useAuth } from "@ic-reactor/react";
 
 function App () {
 
-  const {login, logout, authenticated, identity} = backendActor.useAuth()
+  const { login, logout, authenticated, identity } = useAuth()
 
   const { call: fetchGrunts, data: grunts } = backendActor.useQueryCall({
     functionName: 'get_grunts',
