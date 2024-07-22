@@ -1,7 +1,7 @@
 import Header from "./Header";
 import Footer from "./Footer";
 
-import { SYesNoVote } from "@/declarations/backend/backend.did";
+import { SYesNoVote } from "../../declarations/backend/backend.did";
 import { backendActor } from "./actors"
 import { useAuth } from "@ic-reactor/react";
 
@@ -40,15 +40,12 @@ function App () {
             Add a new grunt
           </button>
           <ul>
-            {
-              Array.isArray(grunts) ? (
-                grunts.map((grunt: SYesNoVote, index) => (
-                  <li key={index}>{grunt.text}</li>
-                ))
-              ) : (
-                <li>No grunts available</li>
-              )
-            }
+          {
+            grunts !== undefined ? 
+              grunts.map((grunt: SYesNoVote, index) => (
+                <li key={index}>{grunt.text}</li>
+              )) : <></>
+          }
           </ul>
         </div>
       </div>

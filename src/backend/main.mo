@@ -17,11 +17,14 @@ shared({ caller = admin }) actor class Backend() = this {
 
     let _texts = Map.new<Nat, Text>();
 
-    public shared func add_grunt(text: Text) : async SYesNoVote {
+    public shared({ caller }) func add_grunt(text: Text) : async ?SYesNoVote {
+        if (Principal.isAnonymous(caller)){
+            return null;
+        };
         switch(await Protocol.new_vote({ type_enum = #YES_NO })){
             case(#YES_NO(vote)) {
                 Map.set(_texts, Map.nhash, vote.vote_id, text); 
-                { vote with text = ?text; };
+                ?{ vote with text = ?text; };
             };
         };
     };
