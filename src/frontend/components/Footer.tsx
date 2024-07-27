@@ -1,3 +1,4 @@
+import icLogo from '../assets/ic-logo.svg';
 
 function Footer() {
 
@@ -9,7 +10,7 @@ function Footer() {
           Powered by
         </div>
         <div className="w-2"/>
-        <img src="ic-logo.svg" className="flex h-5" alt="the IC"/>
+        <img src={icLogo} className="flex h-5" alt="the IC"/>
       </div>
       </a>
       <div className="flex flex-row justify-end items-center space-x-3">

@@ -4,11 +4,11 @@ dfx start --background --clean
 dfx canister create --all
 
 export DEPLOYER_PRINCIPAL=$(dfx identity get-principal)
-export CKBTC_PRINCIPAL=$(dfx canister id ckBTC)
+export CKBTC_PRINCIPAL=$(dfx canister id ck_btc)
 export LEDGER_PRINCIPAL=$(dfx canister id ledger)
 export PROTOCOL_PRINCIPAL=$(dfx canister id protocol)
 
-dfx deploy ckBTC --argument '( opt record {
+dfx deploy ck_btc --argument '( opt record {
   icrc1 = opt record {
     name              = opt "ckBTC";
     symbol            = opt "ckBTC";
