@@ -1,7 +1,7 @@
 import VoteController    "VoteController";
 import Conversion        "BallotConversion";
 import Types             "../Types";
-import TimeoutCalculator "../TimeoutCalculator";
+import DurationCalculator "../DurationCalculator";
 
 import SubaccountIndexer "../payement/SubaccountIndexer";
 import PayementFacade    "../payement/PayementFacade";
@@ -29,8 +29,9 @@ module {
     type Duration = Types.Duration;
 
     type HotElem = HotMap.HotElem;
-    type DepositInfo = DepositScheduler.DepositInfo;
+    type Deposit = DepositScheduler.Deposit;
     type RewardInfo = RewardScheduler.RewardInfo;
+    type Lock = LockScheduler.Lock;
 
     type Time = Int;
 
@@ -39,7 +40,7 @@ module {
         payement_facade: PayementFacade.PayementFacade;
         reward_facade: PayementFacade.PayementFacade;
         decay_model: Decay.DecayModel;
-        timeout_calculator: TimeoutCalculator.ITimeoutCalculator;
+        duration_calculator: DurationCalculator.IDurationCalculator;
     }) : VoteController<YesNoAggregate, YesNoChoice> {
 
         let empty_aggregate = { total_yes = 0; total_no = 0; current_yes = #DECAYED(0.0); current_no = #DECAYED(0.0); };
@@ -81,30 +82,21 @@ module {
             decay_model;
             get_elem = func (b: YesNoBallot): HotElem { b; };
             update_elem = func (b: YesNoBallot, i: HotElem): YesNoBallot {
-                { 
-                    b with 
-                    hotness = i.hotness; 
-                    // Update the locked state if applicable
-                    deposit_state = switch(b.deposit_state){
-                        case(#LOCKED(_)) { #LOCKED{ until = timeout_calculator.timeout_date(i); }; };
-                        case(other) { other; };
-                    };
-                };
+                { b with hotness = i.hotness; };
             };
             key_hash = Map.nhash;
         });
 
         let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
             hot_map;
-            timeout_calculator;
-            hot_info = func (b: YesNoBallot): HotElem { b; };
+            lock_info = func (b: YesNoBallot): Lock { b; };
         });
 
         let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({
             subaccount_indexer;
             payement_facade;
             lock_scheduler;
-            get_deposit = func (b: YesNoBallot): DepositInfo { b; };
+            get_deposit = func (b: YesNoBallot): Deposit { b; };
             tag_refunded = func (b: YesNoBallot, s: RefundState): YesNoBallot { Conversion.tag_refunded<YesNoChoice>(b, s); };
         });
 
@@ -119,6 +111,7 @@ module {
             update_aggregate;
             compute_contest;
             compute_score;
+            duration_calculator;
             deposit_scheduler;
             reward_scheduler;
         });

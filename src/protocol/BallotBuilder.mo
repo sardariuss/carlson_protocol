@@ -1,18 +1,20 @@
 import Debug "mo:base/Debug";
 
 import Types "Types";
+import DurationCalculator "DurationCalculator";
 
 module {
 
-    type Time          = Int;
-    type Account       = Types.Account;
-    type BallotInfo<B> = Types.BallotInfo<B>;
-    type DepositInfo   = Types.DepositInfo;
-    type HotInfo       = Types.HotInfo;
-    type RewardInfo    = Types.RewardInfo;
-    type Ballot<B>     = Types.Ballot<B>;
+    type IDurationCalculator = DurationCalculator.IDurationCalculator;
+    type Time               = Int;
+    type Account            = Types.Account;
+    type BallotInfo<B>      = Types.BallotInfo<B>;
+    type DepositInfo        = Types.DepositInfo;
+    type HotInfo            = Types.HotInfo;
+    type RewardInfo         = Types.RewardInfo;
+    type Ballot<B>          = Types.Ballot<B>;
 
-    public class BallotBuilder<B>() {
+    public class BallotBuilder<B>({duration_calculator: IDurationCalculator}) {
 
         var _ballot  : ?BallotInfo<B> = null;
         var _deposit : ?DepositInfo   = null;
@@ -26,9 +28,9 @@ module {
             };
         };
 
-        public func add_deposit(deposit: { tx_id: Nat; from: Account; subaccount: Blob; } ){
+        public func add_deposit(deposit: DepositInfo){
             switch(_deposit){
-                case(null) { _deposit := ?{ deposit and { deposit_state = #LOCKED { until = 0; } } } }; // @todo: remove deposit state from here
+                case(null) { _deposit := ?deposit };
                 case(_) { Debug.trap("Deposit Info has already been added"); };
             };
         };
@@ -50,7 +52,7 @@ module {
         public func build() : Ballot<B> {
             switch(_ballot, _deposit, _hot, _reward){
                 case(?ballot, ?deposit, ?hot, ?reward) {
-                    { ballot and deposit and hot and reward };
+                    { ballot and deposit and hot and reward with duration_ns = duration_calculator.compute_duration_ns(hot); };
                 };
                 case(_){
                     Debug.trap("BallotBuilder: Missing required fields");

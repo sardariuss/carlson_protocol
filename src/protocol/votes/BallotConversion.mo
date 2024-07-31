@@ -1,7 +1,6 @@
 import Types            "../Types";
 
 import HotMap           "../locks/HotMap";
-import DepositScheduler "../locks/DepositScheduler";
 import RewardScheduler  "../locks/RewardScheduler";
 
 module {
@@ -10,7 +9,6 @@ module {
     type RefundState = Types.RefundState;
 
     type HotElem = HotMap.HotElem;
-    type DepositInfo = DepositScheduler.DepositInfo;
     type RewardInfo = RewardScheduler.RewardInfo;
 
     type Time = Int;

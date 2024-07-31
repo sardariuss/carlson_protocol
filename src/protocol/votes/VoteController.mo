@@ -3,6 +3,7 @@ import BallotBuilder     "../BallotBuilder";
 import PayementFacade    "../payement/PayementFacade";
 import DepositScheduler  "../locks/DepositScheduler";
 import RewardScheduler   "../locks/RewardScheduler";
+import DurationCalculator "../DurationCalculator";
 
 import Map              "mo:map/Map";
 import Set              "mo:map/Set";
@@ -23,6 +24,7 @@ module {
     type Account = Types.Account;
     type Iter<T> = Iter.Iter<T>;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
+    type IDurationCalculator = DurationCalculator.IDurationCalculator;
 
     type Vote<A, B> = Types.Vote<A, B>;
 
@@ -47,6 +49,7 @@ module {
         update_aggregate: UpdatePolicy<A, B>;
         compute_contest: ComputeContest<A, B>;
         compute_score: ComputeScore<A, B>;
+        duration_calculator: IDurationCalculator;
         deposit_scheduler: DepositScheduler.DepositScheduler<Ballot<B>>;
         reward_scheduler: RewardScheduler.RewardScheduler<Ballot<B>>;
     }){
@@ -77,7 +80,7 @@ module {
 
             let { time; amount; } = args;
 
-            let builder = BallotBuilder.BallotBuilder<B>();    
+            let builder = BallotBuilder.BallotBuilder<B>({duration_calculator});
             builder.add_ballot({
                 timestamp = time;
                 choice;

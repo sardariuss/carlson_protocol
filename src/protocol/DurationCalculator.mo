@@ -6,10 +6,8 @@ import Int       "mo:base/Int";
 
 module {
 
-    type Time = Int;
-
-    public type ITimeoutCalculator = {
-        timeout_date: { timestamp: Time; hotness: Float; } -> Time;
+    public type IDurationCalculator = {
+        compute_duration_ns: { hotness: Float; } -> Nat;
     };
 
     // The power scaler function is responsible for deducting the timeout date of the given elements
@@ -30,14 +28,13 @@ module {
     // 
     public class PowerScaler({
         nominal_duration: Types.Duration;
-    }) : ITimeoutCalculator {
+    }) : IDurationCalculator {
 
         let nominal_duration_ns = Duration.toTime(nominal_duration);
         let scale_factor = Float.log(2.0) / Float.log(10.0);
 
-        public func timeout_date({ timestamp: Time; hotness: Float; }) : Time {
-            let duration = Int.abs(Float.toInt(Float.fromInt(nominal_duration_ns) * Float.pow(hotness, scale_factor)));
-            timestamp + duration;
+        public func compute_duration_ns({ hotness: Float }) : Nat {
+            Int.abs(Float.toInt(Float.fromInt(nominal_duration_ns) * Float.pow(hotness, scale_factor)));
         };
     
     };

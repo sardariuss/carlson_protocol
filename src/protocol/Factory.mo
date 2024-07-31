@@ -1,7 +1,7 @@
 import Types              "Types";
 import Controller         "Controller";
 import Decay              "Decay";
-import TimeoutCalculator  "TimeoutCalculator";
+import DurationCalculator "DurationCalculator";
 import VoteFactory        "votes/VoteFactory";
 import VoteTypeController "votes/VoteTypeController";
 import PayementFacade     "payement/PayementFacade";
@@ -53,7 +53,7 @@ module {
 
         let decay_model = Decay.DecayModel(decay);
 
-        let timeout_calculator = TimeoutCalculator.PowerScaler({
+        let duration_calculator = DurationCalculator.PowerScaler({
             nominal_duration = nominal_lock_duration;
         });
 
@@ -62,7 +62,7 @@ module {
             payement_facade;
             reward_facade;
             decay_model;
-            timeout_calculator;
+            duration_calculator;
         });
 
         let vote_type_controller = VoteTypeController.VoteTypeController({

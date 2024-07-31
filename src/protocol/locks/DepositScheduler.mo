@@ -21,12 +21,13 @@ module {
     type Time = Int;
     type PayServiceResult = PayementFacade.PayServiceResult;
     type RefundState = Types.RefundState;
+    type DepositInfo = Types.DepositInfo;
 
     type IDepositInfoBuilder<T> = LockScheduler.ILockInfoBuilder<T> and {
-        add_deposit: ({ tx_id: Nat; from: Account; subaccount: Blob; }) -> ();
+        add_deposit: (DepositInfo) -> ();
     };
 
-    public type DepositInfo = {
+    public type Deposit = {
         tx_id: Nat;
         from: Account;
         subaccount: Blob;
@@ -48,7 +49,7 @@ module {
         payement_facade: PayementFacade.PayementFacade;
         lock_scheduler: LockScheduler.LockScheduler<T>;
         tag_refunded: (T, RefundState) -> T;
-        get_deposit: (T) -> DepositInfo;
+        get_deposit: (T) -> Deposit;
     }){
 
         public func add_deposit({
@@ -64,7 +65,7 @@ module {
             // Define the service to be called once the payement is done
             func service({tx_id: Nat}) : async* { error: ?Text } {
                 // Set the deposit information inside the element itself
-                builder.add_deposit({ tx_id; from; subaccount; });
+                builder.add_deposit({ tx_id; from; subaccount; deposit_state = #DEPOSITED; });
                 // Add the lock for that deposit in the scheduler
                 let result = lock_scheduler.add_lock({ register; builder; amount; timestamp = time; });
                 let error = switch(result){

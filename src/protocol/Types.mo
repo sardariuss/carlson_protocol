@@ -164,7 +164,11 @@ module {
         reward_state: RewardState;
     };
 
-    public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and RewardInfo;
+    public type DurationInfo = {
+        duration_ns: Nat;
+    };
+
+    public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and RewardInfo and DurationInfo;
 
     public type RefundState = {
         since: Time;
@@ -176,7 +180,7 @@ module {
     };
 
     public type DepositState = {
-        #LOCKED: { until: Time; };
+        #DEPOSITED;
         #REFUNDED: RefundState;
     };
 

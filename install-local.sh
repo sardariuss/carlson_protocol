@@ -1,5 +1,4 @@
-dfx stop
-dfx start --background --clean
+set -ex
 
 dfx canister create --all
 
