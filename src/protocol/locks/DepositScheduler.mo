@@ -1,7 +1,6 @@
 import LockScheduler    "LockScheduler";
 import Types             "../Types";
 import PayementFacade    "../payement/PayementFacade";
-import SubaccountIndexer "../payement/SubaccountIndexer";
 
 import Map              "mo:map/Map";
 
@@ -30,7 +29,6 @@ module {
     public type Deposit = {
         tx_id: Nat;
         from: Account;
-        subaccount: Blob;
         amount: Nat;
         timestamp: Time;
     };
@@ -45,7 +43,6 @@ module {
     type DepositState = Types.DepositState;
 
     public class DepositScheduler<T>({
-        subaccount_indexer: SubaccountIndexer.SubaccountIndexer;
         payement_facade: PayementFacade.PayementFacade;
         lock_scheduler: LockScheduler.LockScheduler<T>;
         tag_refunded: (T, RefundState) -> T;
@@ -60,12 +57,11 @@ module {
         }) : async* PayServiceResult {
 
             let { from; time; amount; } = args;
-            let subaccount = subaccount_indexer.new_deposit_subaccount();
 
             // Define the service to be called once the payement is done
             func service({tx_id: Nat}) : async* { error: ?Text } {
                 // Set the deposit information inside the element itself
-                builder.add_deposit({ tx_id; from; subaccount; deposit_state = #DEPOSITED; });
+                builder.add_deposit({ tx_id; from; deposit_state = #DEPOSITED; });
                 // Add the lock for that deposit in the scheduler
                 let result = lock_scheduler.add_lock({ register; builder; amount; timestamp = time; });
                 let error = switch(result){
@@ -79,7 +75,7 @@ module {
             };
 
             // Perform the deposit
-            await* payement_facade.pay_service({ args and { to_subaccount = ?subaccount; service; } });
+            await* payement_facade.pay_service({ args and { to_subaccount = null; service; } });
         };
 
         public func try_refund({
@@ -100,7 +96,7 @@ module {
                     let refund_result = await* payement_facade.send_payement({
                         amount = deposit.amount;
                         to = deposit.from;
-                        from_subaccount = ?deposit.subaccount;
+                        from_subaccount = null;
                         time; 
                     });
 

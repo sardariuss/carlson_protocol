@@ -3,7 +3,6 @@ import Conversion        "BallotConversion";
 import Types             "../Types";
 import DurationCalculator "../DurationCalculator";
 
-import SubaccountIndexer "../payement/SubaccountIndexer";
 import PayementFacade    "../payement/PayementFacade";
 import LockScheduler     "../locks/LockScheduler";
 import DepositScheduler  "../locks/DepositScheduler";
@@ -36,7 +35,6 @@ module {
     type Time = Int;
 
     public func build_yes_no({
-        subaccount_indexer: SubaccountIndexer.SubaccountIndexer;
         payement_facade: PayementFacade.PayementFacade;
         reward_facade: PayementFacade.PayementFacade;
         decay_model: Decay.DecayModel;
@@ -93,7 +91,6 @@ module {
         });
 
         let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({
-            subaccount_indexer;
             payement_facade;
             lock_scheduler;
             get_deposit = func (b: YesNoBallot): Deposit { b; };

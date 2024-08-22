@@ -1,34 +1,12 @@
 import { Link }      from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@ic-reactor/react";
-import walletIcon from '../assets/wallet.svg';
-import SvgButton from "./SvgButton";
-import { backendActor } from "../actors/BackendActor";
 import Balance from "./Balance";
-import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
+
 
 const Header = () => {
 
-  const { call: refreshAccount, data: userAccount } = backendActor.useQueryCall({
-    functionName: 'user_account',
-  });
-
-  const { login, logout, authenticated } = useAuth({ 
-    onLoginSuccess: () => { refreshAccount(); },
-    onLoggedOut: () => { refreshAccount(); },
-  });
-
-  const accountToString = () : string =>  {
-    var str = "";
-    if (userAccount !== undefined) {
-      str = userAccount.owner.toString();
-      let subaccount = fromNullable(userAccount.subaccount);
-      if (subaccount !== undefined) {
-        str += " " + uint8ArrayToHexString(subaccount);
-      }
-    }
-    return str;
-  }
+  const { login, logout, authenticated, identity } = useAuth({});
 
   useEffect(() => {
 
@@ -86,17 +64,12 @@ const Header = () => {
       <Link to="/" className="flex flex-row items-center space-x-1">
         <span className="xl:text-2xl text-xl font-semibold whitespace-nowrap dark:text-white text-gray-900"> GRUNT </span>
       </Link>
-        <div className="flex flex-row items-center justify-center md:space-x-4">
-        </div>
+      <div className="flex flex-row items-center justify-center md:space-x-4">
+      </div>
       <div className="flex flex-row items-center justify-end md:space-x-4 space-x-2">
         { authenticated ? 
           <div className="flex flex-row items-center justify-end">
-            {
-              userAccount !== undefined ? <Balance account={userAccount}/> : <></>
-            }
-            <SvgButton onClick={(e) => navigator.clipboard.writeText(accountToString())} disabled={false} hidden={false}>
-              <img src={walletIcon} className="flex h-5" alt="wallet"/>
-            </SvgButton>
+            <Balance/>
             <button type="button" onClick={() => { logout() }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
               Log out
             </button>

@@ -150,7 +150,6 @@ module {
     public type DepositInfo = {
         tx_id: Nat;
         from: Account;
-        subaccount: Blob;
         deposit_state: DepositState;
     };
 

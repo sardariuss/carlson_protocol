@@ -7,6 +7,8 @@ import ReactDOM          from 'react-dom/client';
 import { AgentProvider } from "@ic-reactor/react";
 import { BackendActorProvider } from "./actors/BackendActor"
 import { CkBtcActorProvider } from './actors/CkBtcActor';
+import { ProtocolActorProvider } from './actors/ProtocolActor';
+import { WalletActorProvider } from './actors/WalletActor';
 import React from 'react';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
@@ -15,7 +17,11 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
       <HashRouter>
        <BackendActorProvider>
         <CkBtcActorProvider>
-          <App/>
+          <ProtocolActorProvider>
+            <WalletActorProvider>
+              <App/>
+            </WalletActorProvider>
+          </ProtocolActorProvider>
         </CkBtcActorProvider>
        </BackendActorProvider>
       </HashRouter>

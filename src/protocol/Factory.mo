@@ -5,7 +5,6 @@ import DurationCalculator "DurationCalculator";
 import VoteFactory        "votes/VoteFactory";
 import VoteTypeController "votes/VoteTypeController";
 import PayementFacade     "payement/PayementFacade";
-import SubaccountIndexer  "payement/SubaccountIndexer";
 
 import ICRC1              "mo:icrc1-mo/ICRC1/service";
 import ICRC2              "mo:icrc2-mo/ICRC2/service";
@@ -19,7 +18,6 @@ module {
 
     type BuildArguments = {
         stable_data: {
-            subaccount_register: SubaccountIndexer.SubaccountRegister;
             vote_register: VoteRegister;
             payement: {
                 ledger: ICRC1.service and ICRC2.service;
@@ -43,10 +41,8 @@ module {
     public func build(args: BuildArguments) : Controller.Controller {
 
         let { stable_data; provider; } = args;
-        let { subaccount_register; vote_register; payement; reward; parameters; } = stable_data;
+        let { vote_register; payement; reward; parameters; } = stable_data;
         let { nominal_lock_duration; decay; } = parameters;
-
-        let subaccount_indexer = SubaccountIndexer.SubaccountIndexer(subaccount_register);
 
         let payement_facade = PayementFacade.PayementFacade({payement with provider; fee = null });
         let reward_facade = PayementFacade.PayementFacade({reward with provider; fee = null });
@@ -58,7 +54,6 @@ module {
         });
 
         let yes_no_controller = VoteFactory.build_yes_no({
-            subaccount_indexer;
             payement_facade;
             reward_facade;
             decay_model;

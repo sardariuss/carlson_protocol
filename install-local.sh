@@ -58,12 +58,14 @@ dfx deploy protocol --argument '( record {
 
 dfx deploy backend
 
-dfx deploy frontend
-
 # Internet identity
 dfx deps pull
 dfx deps init
 dfx deps deploy internet_identity
+
+dfx deploy wallet
+
+dfx deploy frontend
 
 dfx generate
 

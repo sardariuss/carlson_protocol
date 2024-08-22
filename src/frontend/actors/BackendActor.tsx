@@ -1,4 +1,3 @@
-// actor.ts
 import { createActorContext }              from "@ic-reactor/react"
 import { backend, canisterId, idlFactory } from "../../declarations/backend"
 

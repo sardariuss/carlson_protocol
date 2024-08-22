@@ -9,6 +9,7 @@ import Principal  "mo:base/Principal";
 import Nat64      "mo:base/Nat64";
 import Result     "mo:base/Result";
 import Error      "mo:base/Error";
+import Debug      "mo:base/Debug";
 
 import ICRC1      "mo:icrc1-mo/ICRC1/service";
 import ICRC2      "mo:icrc2-mo/ICRC2/service";
@@ -51,10 +52,15 @@ module {
             service: Service;
         }) : async* PayServiceResult {
             
+            Debug.print("ledger: " # debug_show(Principal.fromActor(ledger)));
+            Debug.print("caller: " # debug_show(caller));
+            Debug.print("from account: " # debug_show(from));
+            Debug.print("to subaccount: " # debug_show(to_subaccount));
+
             let args = {
                 // According to the ICRC2 specifications, if the from account has been approved with a
                 // different spender subaccount than the one specified, the transfer will be rejected.
-                spender_subaccount = ?Subaccount.from_principal(caller);
+                spender_subaccount = null;//?Subaccount.from_principal(caller);
                 from;
                 to = {
                     owner = provider;

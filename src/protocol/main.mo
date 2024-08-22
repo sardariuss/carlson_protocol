@@ -23,7 +23,6 @@ shared({ caller = admin }) actor class CarlsonProtocol({
 
     // STABLE MEMBERS
     stable let _stable = {
-        subaccount_register = { var deposit_index = 0; };
         vote_register = { 
             var index = 0; 
             votes = Map.new<Nat, Types.VoteType>();
