@@ -1,7 +1,6 @@
 import walletIcon from '../assets/wallet.svg';
 import SvgButton from "./SvgButton";
-import { Account } from "@/declarations/backend/backend.did";
-import { backendActor } from "../actors/BackendActor";
+import { Account } from '@/declarations/protocol/protocol.did';
 import { useEffect } from "react";
 import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
 import { useAuth } from '@ic-reactor/react';
@@ -58,14 +57,12 @@ const Balance = () => {
 
   // Hook to refresh balance and allowance when account changes
   useEffect(() => {
-    console.log("HELLOOO")
     refreshBalance();
     refreshAllowance();
   }, [authenticated, identity, account]);
 
   // Hook to refresh balance and allowance when account changes
   useEffect(() => {
-    console.log("HELLOOO")
     refreshAllowance();
   }, [approveResult]);
 

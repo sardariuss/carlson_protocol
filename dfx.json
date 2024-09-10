@@ -35,7 +35,6 @@
       "frontend": {
         "entrypoint": "src/frontend/index.html"
       },
-      "dependencies": ["protocol"],
       "source": ["src/frontend/dist"],
       "type": "assets"
     },

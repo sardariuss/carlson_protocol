@@ -72,10 +72,10 @@ For end of Q2, we'd like to have a local functional MVP where users can particip
 - FRONTEND
   - Plug login
 - Todos
+  - Fix approve, only works once
   - Fix initial contest multiplier: 0.5 shall decrease the more tokens are locked with the first ballot
   - Add reward for users who open new votes
   - Fix and add votes unit tests
   - Use real ckBTC canister on mainnet
   - Be able to order the votes by date, popularity or hotness. Be able to filter them by tag.
   - Do not allow to open a vote to an anonymous principal
-  
