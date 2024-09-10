@@ -1,7 +1,10 @@
 import { Account } from "@/declarations/wallet/wallet.did";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import Grunt from "./Grunt";
-import { YesNoChoice } from "@/declarations/protocol/protocol.did";
+import { useEffect, useState } from "react";
+import { EYesNoChoice } from "../utils/conversions";
+
+const LIMIT_DISPLAY_PERCENTAGE = 20;
 
 interface GruntViewProps {
   grunt: SYesNoVote;
@@ -11,20 +14,23 @@ interface GruntViewProps {
   setSelected: (selected: bigint | null) => void;
 }
 
-const LIMIT_DISPLAY_PERCENTAGE = 20;
+const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, selected, setSelected }) => {
 
-const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, selected, setSelected } : GruntViewProps) => {
+  const [choice, setChoice] = useState<EYesNoChoice>(EYesNoChoice.Yes);
+  const [amount, setAmount] = useState<bigint>(BigInt(0));
 
-  const getPercentage = (side: YesNoChoice) => {
-    const total = Number(grunt.aggregate.total_yes + grunt.aggregate.total_no);
+  const getTotalSide = (side: EYesNoChoice) => {
+    var total_side = side === EYesNoChoice.Yes ? grunt.aggregate.total_yes : grunt.aggregate.total_no;
+    total_side += (choice === side ? amount : 0n);
+    return total_side;
+  }
+
+  const getPercentage = (side: EYesNoChoice) => {
+    const total = Number(grunt.aggregate.total_yes + grunt.aggregate.total_no + amount);
     if (total === 0) {
       throw new Error("Total number of votes is null");
     }
-    if ('YES' in side) {
-      return Number(grunt.aggregate.total_yes) / total * 100;
-    } else {
-      return Number(grunt.aggregate.total_no) / total * 100;
-    }
+    return Number(getTotalSide(side)) / total * 100;
   }
 
   const getResult = () => {
@@ -33,19 +39,26 @@ const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, sele
       return "";
     }
     if (grunt.aggregate.total_yes >= grunt.aggregate.total_no) {
-      return "YES " + getPercentage({'YES' : null}).toFixed(1) + "%"
+      return "YES " + getPercentage(EYesNoChoice.Yes).toFixed(1) + "%"
     }
     else {
-      return "NO " + getPercentage({'NO' : null}).toFixed(1) + "%"
+      return "NO " + getPercentage(EYesNoChoice.No).toFixed(1) + "%"
     }
   }
+
+  useEffect(() => {
+    if (selected !== grunt.vote_id) {
+      setChoice(EYesNoChoice.Yes);
+      setAmount(BigInt(0));
+    }
+  }, [selected]);
 
   return (
     <div className="flex flex-col content-center border-b dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-slate-850 px-5 py-1 hover:cursor-pointer space-y-2">
       <div className="grid grid-cols-5 grid-gap-2 justify-items-center" onClick={(e) => { setSelected(selected === grunt.vote_id ? null : grunt.vote_id) }}>
         <div className="col-span-4 justify-self-start">{grunt.text}</div>
         <div className="flex flex-row space-x-1">
-          <div>{getResult()}</div>
+          <div className={selected === grunt.vote_id && amount > 0 ? `animate-pulse` : ``}>{getResult()}</div>
         </div>
       </div>
       {
@@ -53,25 +66,31 @@ const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, sele
           <div className="flex flex-col space-y-2">
             <div className="flex w-full rounded-sm overflow-hidden" style={{ height: '1rem' }}>
             {
-              grunt.aggregate.total_yes > 0 &&
-                <div className="bg-green-500 text-xs font-medium text-center p-0.5 leading-none text-white"
-                  style={{ width: `${getPercentage({'YES' : null}) + "%"}`, height: '1rem' }}>
-                  { getPercentage({'YES' : null}) > LIMIT_DISPLAY_PERCENTAGE ? (
-                    <span>𝕊 {grunt.aggregate.total_yes.toString()} Yes</span>
+              getTotalSide(EYesNoChoice.Yes) > 0 &&
+                <div className={`text-xs font-medium text-center p-0.5 leading-none text-white bg-green-500 hover:border border-green-200 ${choice === EYesNoChoice.Yes ? 'border' : ''}`}
+                  style={{ width: `${getPercentage(EYesNoChoice.Yes) + "%"}`, height: '1rem' }}
+                  onClick={() => setChoice(EYesNoChoice.Yes)}>
+                  { getPercentage(EYesNoChoice.Yes) > LIMIT_DISPLAY_PERCENTAGE ? (
+                    <span className={choice === EYesNoChoice.Yes && amount > 0 ? `animate-pulse` : ``}>
+                      𝕊 {getTotalSide(EYesNoChoice.Yes).toString()} Yes
+                    </span>
                   ) : null}
                 </div>
             }
             {
-              grunt.aggregate.total_no > 0 &&    
-              <div className="bg-red-500 text-xs font-medium text-center p-0.5 leading-none text-white"
-                style={{ width: `${getPercentage({'NO' : null}) + "%"}`, height: '1rem' }}>
-                { getPercentage({'NO' : null}) > LIMIT_DISPLAY_PERCENTAGE ? (
-                  <span>𝕊 {grunt.aggregate.total_no.toString()} No</span>
-                ) : null}
-              </div>
+              getTotalSide(EYesNoChoice.No) > 0 &&    
+                <div className={`text-xs font-medium text-center p-0.5 leading-none text-white bg-red-500 hover:border border-red-200 ${choice === EYesNoChoice.No ? 'border' : ''}`}
+                  style={{ width: `${getPercentage(EYesNoChoice.No) + "%"}`, height: '1rem' }}
+                  onClick={() => setChoice(EYesNoChoice.No)}>
+                  { getPercentage(EYesNoChoice.No) > LIMIT_DISPLAY_PERCENTAGE ? (
+                    <span className={choice === EYesNoChoice.No && amount > 0 ? `animate-pulse` : ``}>
+                      𝕊 {getTotalSide(EYesNoChoice.No).toString()} No
+                    </span>
+                  ) : null}
+                </div>
             }
             </div>
-            <Grunt vote_id={grunt.vote_id} account={account} fetchGrunts={fetchGrunts}/>
+            <Grunt vote_id={grunt.vote_id} account={account} fetchGrunts={fetchGrunts} choice={choice} setChoice={setChoice} amount={amount} setAmount={setAmount}/>
           </div>
         )
       }
