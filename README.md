@@ -33,49 +33,14 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 - `parameters.nominal_lock_duration`: the duration of the lock for 1 satoshi
 - `parameters.ballot_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock. The same parameter is used to make the ballot decay
 
-## 🚧 Roadmap
+## 🚧 TODOs
 
-### Q2 2024: MVP
+### Backend
+ - Fix 0.5 contest factor when no votes yet
+ - Do not allow an anonymous principal to open a vote
+ - Temporarly multiply rewards by 10^8 until the minting logic is implemented
 
-For end of Q2, we'd like to have a local functional MVP where users can participate to votes, create new votes, and appreciate the reward mechanisms of the Carlson protocol through a minimal front-end.
-
-#### Features:
-
-- BACKEND
-  - *DONE* time dilation curve: shall replace the current nominal_duration_per_sat. It aims at preventing absurd locking times (e.g. 10 seconds or 100 years). Curve formula would probably be ax^b, where a=3 (days), and b=ln(2)/ln(10). This way, a hot score of 1 sat would yield 3 days lock, 10 sats a 6 days lock, ... 1 btc a 1 year lock.
-  - *DONE* vote proposal, so that everybody can propose a new vote.
-  - *TO REDEFINE* vote metadata, so that the Carlson protocol canister can be used as a service separated from any other backend/frontend canisters, but still allows to save and retrieve specific votes.
-  - *DONE* vote decay over time (so it gets easier to challenge consensus overtime)
-
-- FRONTEND:
-  - II login + ckBTC account + Carlson (reward token) account
-  - display the list of votes (ordered by date)
-  - vote details: total amount locked, current vote results, current lock duration
-  - put ballot: select 'AYE'/'NAY', input number of satoshis, preview lock duration, preview contest multiplier, place the vote
-  - profile page: list of current locks with amount and time left, list of old locks with amount won
-
-#### Challenges:
-  
-  - Manage to convey how the protocol works in the UI
-  - Make a functional test scenario with many users and votes, manage the balances of each user
-  - The Carlson' protocol relies on conditions on time and durations, which can be tricky to reproduce in a test
-
-### Later
-
-- BACKEND
-  - create and parametrize the Carlson ledger (new token). For this, we need to implement the logic for 3) and 4). In the Carlson protocol, the reward shall be proportional to to:
-        1) the contest multiplier of the ballot, determined at the start of the lock
-        2) the vote results, determined at the end of the lock
-        3) the proportion of the ballot's ckBTC amount compared to the overall ckBTC amount of tokens locked in the protocol for the duration of that lock.
-        4) the minting velocity of the token (set to be halved every 2 years or so).
-  - to justify: why use a linear function for the contest factor, and a logistic regression for the score?
-- FRONTEND
-  - Plug login
-- Todos
-  - Fix approve, only works once
-  - Fix initial contest multiplier: 0.5 shall decrease the more tokens are locked with the first ballot
-  - Add reward for users who open new votes
-  - Fix and add votes unit tests
-  - Use real ckBTC canister on mainnet
-  - Be able to order the votes by date, popularity or hotness. Be able to filter them by tag.
-  - Do not allow to open a vote to an anonymous principal
+### Frontend
+ - Fix approve tokens, right now it only works once
+ - Add lock duration
+ - Add preview of contest multiplier

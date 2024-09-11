@@ -1,7 +1,7 @@
 import CarlsonProtocol    "../src/main";
 import Subaccount         "../src/Subaccount";
 import Types              "../src/Types";
-import Duration           "../src/Duration";
+import Duration           "../src/duration/Duration";
 
 import Token              "mo:icrc2-mo/ICRC2/Canisters/Token";
 import ICRC1              "mo:icrc1-mo/ICRC1";

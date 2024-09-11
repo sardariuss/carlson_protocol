@@ -1,5 +1,5 @@
 import Types          "../Types";
-import PayementFacade "../payement/PayementFacade";
+import PayementFacade "PayementFacade";
 
 module {
 
@@ -12,7 +12,7 @@ module {
         state: RewardState;
     };
 
-    public class RewardScheduler<T>({
+    public class RewardDispenser<T>({
         reward_facade: PayementFacade.PayementFacade;
         get_reward: (T) -> RewardInfo;
         update_reward: (T, RewardInfo) -> T;

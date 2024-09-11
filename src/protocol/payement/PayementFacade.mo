@@ -1,5 +1,4 @@
 import Types      "../Types";
-import Subaccount "Subaccount";
 
 import Map        "mo:map/Map";
 
@@ -60,7 +59,7 @@ module {
             let args = {
                 // According to the ICRC2 specifications, if the from account has been approved with a
                 // different spender subaccount than the one specified, the transfer will be rejected.
-                spender_subaccount = null;//?Subaccount.from_principal(caller);
+                spender_subaccount = null;
                 from;
                 to = {
                     owner = provider;
@@ -78,6 +77,7 @@ module {
                 case(#Ok(tx_id)){ tx_id; };
             };
             
+            // @todo: will try/catch actually catch traps within the async* block?
             try {
                 // Deliver the service
                 let { error } = await* service({tx_id});

@@ -1,19 +1,19 @@
-import VoteController    "VoteController";
-import Conversion        "BallotConversion";
-import Types             "../Types";
-import DurationCalculator "../DurationCalculator";
+import VoteController     "VoteController";
+import Conversion         "BallotConversion";
+import Incentives         "Incentives";
 
-import PayementFacade    "../payement/PayementFacade";
-import LockScheduler     "../locks/LockScheduler";
-import DepositScheduler  "../locks/DepositScheduler";
-import RewardScheduler   "../locks/RewardScheduler";
-import HotMap            "../locks/HotMap";
-import Decay             "../Decay";
-import Incentives        "../Incentives";
+import Types              "../Types";
+import Decay              "../duration/Decay";
+import DurationCalculator "../duration/DurationCalculator";
+import PayementFacade     "../payement/PayementFacade";
+import DepositScheduler   "../payement/DepositScheduler";
+import RewardDispenser    "../payement/RewardDispenser";
+import LockScheduler      "../locks/LockScheduler";
+import HotMap             "../locks/HotMap";
 
-import Map               "mo:map/Map";
+import Map                "mo:map/Map";
 
-import Float             "mo:base/Float";
+import Float              "mo:base/Float";
 
 module {
 
@@ -29,7 +29,7 @@ module {
 
     type HotElem = HotMap.HotElem;
     type Deposit = DepositScheduler.Deposit;
-    type RewardInfo = RewardScheduler.RewardInfo;
+    type RewardInfo = RewardDispenser.RewardInfo;
     type Lock = LockScheduler.Lock;
 
     type Time = Int;
@@ -97,7 +97,7 @@ module {
             tag_refunded = func (b: YesNoBallot, s: RefundState): YesNoBallot { Conversion.tag_refunded<YesNoChoice>(b, s); };
         });
 
-        let reward_scheduler = RewardScheduler.RewardScheduler<YesNoBallot>({
+        let reward_dispenser = RewardDispenser.RewardDispenser<YesNoBallot>({
             reward_facade;
             get_reward = func (b: YesNoBallot): RewardInfo { Conversion.to_reward_info<YesNoChoice>(b); };
             update_reward = func (b: YesNoBallot, i: RewardInfo): YesNoBallot { Conversion.update_reward_info<YesNoChoice>(b, i); };
@@ -110,7 +110,7 @@ module {
             compute_score;
             duration_calculator;
             deposit_scheduler;
-            reward_scheduler;
+            reward_dispenser;
         });
     };
 

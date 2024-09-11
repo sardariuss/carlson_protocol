@@ -1,4 +1,4 @@
-import Types "Types";
+import Types "../Types";
 
 import Float "mo:base/Float";
 import Int   "mo:base/Int";

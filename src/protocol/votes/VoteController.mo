@@ -1,18 +1,18 @@
-import Types             "../Types";
-import BallotBuilder     "../BallotBuilder";
-import PayementFacade    "../payement/PayementFacade";
-import DepositScheduler  "../locks/DepositScheduler";
-import RewardScheduler   "../locks/RewardScheduler";
-import DurationCalculator "../DurationCalculator";
+import BallotBuilder      "BallotBuilder";
+import Types              "../Types";
+import PayementFacade     "../payement/PayementFacade";
+import DepositScheduler   "../payement/DepositScheduler";
+import RewardDispenser    "../payement/RewardDispenser";
+import DurationCalculator "../duration/DurationCalculator";
 
-import Map              "mo:map/Map";
-import Set              "mo:map/Set";
+import Map                "mo:map/Map";
+import Set                "mo:map/Set";
 
-import Iter             "mo:base/Iter";
-import Result           "mo:base/Result";
-import Int              "mo:base/Int";
-import Float            "mo:base/Float";
-import Array            "mo:base/Array";
+import Iter               "mo:base/Iter";
+import Result             "mo:base/Result";
+import Int                "mo:base/Int";
+import Float              "mo:base/Float";
+import Array              "mo:base/Array";
 
 module {
 
@@ -51,7 +51,7 @@ module {
         compute_score: ComputeScore<A, B>;
         duration_calculator: IDurationCalculator;
         deposit_scheduler: DepositScheduler.DepositScheduler<Ballot<B>>;
-        reward_scheduler: RewardScheduler.RewardScheduler<Ballot<B>>;
+        reward_dispenser: RewardDispenser.RewardDispenser<Ballot<B>>;
     }){
 
         public func new_vote({
@@ -135,7 +135,7 @@ module {
                 let score = compute_score({ aggregate = vote.aggregate; choice = ballot.choice; amount = ballot.amount; time; });
                 let reward = Int.abs(Float.toInt(ballot.contest * score)) * ballot.amount;
 
-                await* reward_scheduler.send_reward({
+                await* reward_dispenser.send_reward({
                     to = ballot;
                     amount = reward;
                     time;

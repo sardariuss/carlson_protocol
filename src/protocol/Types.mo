@@ -220,10 +220,6 @@ module {
         incidents: Map.Map<Nat, Incident>;
     };
 
-    public type SubaccountType = {
-        #BALLOT_DEPOSITS: { id: Nat; };
-    };
-
     public type NewVoteArgs = {
         origin: Principal;
         time: Time;

@@ -38,7 +38,5 @@ module {
         public func find_ballot({vote_id: VoteId; ballot_id: Nat;}) : ?BallotType {
             controller.find_ballot({vote_id; ballot_id;});
         };
-
-        
     };
 };

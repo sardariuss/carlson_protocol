@@ -1,4 +1,4 @@
-import Types     "Types";
+import Types     "../Types";
 import Duration  "Duration";
 
 import Float     "mo:base/Float";

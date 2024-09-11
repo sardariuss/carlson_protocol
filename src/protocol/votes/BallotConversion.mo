@@ -1,7 +1,7 @@
 import Types            "../Types";
 
 import HotMap           "../locks/HotMap";
-import RewardScheduler  "../locks/RewardScheduler";
+import RewardDispenser  "../payement/RewardDispenser";
 
 module {
 
@@ -9,7 +9,7 @@ module {
     type RefundState = Types.RefundState;
 
     type HotElem = HotMap.HotElem;
-    type RewardInfo = RewardScheduler.RewardInfo;
+    type RewardInfo = RewardDispenser.RewardInfo;
 
     type Time = Int;
 

@@ -1,5 +1,5 @@
-import Types  "Types";
-import Math   "Math";
+import Types  "../Types";
+import Math   "../utils/Math";
 
 import Float  "mo:base/Float";
 import Debug  "mo:base/Debug";
@@ -49,7 +49,7 @@ module {
         let total = same + opposit;
         
         // If there is no vote yet, the contest factor is 0.5
-        // @todo: need to find a better way to handle this case
+        // @todo: use the formula with the constant factor instead
         if (total == 0.0) {
             return 0.5 * amount;
         };

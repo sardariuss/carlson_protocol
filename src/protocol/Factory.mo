@@ -1,7 +1,7 @@
 import Types              "Types";
 import Controller         "Controller";
-import Decay              "Decay";
-import DurationCalculator "DurationCalculator";
+import Decay              "duration/Decay";
+import DurationCalculator "duration/DurationCalculator";
 import VoteFactory        "votes/VoteFactory";
 import VoteTypeController "votes/VoteTypeController";
 import PayementFacade     "payement/PayementFacade";

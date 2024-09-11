@@ -1,7 +1,7 @@
-import Debug "mo:base/Debug";
+import Types "../Types";
+import DurationCalculator "../duration/DurationCalculator";
 
-import Types "Types";
-import DurationCalculator "DurationCalculator";
+import Debug "mo:base/Debug";
 
 module {
 

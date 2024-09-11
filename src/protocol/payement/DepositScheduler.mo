@@ -1,10 +1,10 @@
-import LockScheduler    "LockScheduler";
-import Types             "../Types";
-import PayementFacade    "../payement/PayementFacade";
+import Types            "../Types";
+import LockScheduler    "../locks/LockScheduler";
+import PayementFacade   "PayementFacade";
 
 import Map              "mo:map/Map";
 
-import Result     "mo:base/Result";
+import Result           "mo:base/Result";
 import Buffer           "mo:base/Buffer";
 import Iter             "mo:base/Iter";
 import Principal        "mo:base/Principal";
