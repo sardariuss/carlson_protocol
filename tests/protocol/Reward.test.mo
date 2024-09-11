@@ -1,8 +1,8 @@
-import Incentives "../src/protocol/votes/Incentives";
+import Incentives "../../src/protocol/votes/Incentives";
 
 import { test; suite; } "mo:test";
 
-import { verify; Testify; } = "utils/Testify";
+import { verify; Testify; } = "../utils/Testify";
 
 suite("Reward", func(){
 

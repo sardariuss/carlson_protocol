@@ -1,9 +1,9 @@
-import Types            "../src/protocol/Types";
-import Duration         "../src/protocol/duration/Duration";
-import Decay            "../src/protocol/duration/Decay";
-import LockScheduler    "../src/protocol/locks/LockScheduler";
+import Types            "../../src/protocol/Types";
+import Duration         "../../src/protocol/duration/Duration";
+import Decay            "../../src/protocol/duration/Decay";
+import LockScheduler    "../../src/protocol/locks/LockScheduler";
 
-import { verify; testify; } = "utils/Testify";
+import { verify; testify; } = "../utils/Testify";
 
 import { test; suite; } "mo:test";
 import Time             "mo:base/Time";

@@ -1,7 +1,7 @@
-import { test } "mocks";
-import DecayMock "mocks/DecayMock";
-import { verify; Testify; } = "utils/Testify";
-import HotMap "../src/protocol/locks/HotMap";
+import { test } "../mocks";
+import DecayMock "../mocks/DecayMock";
+import { verify; Testify; } = "../utils/Testify";
+import HotMap "../../src/protocol/locks/HotMap";
 
 import Map "mo:map/Map";
 import { suite; } "mo:test";

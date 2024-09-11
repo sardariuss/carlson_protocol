@@ -134,6 +134,14 @@ module {
             incident_id;
         };
 
+        public func get_payement_incidents() : [(Nat, Types.Incident)] {
+            Map.toArray(incident_register.incidents);
+        };
+        
+        public func get_reward_incidents() : [(Nat, Types.Incident)] {
+            Map.toArray(incident_register.incidents);
+        };
+
     };
 
 };

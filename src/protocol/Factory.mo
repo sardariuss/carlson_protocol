@@ -13,7 +13,7 @@ module {
 
     type VoteRegister = Types.VoteRegister;
     type Duration = Types.Duration;
-    type Time = Types.Time;
+    type Time = Int;
     type IncidentRegister = Types.IncidentRegister;
 
     type BuildArguments = {
@@ -44,8 +44,8 @@ module {
         let { vote_register; payement; reward; parameters; } = stable_data;
         let { nominal_lock_duration; decay; } = parameters;
 
-        let payement_facade = PayementFacade.PayementFacade({payement with provider; fee = null });
-        let reward_facade = PayementFacade.PayementFacade({reward with provider; fee = null });
+        let payement_facade = PayementFacade.PayementFacade({ payement with provider; fee = null });
+        let reward_facade = PayementFacade.PayementFacade({ reward with provider; fee = null });
 
         let decay_model = Decay.DecayModel(decay);
 
@@ -67,6 +67,7 @@ module {
         Controller.Controller({
             vote_register;
             vote_type_controller;
+            payement_facade;
         });
     };
 

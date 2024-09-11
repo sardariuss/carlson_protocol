@@ -11,10 +11,10 @@ module {
     type VoteType = Types.VoteType;
     type BallotType = Types.BallotType;
     type SVoteType = Types.SVoteType;
-    type NewVoteArgs = Types.NewVoteArgs;
-    type PutBallotArgs = Types.PutBallotArgs;
     type PutBallotResult = Types.PutBallotResult;
     type VoteBallotId = Types.VoteBallotId;
+    type NewVoteArgs = Controller.NewVoteArgs;
+    type PutBallotArgs = Controller.PutBallotArgs;
 
     public class SharedFacade(controller: Controller.Controller) {
 
@@ -38,5 +38,14 @@ module {
         public func find_ballot({vote_id: VoteId; ballot_id: Nat;}) : ?BallotType {
             controller.find_ballot({vote_id; ballot_id;});
         };
+
+        public func get_payement_incidents() : [(Nat, Types.Incident)] {
+            controller.get_payement_incidents();
+        };
+        
+        public func get_reward_incidents() : [(Nat, Types.Incident)] {
+            controller.get_reward_incidents();
+        };
+        
     };
 };

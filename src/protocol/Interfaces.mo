@@ -2,7 +2,7 @@ import Types "Types";
 
 module {
 
-    type Time = Types.Time;
+    type Time = Int;
     type Decayed = Types.Decayed;
 
     public type IDecayModel = {

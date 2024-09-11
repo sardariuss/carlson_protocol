@@ -1,11 +1,11 @@
-import Decay "../src/protocol/duration/Decay";
-import Duration "../src/protocol/duration/Duration";
+import Decay "../../src/protocol/duration/Decay";
+import Duration "../../src/protocol/duration/Duration";
 
 import { test; suite; } "mo:test";
 import Time "mo:base/Time";
 import Float "mo:base/Float";
 
-import { verify; Testify; } = "utils/Testify";
+import { verify; Testify; } = "../utils/Testify";
 
 suite("Decay", func(){
 

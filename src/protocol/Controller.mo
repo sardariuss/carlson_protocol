@@ -1,5 +1,6 @@
 import Types              "Types";
 import VoteTypeController "votes/VoteTypeController";
+import PayementFacade     "payement/PayementFacade";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
@@ -15,14 +16,29 @@ module {
     type VoteRegister = Types.VoteRegister;
     type VoteType = Types.VoteType;
     type BallotType = Types.BallotType;
-    type NewVoteArgs = Types.NewVoteArgs;
-    type PutBallotArgs = Types.PutBallotArgs;
     type PutBallotResult = Types.PutBallotResult;
     type VoteBallotId = Types.VoteBallotId;
+
+    public type NewVoteArgs = {
+        origin: Principal;
+        time: Time;
+        type_enum: Types.VoteTypeEnum;
+    };
+
+    public type PutBallotArgs = {
+        vote_id: Nat;
+        choice_type: Types.ChoiceType;
+        caller: Principal;
+        from: Types.Account;
+        reward_account: Types.Account;
+        time: Time;
+        amount: Nat;
+    };
 
     public class Controller({
         vote_register: VoteRegister;
         vote_type_controller: VoteTypeController.VoteTypeController;
+        payement_facade: PayementFacade.PayementFacade;
     }){
 
         public func new_vote(args: NewVoteArgs) : VoteType {
@@ -90,6 +106,14 @@ module {
             };
 
             vote_type_controller.find_ballot({ vote_type; ballot_id; });
+        };
+
+        public func get_payement_incidents() : [(Nat, Types.Incident)] {
+            payement_facade.get_payement_incidents();
+        };
+        
+        public func get_reward_incidents() : [(Nat, Types.Incident)] {
+            payement_facade.get_reward_incidents();
         };
 
     };
