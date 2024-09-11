@@ -1,13 +1,13 @@
-import Types             "Types";
-import SharedFacade      "shared/SharedFacade";
-import Factory           "Factory";
-import MigrationTypes    "stable/Types";
-import Migrations        "stable/Migrations";
+import Types          "Types";
+import SharedFacade   "shared/SharedFacade";
+import Factory        "Factory";
+import MigrationTypes "stable/Types";
+import Migrations     "stable/Migrations";
 
-import Time              "mo:base/Time";
-import Principal         "mo:base/Principal";
-import Debug             "mo:base/Debug";
-import Option            "mo:base/Option";
+import Time           "mo:base/Time";
+import Principal      "mo:base/Principal";
+import Debug          "mo:base/Debug";
+import Option         "mo:base/Option";
 
 shared({ caller = admin }) actor class CarlsonProtocol(args: MigrationTypes.Args) = this {
 

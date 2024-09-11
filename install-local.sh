@@ -47,13 +47,15 @@ dfx deploy ledger --argument '( opt record {
   icrc4 = null;
 })'
 
-dfx deploy protocol --argument '( record {
+dfx deploy protocol --argument '( variant { 
+  init = record {
     deposit_ledger = principal "'${CKBTC_PRINCIPAL}'";
     reward_ledger = principal "'${LEDGER_PRINCIPAL}'";
     parameters = record {
         ballot_half_life = variant { YEARS = 1 };
         nominal_lock_duration = variant { DAYS = 3 };
     };
+  }
 })'
 
 dfx deploy backend
