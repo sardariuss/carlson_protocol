@@ -1,7 +1,12 @@
 import { protocolActor } from "../actors/ProtocolActor";
 import { Account } from "@/declarations/wallet/wallet.did";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
-import { EYesNoChoice, toCandid } from "../utils/conversions";
+import { EYesNoChoice, toCandid } from "../utils/conversions/yesnochoice";
+import { useEffect, useState } from "react";
+import { PutBallotArgs } from "@/declarations/protocol/protocol.did";
+import { SATOSHI_SYMBOL } from "../constants";
+
+const MINIMUM_GRUNT = BigInt(100);
 
 interface GruntProps {
   vote_id: bigint;
@@ -11,16 +16,35 @@ interface GruntProps {
   setChoice: (choice: EYesNoChoice) => void;
   amount: bigint;
   setAmount: (amount: bigint) => void;
+  resetGrunt: () => void;
 }
 
-const Grunt: React.FC<GruntProps> = ({ vote_id, fetchGrunts, account, choice, setChoice, amount, setAmount }) => {
+const Grunt: React.FC<GruntProps> = ({ vote_id, fetchGrunts, account, choice, setChoice, amount, setAmount, resetGrunt }) => {
+
+  const [args, setArgs] = useState<PutBallotArgs>({
+    vote_id,
+    from: account,
+    reward_account: account,
+    amount,
+    choice_type: { YES_NO: toCandid(choice) },
+  });
+
+  const { call: previewGrunt } = protocolActor.useQueryCall({
+    functionName: "preview_ballot",
+    onSuccess: (data) => {
+      if (data) {
+        if ('ok' in data) {
+          console.log(data.ok.YES_NO.contest);
+          console.log(data.ok.YES_NO.duration_ns);
+        }
+      }
+    }
+  });
 
   const { call: grunt, loading: grunting } = protocolActor.useUpdateCall({
     functionName: "put_ballot",
-    onSuccess: (data) => {
-      console.log(data);
-      setChoice(EYesNoChoice.Yes);
-      setAmount(BigInt(0));
+    onSuccess: () => {
+      resetGrunt();
       fetchGrunts(); // TODO: This should be done in a more efficient way than querying all the grunts again
     },
     onError: (error) => {
@@ -29,18 +53,26 @@ const Grunt: React.FC<GruntProps> = ({ vote_id, fetchGrunts, account, choice, se
   });
 
   const triggerGrunt = () => {
-    if (choice && amount > BigInt(0)) {
-      grunt([
-        {
-          vote_id,
-          from: account,
-          reward_account: account,
-          amount,
-          choice_type: { YES_NO: toCandid(choice) },
-        },
-      ]);
+    if (choice && amount >= MINIMUM_GRUNT) {
+      grunt([args]);
     }
   };
+
+  useEffect(() => {
+    setArgs({
+      vote_id,
+      from: account,
+      reward_account: account,
+      amount,
+      choice_type: { YES_NO: toCandid(choice) },
+    });
+  }, [choice, amount]);
+
+  useEffect(() => {
+    if (amount > 0) {
+      previewGrunt([args]);
+    }
+  }, [args]);
 
   return (
     <div className="flex flex-row w-full items-center space-x-4 justify-center">
@@ -48,14 +80,14 @@ const Grunt: React.FC<GruntProps> = ({ vote_id, fetchGrunts, account, choice, se
         <div className="text-sm">Grunt</div>
       </div>
       <div className="flex items-center space-x-1">
-        <span>𝕊</span>
+        <span>{SATOSHI_SYMBOL}</span>
         <input
           type="number"
           className="w-24 h-9 border border-gray-300 rounded px-2 appearance-none focus:outline-none focus:border-blue-500"
           value={amount.toString()}
-          onChange={(e) => setAmount(BigInt(e.target.value || 0))}
+          onChange={(e) => setAmount(BigInt(e.target.value))}
           disabled={grunting}
-          min="0"
+          min={0}
           placeholder="Amount"
           step={100}
         />
@@ -74,10 +106,10 @@ const Grunt: React.FC<GruntProps> = ({ vote_id, fetchGrunts, account, choice, se
       </div>
       <button
         className="button-simple text-sm w-36 min-w-36 h-9 justify-center items-center"
-        disabled={grunting || amount <= BigInt(0)}
+        disabled={grunting || amount < MINIMUM_GRUNT}
         onClick={triggerGrunt}
       >
-        Lock 💪
+        Lock
       </button>
     </div>
   );

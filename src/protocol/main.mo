@@ -51,9 +51,13 @@ shared({ caller = admin }) actor class CarlsonProtocol(args: MigrationTypes.Args
         getFacade().get_votes(args);
     };
 
+    public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.PreviewBallotResult {
+        getFacade().preview_ballot({ args with caller; time = Time.now(); });
+    };
+
     // Add a ballot on the given vote identified by its vote_id
     public shared({caller}) func put_ballot(args: Types.PutBallotArgs) : async Types.PutBallotResult {
-        await* getFacade().put_ballot({args with caller; time = Time.now();});
+        await* getFacade().put_ballot({ args with caller; time = Time.now(); });
     };
 
     // Unlock the tokens if the duration is reached

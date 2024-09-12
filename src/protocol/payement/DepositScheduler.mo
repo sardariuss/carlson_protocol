@@ -49,6 +49,19 @@ module {
         get_deposit: (T) -> Deposit;
     }){
 
+        public func preview_deposit({
+            register: LockScheduler.LockRegister<T>;
+            builder: IDepositInfoBuilder<T>;
+            args: AddDepositArgs;
+        }) : T {
+            let { from; time; amount; } = args;
+
+            // @todo
+            builder.add_deposit({ tx_id = 0; from; deposit_state = #DEPOSITED; });
+            
+            lock_scheduler.preview_lock({ register; builder; amount; timestamp = time; });
+        };
+
         public func add_deposit({
             register: LockScheduler.LockRegister<T>;
             builder: IDepositInfoBuilder<T>;

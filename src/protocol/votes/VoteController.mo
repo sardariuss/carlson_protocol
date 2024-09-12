@@ -72,30 +72,28 @@ module {
             };
         };
 
+        public func preview_ballot({
+            vote: Vote<A, B>;
+            choice: B;
+            args: PutBallotArgs;
+        }) : Ballot<B> {
+
+            let builder = intialize_ballot({ vote; choice; args; });
+
+            deposit_scheduler.preview_deposit({
+                register = vote.ballot_register;
+                builder;
+                args;
+            });
+        };
+
         public func put_ballot({
             vote: Vote<A, B>;
             choice: B;
             args: PutBallotArgs;
         }) : async* Result<Nat, PayServiceError> {
 
-            let { time; amount; } = args;
-
-            let builder = BallotBuilder.BallotBuilder<B>({duration_calculator});
-            builder.add_ballot({
-                timestamp = time;
-                choice;
-                amount;
-                contest = compute_contest({
-                    aggregate = vote.aggregate;
-                    choice;
-                    amount;
-                    time;
-                })
-            });
-            builder.add_reward({
-                reward_account = args.reward_account;
-                reward_state = #PENDING;
-            });
+            let builder = intialize_ballot({ vote; choice; args; });
 
             // Update the aggregate only once the deposit is done
             let callback = func(ballot: Ballot<B>) {
@@ -154,6 +152,32 @@ module {
             ballot_id: Nat;
         }) : ?Ballot<B> {
             Map.get(vote.ballot_register.map, Map.nhash, ballot_id);
+        };
+
+        func intialize_ballot({
+            vote: Vote<A, B>;
+            choice: B;
+            args: PutBallotArgs;
+        }) : BallotBuilder.BallotBuilder<B> {
+            let { time; amount; } = args;
+
+            let builder = BallotBuilder.BallotBuilder<B>({duration_calculator});
+            builder.add_ballot({
+                timestamp = time;
+                choice;
+                amount;
+                contest = compute_contest({
+                    aggregate = vote.aggregate;
+                    choice;
+                    amount;
+                    time;
+                })
+            });
+            builder.add_reward({
+                reward_account = args.reward_account;
+                reward_state = #PENDING;
+            });
+            builder;
         };
 
     };

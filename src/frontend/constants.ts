@@ -1,0 +1,1 @@
+export const SATOSHI_SYMBOL = "𝕊";

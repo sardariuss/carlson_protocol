@@ -25,6 +25,15 @@ module {
         lock_info: V -> Lock;
     }){
 
+        public func preview_lock({
+            register: LockRegister<V>;
+            builder: ILockInfoBuilder<V>;
+            amount: Nat;
+            timestamp: Time;
+        }) : V {
+            hot_map.set_hot({ map = register.map; builder; args = { amount; timestamp; } });
+        };
+
         public func add_lock({
             register: LockRegister<V>;
             builder: ILockInfoBuilder<V>;

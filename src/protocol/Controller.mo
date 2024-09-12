@@ -17,6 +17,7 @@ module {
     type VoteType = Types.VoteType;
     type BallotType = Types.BallotType;
     type PutBallotResult = Types.PutBallotResult;
+    type PreviewBallotResult = Types.PreviewBallotResult;
     type VoteBallotId = Types.VoteBallotId;
 
     public type NewVoteArgs = {
@@ -64,6 +65,16 @@ module {
             Map.set(vote_register.by_origin, Map.phash, origin, by_origin);
 
             vote;
+        };
+
+        public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
+
+            let { vote_id; choice_type; } = args;
+
+            switch(Map.get(vote_register.votes, Map.nhash, vote_id)){
+                case(?vote_type) { #ok(vote_type_controller.preview_ballot({ vote_type; choice_type; args; })); };
+                case(null) { #err(#VoteNotFound({vote_id})); };
+            };
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {

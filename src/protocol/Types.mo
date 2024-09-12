@@ -109,13 +109,16 @@ module {
     };
 
     public type Service = { tx_id: Nat; } -> async* { error: ?Text; };
+
+    public type VoteNotFoundError = { #VoteNotFound: { vote_id: Nat }; };
     
-    public type PutBallotError = TransferFromError or {
+    public type PutBallotError = TransferFromError or VoteNotFoundError or {
         #Incident : { incident_id: Nat; }; 
-        #VoteNotFound: { vote_id: Nat };
     };
     
     public type PutBallotResult = Result<Nat, PutBallotError>;
+    
+    public type PreviewBallotResult = Result<BallotType, VoteNotFoundError>;
 
     public type VoteBallotId = {
         vote_id: Nat;

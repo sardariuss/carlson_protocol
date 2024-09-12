@@ -2,7 +2,9 @@ import { Account } from "@/declarations/wallet/wallet.did";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import Grunt from "./Grunt";
 import { useEffect, useState } from "react";
-import { EYesNoChoice } from "../utils/conversions";
+import { EYesNoChoice } from "../utils/conversions/yesnochoice";
+import { SATOSHI_SYMBOL } from "../constants";
+import GruntPreview from "./GruntPreview";
 
 const LIMIT_DISPLAY_PERCENTAGE = 20;
 
@@ -17,7 +19,7 @@ interface GruntViewProps {
 const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, selected, setSelected }) => {
 
   const [choice, setChoice] = useState<EYesNoChoice>(EYesNoChoice.Yes);
-  const [amount, setAmount] = useState<bigint>(BigInt(0));
+  const [amount, setAmount] = useState<bigint>(0n);
 
   const getTotalSide = (side: EYesNoChoice) => {
     var total_side = side === EYesNoChoice.Yes ? grunt.aggregate.total_yes : grunt.aggregate.total_no;
@@ -46,10 +48,14 @@ const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, sele
     }
   }
 
+  const resetGrunt = () => {
+    setChoice(EYesNoChoice.Yes);
+    setAmount(0n);
+  }
+
   useEffect(() => {
     if (selected !== grunt.vote_id) {
-      setChoice(EYesNoChoice.Yes);
-      setAmount(BigInt(0));
+      resetGrunt();
     }
   }, [selected]);
 
@@ -72,7 +78,7 @@ const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, sele
                   onClick={() => setChoice(EYesNoChoice.Yes)}>
                   { getPercentage(EYesNoChoice.Yes) > LIMIT_DISPLAY_PERCENTAGE ? (
                     <span className={choice === EYesNoChoice.Yes && amount > 0 ? `animate-pulse` : ``}>
-                      𝕊 {getTotalSide(EYesNoChoice.Yes).toString()} Yes
+                      { SATOSHI_SYMBOL + " " + getTotalSide(EYesNoChoice.Yes).toString()} Yes
                     </span>
                   ) : null}
                 </div>
@@ -84,13 +90,23 @@ const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, sele
                   onClick={() => setChoice(EYesNoChoice.No)}>
                   { getPercentage(EYesNoChoice.No) > LIMIT_DISPLAY_PERCENTAGE ? (
                     <span className={choice === EYesNoChoice.No && amount > 0 ? `animate-pulse` : ``}>
-                      𝕊 {getTotalSide(EYesNoChoice.No).toString()} No
+                      { SATOSHI_SYMBOL + " " + getTotalSide(EYesNoChoice.No).toString()} No
                     </span>
                   ) : null}
                 </div>
             }
             </div>
-            <Grunt vote_id={grunt.vote_id} account={account} fetchGrunts={fetchGrunts} choice={choice} setChoice={setChoice} amount={amount} setAmount={setAmount}/>
+            <GruntPreview vote_id={grunt.vote_id} account={account} choice={choice} amount={amount} />
+            <Grunt 
+              vote_id={grunt.vote_id} 
+              account={account} 
+              fetchGrunts={fetchGrunts} 
+              choice={choice} 
+              setChoice={setChoice} 
+              amount={amount} 
+              setAmount={setAmount}
+              resetGrunt={resetGrunt}
+            />
           </div>
         )
       }

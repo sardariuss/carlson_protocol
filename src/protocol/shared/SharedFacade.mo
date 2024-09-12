@@ -12,6 +12,7 @@ module {
     type BallotType = Types.BallotType;
     type SVoteType = Types.SVoteType;
     type PutBallotResult = Types.PutBallotResult;
+    type PreviewBallotResult = Types.PreviewBallotResult;
     type VoteBallotId = Types.VoteBallotId;
     type NewVoteArgs = Controller.NewVoteArgs;
     type PutBallotArgs = Controller.PutBallotArgs;
@@ -20,6 +21,10 @@ module {
 
         public func new_vote(args: NewVoteArgs) : SVoteType {
             SharedConversions.shareVoteType(controller.new_vote(args));
+        };
+
+        public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
+            controller.preview_ballot(args);
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
