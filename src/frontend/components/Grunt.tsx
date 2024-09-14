@@ -4,9 +4,7 @@ import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { EYesNoChoice, toCandid } from "../utils/conversions/yesnochoice";
 import { useEffect, useState } from "react";
 import { PutBallotArgs } from "@/declarations/protocol/protocol.did";
-import { SATOSHI_SYMBOL } from "../constants";
-
-const MINIMUM_GRUNT = BigInt(100);
+import { MINIMUM_GRUNT, SATOSHI_SYMBOL } from "../constants";
 
 interface GruntProps {
   vote_id: bigint;
@@ -27,18 +25,6 @@ const Grunt: React.FC<GruntProps> = ({ vote_id, fetchGrunts, account, choice, se
     reward_account: account,
     amount,
     choice_type: { YES_NO: toCandid(choice) },
-  });
-
-  const { call: previewGrunt } = protocolActor.useQueryCall({
-    functionName: "preview_ballot",
-    onSuccess: (data) => {
-      if (data) {
-        if ('ok' in data) {
-          console.log(data.ok.YES_NO.contest);
-          console.log(data.ok.YES_NO.duration_ns);
-        }
-      }
-    }
   });
 
   const { call: grunt, loading: grunting } = protocolActor.useUpdateCall({
@@ -67,12 +53,6 @@ const Grunt: React.FC<GruntProps> = ({ vote_id, fetchGrunts, account, choice, se
       choice_type: { YES_NO: toCandid(choice) },
     });
   }, [choice, amount]);
-
-  useEffect(() => {
-    if (amount > 0) {
-      previewGrunt([args]);
-    }
-  }, [args]);
 
   return (
     <div className="flex flex-row w-full items-center space-x-4 justify-center">

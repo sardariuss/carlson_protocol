@@ -1,9 +1,9 @@
 import { protocolActor } from "../actors/ProtocolActor";
 import { Account } from "@/declarations/wallet/wallet.did";
 import { EYesNoChoice, toCandid } from "../utils/conversions/yesnochoice";
-import { useEffect, useState } from "react";
-import { PutBallotArgs } from "@/declarations/protocol/protocol.did";
+import { useEffect } from "react";
 import { formatDuration } from "../utils/conversions/duration";
+import { MINIMUM_GRUNT } from "../constants";
 
 interface GruntProps {
   vote_id: bigint;
@@ -15,41 +15,30 @@ interface GruntProps {
 // @todo: Fix yield calculation
 const GruntPreview: React.FC<GruntProps> = ({ vote_id, account, choice, amount }) => {
 
-  const [args, setArgs] = useState<PutBallotArgs>({
-    vote_id,
-    from: account,
-    reward_account: account,
-    amount,
-    choice_type: { YES_NO: toCandid(choice) },
-  });
-
+  // TODO: Somehow adding the args here raises the exception "Cannot convert undefined or null to object"
+  // Right now there is still an error at start but at least it's not breaking the app
   const { data: preview, call: refreshPreview } = protocolActor.useQueryCall({
     functionName: "preview_ballot",
-    onSuccess: (data) => {
-      if (data) {
-        if ('ok' in data) {
-          console.log(data.ok.YES_NO.contest);
-          console.log(data.ok.YES_NO.duration_ns);
-        }
+    args: [
+      {
+        vote_id,
+        from: account,
+        reward_account: account,
+        amount: amount > MINIMUM_GRUNT ? amount : MINIMUM_GRUNT,
+        choice_type: { YES_NO: toCandid(choice) },
       }
-    }
+    ]
   });
 
   useEffect(() => {
-    setArgs({
+    refreshPreview([{
       vote_id,
       from: account,
       reward_account: account,
-      amount,
+      amount: amount > MINIMUM_GRUNT ? amount : MINIMUM_GRUNT,
       choice_type: { YES_NO: toCandid(choice) },
-    });
+    }]);
   }, [choice, amount]);
-
-  useEffect(() => {
-    if (amount > 0) {
-      refreshPreview([args]);
-    }
-  }, [args]);
 
   return (
     <div>
