@@ -1,8 +1,8 @@
 import Types          "Types";
 import SharedFacade   "shared/SharedFacade";
 import Factory        "Factory";
-import MigrationTypes "stable/Types";
-import Migrations     "stable/Migrations";
+import MigrationTypes "migrations/Types";
+import Migrations     "migrations/Migrations";
 
 import Time           "mo:base/Time";
 import Principal      "mo:base/Principal";

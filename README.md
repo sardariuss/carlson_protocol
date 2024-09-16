@@ -36,11 +36,15 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 ## 🚧 TODOs
 
 ### Backend
- - Fix 0.5 contest factor when no votes yet
  - Do not allow an anonymous principal to open a vote
  - Temporarly multiply rewards by 10^8 until the minting logic is implemented
 
 ### Frontend
+
+#### Postponed
  - Fix approve tokens, right now it only works once
- - Add lock duration
- - Add preview of contest multiplier
+    -> Will be fixed when bringing real wallet
+
+#### Low priority
+ - Add question mark + explanation for yield preview (volume * dissent_t_0 * consent_t_end)
+ - Show bar of satoshis locked in transparent when there is no votes yet

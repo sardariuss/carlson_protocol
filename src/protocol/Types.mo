@@ -1,6 +1,6 @@
 import Result "mo:base/Result";
 
-import Types "stable/Types";
+import Types "migrations/Types";
 
 module {
 

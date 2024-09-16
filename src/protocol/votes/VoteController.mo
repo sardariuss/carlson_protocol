@@ -33,8 +33,10 @@ module {
     type DepositState = Types.DepositState;
 
     public type UpdatePolicy<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
-    public type ComputeContest<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
-    public type ComputeScore<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
+    public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
+    public type ComputeConsent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
+
+    let TEMP_REWARD_MULTIPLIER = 1000;
 
     public type PutBallotArgs = {
         caller: Principal;
@@ -47,8 +49,8 @@ module {
     public class VoteController<A, B>({
         empty_aggregate: A;
         update_aggregate: UpdatePolicy<A, B>;
-        compute_contest: ComputeContest<A, B>;
-        compute_score: ComputeScore<A, B>;
+        compute_dissent: ComputeDissent<A, B>;
+        compute_consent: ComputeConsent<A, B>;
         duration_calculator: IDurationCalculator;
         deposit_scheduler: DepositScheduler.DepositScheduler<Ballot<B>>;
         reward_dispenser: RewardDispenser.RewardDispenser<Ballot<B>>;
@@ -130,8 +132,11 @@ module {
                     case (?b) { b; };
                 };
 
-                let score = compute_score({ aggregate = vote.aggregate; choice = ballot.choice; amount = ballot.amount; time; });
-                let reward = Int.abs(Float.toInt(ballot.contest * score)) * ballot.amount;
+                let { choice; amount; dissent; timestamp; } = ballot;
+
+                let consent = compute_consent({ aggregate = vote.aggregate; choice; amount; time; });
+                let days_locked = toDays(time - timestamp);
+                let reward = TEMP_REWARD_MULTIPLIER * Int.abs(Float.toInt(days_locked * dissent * consent)) * amount;
 
                 await* reward_dispenser.send_reward({
                     to = ballot;
@@ -166,7 +171,7 @@ module {
                 timestamp = time;
                 choice;
                 amount;
-                contest = compute_contest({
+                dissent = compute_dissent({
                     aggregate = vote.aggregate;
                     choice;
                     amount;
@@ -180,6 +185,10 @@ module {
             builder;
         };
 
+    };
+
+    func toDays(time: Time) : Float {
+        Float.fromInt(time) / Float.fromInt(24 * 60 * 60 * 1_000_000_000);
     };
 
 };

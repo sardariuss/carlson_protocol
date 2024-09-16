@@ -191,7 +191,7 @@ module {
         timestamp: Time;
         choice: B;
         amount: Nat;
-        contest: Float;
+        dissent: Float;
     };
 
     public type DepositInfo = {

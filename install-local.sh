@@ -67,8 +67,8 @@ dfx deps deploy internet_identity
 
 dfx deploy wallet
 
-dfx deploy frontend
-
 dfx generate
+
+dfx deploy frontend
 
 dfx canister call protocol init_facade

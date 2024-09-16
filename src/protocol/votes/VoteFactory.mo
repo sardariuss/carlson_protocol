@@ -58,8 +58,8 @@ module {
             };
         };
 
-        func compute_contest({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
-            Incentives.compute_contest({ 
+        func compute_dissent({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
+            Incentives.compute_dissent({ 
                 choice;
                 amount = Float.fromInt(amount);
                 total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
@@ -67,8 +67,8 @@ module {
             });
         };
 
-        func compute_score({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
-            Incentives.compute_score({
+        func compute_consent({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
+            Incentives.compute_consent({
                 choice;
                 amount;
                 total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
@@ -106,8 +106,8 @@ module {
         VoteController.VoteController<YesNoAggregate, YesNoChoice>({
             empty_aggregate;
             update_aggregate;
-            compute_contest;
-            compute_score;
+            compute_dissent;
+            compute_consent;
             duration_calculator;
             deposit_scheduler;
             reward_dispenser;
