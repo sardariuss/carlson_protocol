@@ -49,8 +49,14 @@ dfx deploy ledger --argument '( opt record {
 
 dfx deploy protocol --argument '( variant { 
   init = record {
-    deposit_ledger = principal "'${CKBTC_PRINCIPAL}'";
-    reward_ledger = principal "'${LEDGER_PRINCIPAL}'";
+    deposit = record {
+      ledger = principal "'${CKBTC_PRINCIPAL}'";
+      fee = 10;
+    };
+    reward =  record {
+      ledger  = principal "'${LEDGER_PRINCIPAL}'";
+      fee = 10;
+    };
     parameters = record {
         ballot_half_life = variant { YEARS = 1 };
         nominal_lock_duration = variant { DAYS = 3 };

@@ -20,7 +20,7 @@ module {
 
     public func init(args: InitArgs) : State {
 
-        let { deposit_ledger; reward_ledger; parameters; } = args;
+        let { deposit; reward; parameters; } = args;
 
         #v0_1_0({
             vote_register = { 
@@ -28,13 +28,15 @@ module {
                 votes = Map.new<Nat, Types.VoteType>();
                 by_origin = Map.new<Principal, Set.Set<Nat>>();
             };
-            payement = {
-                ledger : ICRC1 and ICRC2 = actor(Principal.toText(deposit_ledger));
-                incident_register = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
+            deposit = {
+                ledger : ICRC1 and ICRC2 = actor(Principal.toText(deposit.ledger));
+                fee = deposit.fee;
+                incidents = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
             };
             reward = {
-                ledger : ICRC1 and ICRC2 = actor(Principal.toText(reward_ledger));
-                incident_register = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
+                ledger : ICRC1 and ICRC2 = actor(Principal.toText(reward.ledger));
+                fee = reward.fee;
+                incidents = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
             };
             parameters = { parameters with 
                 decay = {

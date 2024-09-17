@@ -64,11 +64,14 @@ module {
 
             for ((key, elem) in Map.entries(register.map)) {
 
-                let { timestamp; duration_ns; } = lock_info(elem);
-                
-                if (time - timestamp > duration_ns) {
-                    buffer.add((key, elem));
-                    Set.delete(register.locks, Map.nhash, key);
+                if (Set.has(register.locks, Map.nhash, key)) {
+
+                    let { timestamp; duration_ns; } = lock_info(elem);
+                    
+                    if (time - timestamp > duration_ns) {
+                        buffer.add((key, elem));
+                        Set.delete(register.locks, Map.nhash, key);
+                    };
                 };
             };
 

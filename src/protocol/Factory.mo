@@ -19,13 +19,15 @@ module {
     type BuildArguments = {
         stable_data: {
             vote_register: VoteRegister;
-            payement: {
+            deposit: {
                 ledger: ICRC1.service and ICRC2.service;
-                incident_register: IncidentRegister;
+                fee: Nat;
+                incidents: IncidentRegister;
             };
             reward: {
                 ledger: ICRC1.service and ICRC2.service;
-                incident_register: IncidentRegister;
+                fee: Nat;
+                incidents: IncidentRegister;
             };
             parameters: {
                 nominal_lock_duration: Duration;
@@ -41,11 +43,11 @@ module {
     public func build(args: BuildArguments) : Controller.Controller {
 
         let { stable_data; provider; } = args;
-        let { vote_register; payement; reward; parameters; } = stable_data;
+        let { vote_register; deposit; reward; parameters; } = stable_data;
         let { nominal_lock_duration; decay; } = parameters;
 
-        let payement_facade = PayementFacade.PayementFacade({ payement with provider; fee = null });
-        let reward_facade = PayementFacade.PayementFacade({ reward with provider; fee = null });
+        let deposit_facade = PayementFacade.PayementFacade({ deposit with provider; });
+        let reward_facade = PayementFacade.PayementFacade({ reward with provider; });
 
         let decay_model = Decay.DecayModel(decay);
 
@@ -54,7 +56,7 @@ module {
         });
 
         let yes_no_controller = VoteFactory.build_yes_no({
-            payement_facade;
+            deposit_facade;
             reward_facade;
             decay_model;
             duration_calculator;
@@ -67,7 +69,8 @@ module {
         Controller.Controller({
             vote_register;
             vote_type_controller;
-            payement_facade;
+            deposit_facade;
+            reward_facade;
         });
     };
 

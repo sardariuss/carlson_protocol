@@ -1,8 +1,9 @@
-import Types          "Types";
-import SharedFacade   "shared/SharedFacade";
-import Factory        "Factory";
-import MigrationTypes "migrations/Types";
-import Migrations     "migrations/Migrations";
+import Types          "../src/protocol/Types";
+import SharedFacade   "../src/protocol/shared/SharedFacade";
+import Factory        "../src/protocol/Factory";
+import Duration       "../src/protocol/duration/Duration";
+import MigrationTypes "../src/protocol/migrations/Types";
+import Migrations     "../src/protocol/migrations/Migrations";
 
 import Time           "mo:base/Time";
 import Principal      "mo:base/Principal";
@@ -43,7 +44,7 @@ shared({ caller = admin }) actor class CarlsonProtocol(args: MigrationTypes.Args
 
     // Create a new vote
     public shared({caller}) func new_vote(args: Types.NewVoteArgs) : async Types.SVoteType {
-        getFacade().new_vote({ args with origin = caller; time = Time.now(); });
+        getFacade().new_vote({ args with origin = caller; time = get_time(); });
     };
 
     // Get the votes of the given origin
@@ -52,18 +53,18 @@ shared({ caller = admin }) actor class CarlsonProtocol(args: MigrationTypes.Args
     };
 
     public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.PreviewBallotResult {
-        getFacade().preview_ballot({ args with caller; time = Time.now(); });
+        getFacade().preview_ballot({ args with caller; time = get_time(); });
     };
 
     // Add a ballot on the given vote identified by its vote_id
     public shared({caller}) func put_ballot(args: Types.PutBallotArgs) : async Types.PutBallotResult {
-        await* getFacade().put_ballot({ args with caller; time = Time.now(); });
+        await* getFacade().put_ballot({ args with caller; time = get_time(); });
     };
 
     // Unlock the tokens if the duration is reached
     // Return the number of ballots unlocked (whether the transfers succeded or not)
     public func try_refund_and_reward() : async [Types.VoteBallotId] {
-        await* getFacade().try_refund_and_reward({ time = Time.now() });
+        await* getFacade().try_refund_and_reward({ time = get_time() });
     };
 
     // Find a ballot by its vote_id and ballot_id
@@ -71,7 +72,7 @@ shared({ caller = admin }) actor class CarlsonProtocol(args: MigrationTypes.Args
         getFacade().find_ballot(args);
     };
 
-    // Get the failed refunds for the given principal
+    // Get the failed service for the given principal
     public query func get_deposit_incidents() : async [(Nat, Types.Incident)] {
         getFacade().get_deposit_incidents();
     };
@@ -86,6 +87,22 @@ shared({ caller = admin }) actor class CarlsonProtocol(args: MigrationTypes.Args
             case (null) { Debug.trap("The facade is not initialized"); };
             case (?c) { c; };
         };
+    };
+
+    // SPECIFIC TO THE SCENARIO
+
+    stable var _time_offset: Time.Time = 0;
+
+    public shared func add_time_offset(duration: Duration.Duration) : async () {
+        _time_offset := _time_offset + Duration.toTime(duration);
+    };
+
+    public shared query func get_time_offset() : async Duration.Duration {
+        Duration.fromTime(_time_offset);
+    };
+
+    func get_time() : Time.Time {
+        Time.now() + _time_offset;
     };
 
 };

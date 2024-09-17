@@ -41,6 +41,10 @@
     "internet_identity": {
       "type": "pull",
       "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+    },
+    "scenario": {
+      "main": "scenario/main.mo",
+      "type": "motoko"
     }
   },
   "defaults": {

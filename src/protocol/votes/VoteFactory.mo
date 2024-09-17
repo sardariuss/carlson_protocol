@@ -35,7 +35,7 @@ module {
     type Time = Int;
 
     public func build_yes_no({
-        payement_facade: PayementFacade.PayementFacade;
+        deposit_facade: PayementFacade.PayementFacade;
         reward_facade: PayementFacade.PayementFacade;
         decay_model: Decay.DecayModel;
         duration_calculator: DurationCalculator.IDurationCalculator;
@@ -91,7 +91,7 @@ module {
         });
 
         let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({
-            payement_facade;
+            deposit_facade;
             lock_scheduler;
             get_deposit = func (b: YesNoBallot): Deposit { b; };
             tag_refunded = func (b: YesNoBallot, s: RefundState): YesNoBallot { Conversion.tag_refunded<YesNoChoice>(b, s); };

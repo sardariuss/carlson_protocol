@@ -38,3 +38,8 @@ export const formatDuration = (ns: bigint): string => {
     return `${years.toFixed(1)} years`;
   }
 }
+
+export const timeToDate = (time: bigint): string => {
+  const date = new Date(Number(time / 1_000_000n));
+  return date.toLocaleString();
+}

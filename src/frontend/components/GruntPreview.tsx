@@ -39,7 +39,7 @@ const GruntPreview: React.FC<GruntProps> = ({ vote_id, account, choice, amount }
 
   useEffect(() => {
     if (preview && 'ok' in preview) {
-      setDailyReward(preview.ok.YES_NO.dissent / Number(getAmount()) * TEMP_REWARD_MULTIPLIER);
+      setDailyReward(preview.ok.YES_NO.dissent * TEMP_REWARD_MULTIPLIER);
     }
   }, [preview]);
 

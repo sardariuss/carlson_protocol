@@ -276,8 +276,14 @@ module {
     };
 
     public type InitArgs = {
-        deposit_ledger: Principal;
-        reward_ledger: Principal;
+        deposit: {
+            ledger: Principal;
+            fee: Nat;
+        };
+        reward: {
+            ledger: Principal;
+            fee: Nat;
+        };
         parameters: {
             ballot_half_life: Duration;
             nominal_lock_duration: Duration;
@@ -290,13 +296,15 @@ module {
 
     public type State = {
         vote_register: VoteRegister;
-        payement: {
+        deposit: {
             ledger: ICRC1 and ICRC2;
-            incident_register: IncidentRegister;
+            fee: Nat;
+            incidents: IncidentRegister;
         };
         reward: {
             ledger: ICRC1 and ICRC2;
-            incident_register: IncidentRegister;
+            fee: Nat;
+            incidents: IncidentRegister;
         };
         parameters: {
             nominal_lock_duration: Duration;

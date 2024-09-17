@@ -43,7 +43,7 @@ module {
     type DepositState = Types.DepositState;
 
     public class DepositScheduler<T>({
-        payement_facade: PayementFacade.PayementFacade;
+        deposit_facade: PayementFacade.PayementFacade;
         lock_scheduler: LockScheduler.LockScheduler<T>;
         tag_refunded: (T, RefundState) -> T;
         get_deposit: (T) -> Deposit;
@@ -88,7 +88,7 @@ module {
             };
 
             // Perform the deposit
-            await* payement_facade.pay_service({ args and { to_subaccount = null; service; } });
+            await* deposit_facade.pay_service({ args and { service; } });
         };
 
         public func try_refund({
@@ -96,21 +96,19 @@ module {
             time: Time;
         }) : async* [Nat] {
 
-            let unlocked = lock_scheduler.try_unlock({register; time; });
+            let unlocked = lock_scheduler.try_unlock({ register; time; });
 
             // For each unlocked deposit, refund the locked amount to the sender
             for((id, elem) in unlocked.vals()) {
 
                 let deposit = get_deposit(elem);
 
-                let refund_fct = func() : async* () {
+                let refund_fct = func() : async() {
 
                     // Perform the refund
-                    let refund_result = await* payement_facade.send_payement({
+                    let refund_result = await* deposit_facade.send_payement({
                         amount = deposit.amount;
                         to = deposit.from;
-                        from_subaccount = null;
-                        time; 
                     });
 
                     // Update the deposit state
@@ -118,10 +116,11 @@ module {
                         case(#ok(tx_id)) { #SUCCESS({tx_id;}); };
                         case(#err({incident_id})) { #FAILED{incident_id}; };
                     };
+                    // @todo: this does not seem to work
                     Map.set(register.map, Map.nhash, id, tag_refunded(elem, { transfer; since = time; }));
                 };
 
-                // Trigger the refund but do not wait for them to complete
+                // Trigger the refund but do not wait for it to complete
                 ignore refund_fct();
             };
 

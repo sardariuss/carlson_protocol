@@ -39,7 +39,8 @@ module {
     public class Controller({
         vote_register: VoteRegister;
         vote_type_controller: VoteTypeController.VoteTypeController;
-        payement_facade: PayementFacade.PayementFacade;
+        deposit_facade: PayementFacade.PayementFacade;
+        reward_facade: PayementFacade.PayementFacade;
     }){
 
         public func new_vote(args: NewVoteArgs) : VoteType {
@@ -119,12 +120,12 @@ module {
             vote_type_controller.find_ballot({ vote_type; ballot_id; });
         };
 
-        public func get_payement_incidents() : [(Nat, Types.Incident)] {
-            payement_facade.get_payement_incidents();
+        public func get_deposit_incidents() : [(Nat, Types.Incident)] {
+            deposit_facade.get_incidents();
         };
         
         public func get_reward_incidents() : [(Nat, Types.Incident)] {
-            payement_facade.get_reward_incidents();
+            reward_facade.get_incidents();
         };
 
     };

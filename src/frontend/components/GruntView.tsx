@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import { SATOSHI_SYMBOL } from "../constants";
 import GruntPreview from "./GruntPreview";
+import { timeToDate } from "../utils/conversions/duration";
 
 const LIMIT_DISPLAY_PERCENTAGE = 20;
 
@@ -66,6 +67,9 @@ const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, sele
         <div className="flex flex-row space-x-1">
           <div className={selected === grunt.vote_id && amount > 0 ? `animate-pulse` : ``}>{getResult()}</div>
         </div>
+      </div>
+      <div>
+        { timeToDate(grunt.date) }
       </div>
       {
         selected === grunt.vote_id && grunt.vote_id !== undefined && account !== undefined && (

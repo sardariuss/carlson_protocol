@@ -38,23 +38,20 @@ module {
     public class PayementFacade({
         provider: Principal;
         ledger: ICRC1.service and ICRC2.service;
-        incident_register: IncidentRegister;
-        fee: ?Nat;
+        incidents: IncidentRegister;
+        fee: Nat;
     }){
 
         public func pay_service({
             caller: Principal;
             from: Account;
             amount: Nat;
-            time: Time;
-            to_subaccount: ?Blob;
             service: Service;
         }) : async* PayServiceResult {
             
             Debug.print("ledger: " # debug_show(Principal.fromActor(ledger)));
             Debug.print("caller: " # debug_show(caller));
             Debug.print("from account: " # debug_show(from));
-            Debug.print("to subaccount: " # debug_show(to_subaccount));
 
             let args = {
                 // According to the ICRC2 specifications, if the from account has been approved with a
@@ -63,12 +60,12 @@ module {
                 from;
                 to = {
                     owner = provider;
-                    subaccount = to_subaccount;
+                    subaccount = null;
                 };
-                amount;
-                fee;
+                amount = amount + fee;
+                fee = null;
                 memo = null;
-                created_at_time = ?Nat64.fromNat(Int.abs(time));
+                created_at_time = null;
             };
 
             // Perform the transfer
@@ -99,17 +96,15 @@ module {
         public func send_payement({
             amount: Nat;
             to: Account;
-            from_subaccount: ?Blob;
-            time: Time;
         }) : async* SendPayementResult {
 
             let args = {
                 to;
-                from_subaccount;
+                from_subaccount = null;
                 amount;
-                fee;
+                fee = null;
                 memo = null;
-                created_at_time = ?Nat64.fromNat(Int.abs(time));
+                created_at_time = null;
             };
 
             // Perform the transfer
@@ -128,18 +123,14 @@ module {
         };
 
         func add_incident(incident: Incident) : Nat {
-            let incident_id = incident_register.index;
-            incident_register.index := incident_id + 1;
-            Map.set(incident_register.incidents, Map.nhash, incident_id, incident);
+            let incident_id = incidents.index;
+            incidents.index := incident_id + 1;
+            Map.set(incidents.incidents, Map.nhash, incident_id, incident);
             incident_id;
         };
 
-        public func get_payement_incidents() : [(Nat, Types.Incident)] {
-            Map.toArray(incident_register.incidents);
-        };
-        
-        public func get_reward_incidents() : [(Nat, Types.Incident)] {
-            Map.toArray(incident_register.incidents);
+        public func get_incidents() : [(Nat, Incident)] {
+            Map.toArray(incidents.incidents);
         };
 
     };

@@ -127,26 +127,32 @@ module {
             });
 
             label reward_loop for (ballot_id in Array.vals(ballot_ids)){
+                
                 let ballot = switch(Map.get(vote.ballot_register.map, Map.nhash, ballot_id)){
-                    case (null) { continue reward_loop; }; // @todo
+                    case (null) { continue reward_loop; }; // @todo: add an incident
                     case (?b) { b; };
                 };
 
-                let { choice; amount; dissent; timestamp; } = ballot;
+                let reward_fct = func() : async() {
 
-                let consent = compute_consent({ aggregate = vote.aggregate; choice; amount; time; });
-                let days_locked = toDays(time - timestamp);
-                let reward = TEMP_REWARD_MULTIPLIER * Int.abs(Float.toInt(days_locked * dissent * consent)) * amount;
+                    let { choice; amount; dissent; timestamp; } = ballot;
 
-                await* reward_dispenser.send_reward({
-                    to = ballot;
-                    amount = reward;
-                    time;
-                    update_elem = func(ballot: Ballot<B>) {
-                        Map.set(vote.ballot_register.map, Map.nhash, ballot_id, ballot);
-                    };
-                });
-                
+                    let consent = compute_consent({ aggregate = vote.aggregate; choice; amount; time; });
+                    let days_locked = toDays(time - timestamp);
+                    let reward = TEMP_REWARD_MULTIPLIER * Int.abs(Float.toInt(days_locked * dissent * consent));
+
+                    await* reward_dispenser.send_reward({
+                        to = ballot;
+                        amount = reward;
+                        time;
+                        update_elem = func(ballot: Ballot<B>) {
+                            Map.set(vote.ballot_register.map, Map.nhash, ballot_id, ballot);
+                        };
+                    });
+                };
+
+                // Trigger the reward but do not wait for it to complete
+                ignore reward_fct();
             };
 
             ballot_ids;

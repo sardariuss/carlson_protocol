@@ -44,8 +44,8 @@ module {
             controller.find_ballot({vote_id; ballot_id;});
         };
 
-        public func get_payement_incidents() : [(Nat, Types.Incident)] {
-            controller.get_payement_incidents();
+        public func get_deposit_incidents() : [(Nat, Types.Incident)] {
+            controller.get_deposit_incidents();
         };
         
         public func get_reward_incidents() : [(Nat, Types.Incident)] {

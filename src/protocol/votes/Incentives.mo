@@ -47,6 +47,6 @@ module {
         let b = a + amount;
         let c = opposit + INITIAL_CONTEST_ADDEND;
 
-        Float.min(b, c) - Float.min(a, c) + c * Float.log(Float.max(b, c) / Float.max(a, c));
+        (Float.min(b, c) - Float.min(a, c) + c * Float.log(Float.max(b, c) / Float.max(a, c))) / amount;
     };
 }
