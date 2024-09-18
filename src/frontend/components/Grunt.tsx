@@ -21,8 +21,7 @@ const Grunt: React.FC<GruntProps> = ({ vote_id, fetchGrunts, account, choice, se
 
   const [args, setArgs] = useState<PutBallotArgs>({
     vote_id,
-    from: account,
-    reward_account: account,
+    from_subaccount: [],
     amount,
     choice_type: { YES_NO: toCandid(choice) },
   });
@@ -47,8 +46,7 @@ const Grunt: React.FC<GruntProps> = ({ vote_id, fetchGrunts, account, choice, se
   useEffect(() => {
     setArgs({
       vote_id,
-      from: account,
-      reward_account: account,
+      from_subaccount: [],
       amount,
       choice_type: { YES_NO: toCandid(choice) },
     });

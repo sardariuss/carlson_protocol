@@ -38,9 +38,10 @@ module {
     let TEMP_REWARD_MULTIPLIER = 1000;
 
     public type PutBallotArgs = {
-        caller: Principal;
-        from: Account;
-        reward_account: Account;
+        from: {
+            owner: Principal;
+            subaccount: ?Blob;
+        };
         time: Time;
         amount: Nat;
     };
@@ -76,7 +77,7 @@ module {
         public func preview_ballot({
             vote: Vote<A, B>;
             choice: B;
-            args: PutBallotArgs and { amount: Nat; };
+            args: PutBallotArgs;
         }) : Ballot<B> {
 
             let builder = intialize_ballot({ vote; choice; args; });
@@ -93,10 +94,6 @@ module {
             choice: B;
             args: PutBallotArgs;
         }) : async* Result<Nat, PutBallotError> {
-
-            if (args.caller != args.from.owner) {
-                return #err(#AccountNotOwned({caller = args.caller; account_owner = args.from.owner;}));
-            };
 
             let builder = intialize_ballot({ vote; choice; args; });
 
@@ -188,7 +185,7 @@ module {
                 })
             });
             builder.add_reward({
-                reward_account = args.reward_account;
+                reward_account = args.from; // @todo: decide if the reward account shall be just removed or passed as an argument
                 reward_state = #PENDING;
             });
             builder;

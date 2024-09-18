@@ -12,14 +12,16 @@ module {
     type DepositInfo        = Types.DepositInfo;
     type HotInfo            = Types.HotInfo;
     type RewardInfo         = Types.RewardInfo;
+    type DurationInfo       = Types.DurationInfo;
     type Ballot<B>          = Types.Ballot<B>;
 
     public class BallotBuilder<B>({duration_calculator: IDurationCalculator}) {
 
-        var _ballot  : ?BallotInfo<B> = null;
-        var _deposit : ?DepositInfo   = null;
-        var _hot     : ?HotInfo       = null;
-        var _reward  : ?RewardInfo    = null;
+        var _ballot   : ?BallotInfo<B> = null;
+        var _deposit  : ?DepositInfo   = null;
+        var _hot      : ?HotInfo       = null;
+        var _duration : ?DurationInfo  = null;
+        var _reward   : ?RewardInfo    = null;
 
         public func add_ballot(ballot : BallotInfo<B>){
             switch(_ballot){
@@ -36,8 +38,11 @@ module {
         };
 
         public func add_hot(hot : HotInfo){
-            switch(_hot){
-                case(null) { _hot := ?hot; };
+            switch(_hot, _duration){
+                case(null, null) { 
+                    _hot := ?hot; 
+                    _duration := ?{ duration_ns = duration_calculator.compute_duration_ns(hot); };
+                };
                 case(_) { Debug.trap("Hot Info has already been added")};
             };
         };
@@ -50,9 +55,9 @@ module {
         };
 
         public func build() : Ballot<B> {
-            switch(_ballot, _deposit, _hot, _reward){
-                case(?ballot, ?deposit, ?hot, ?reward) {
-                    { ballot and deposit and hot and reward with duration_ns = duration_calculator.compute_duration_ns(hot); };
+            switch(_ballot, _deposit, _hot, _reward, _duration){
+                case(?ballot, ?deposit, ?hot, ?reward, ?duration) {
+                    { ballot and deposit and hot and reward and duration };
                 };
                 case(_){
                     Debug.trap("BallotBuilder: Missing required fields");

@@ -7,7 +7,6 @@ import Map              "mo:map/Map";
 import Result           "mo:base/Result";
 import Buffer           "mo:base/Buffer";
 import Iter             "mo:base/Iter";
-import Principal        "mo:base/Principal";
 
 module {
 
@@ -34,7 +33,6 @@ module {
     };
 
     public type AddDepositArgs = {
-        caller: Principal;
         from: Account;
         time: Time;
         amount: Nat;

@@ -32,8 +32,8 @@ const GRUNT_TO_OPEN = [
 const NUM_USERS = 10;
 const USER_BALANCE = 100_000_000n;
 const USER_AVERAGE_GRUNT = 100_000n;
-const SCENARIO_DURATION = { 'MINUTES': 5n };
-const SCENARIO_TICK_DURATION = { 'MINUTES': 5n };
+const SCENARIO_DURATION = { 'DAYS': 18n };
+const SCENARIO_TICK_DURATION = { 'DAYS': 6n };
 
 const CKBTC_FEE = 10n;
 
@@ -156,20 +156,20 @@ async function callCanisterMethod() {
 
         let putBallotPromises = [];
 
-        for (let [principal, actors] of userActors) {
+        for (let [_, actors] of userActors) {
 
             for (let grunt of grunts) {
 
                 // 20% chance that this user vote by calling protocolActor.put_ballot
                 if (Math.random() < 0.2) {
                     //await sleep(500); // uncomment to not have errors due to duplicate transfers
+                    // 50% chance that this user votes YES, 50% chance that this user votes NO
                     putBallotPromises.push(
                         actors.protocol.put_ballot({
                             vote_id: grunt.vote_id,
-                            from: { owner: principal, subaccount: [] },
-                            reward_account: { owner: principal, subaccount: [] },
+                            from_subaccount: [],
                             amount: USER_AVERAGE_GRUNT,
-                            choice_type: { 'YES_NO': { 'YES' : null } },
+                            choice_type: { 'YES_NO': Math.random() < 0.5 ? { 'YES' : null } : { 'NO' : null } }
                         }).then((result) => {
                             if (!result) {
                                 console.error('Put ballot result is null');
@@ -186,8 +186,8 @@ async function callCanisterMethod() {
         }
 
         await Promise.all(putBallotPromises);
-
         await protocolSimActor.add_time_offset(SCENARIO_TICK_DURATION);
+        await protocolSimActor.try_refund_and_reward();
         tick++;
     }
 

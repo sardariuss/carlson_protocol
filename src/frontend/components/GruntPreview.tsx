@@ -30,8 +30,7 @@ const GruntPreview: React.FC<GruntProps> = ({ vote_id, account, choice, amount }
   useEffect(() => {
     refreshPreview([{
       vote_id,
-      from: account,
-      reward_account: account,
+      from_subaccount: [],
       amount: getAmount(),
       choice_type: { YES_NO: toCandid(choice) },
     }]);

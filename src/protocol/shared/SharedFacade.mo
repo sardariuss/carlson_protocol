@@ -14,20 +14,20 @@ module {
     type PutBallotResult = Types.PutBallotResult;
     type PreviewBallotResult = Types.PreviewBallotResult;
     type VoteBallotId = Types.VoteBallotId;
-    type NewVoteArgs = Controller.NewVoteArgs;
-    type PutBallotArgs = Controller.PutBallotArgs;
+    type NewVoteArgs = Types.NewVoteArgs;
+    type PutBallotArgs = Types.PutBallotArgs;
 
     public class SharedFacade(controller: Controller.Controller) {
 
-        public func new_vote(args: NewVoteArgs) : SVoteType {
+        public func new_vote(args: NewVoteArgs and { origin: Principal; time: Time; }) : SVoteType {
             SharedConversions.shareVoteType(controller.new_vote(args));
         };
 
-        public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
+        public func preview_ballot(args: PutBallotArgs and { caller: Principal; time: Time; }) : PreviewBallotResult {
             controller.preview_ballot(args);
         };
 
-        public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
+        public func put_ballot(args: PutBallotArgs and { caller: Principal; time: Time; }) : async* PutBallotResult {
             await* controller.put_ballot(args);
         };
 

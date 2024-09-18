@@ -40,7 +40,6 @@ module {
     }){
 
         public func pay_service({
-            caller: Principal;
             from: Account;
             amount: Nat;
             service: Service;

@@ -61,8 +61,7 @@ module {
     public type PutBallotArgs = {
         vote_id: Nat;
         choice_type: ChoiceType;
-        from: Account;
-        reward_account: Account;
+        from_subaccount: ?Blob;
         amount: Nat;
     };
 
@@ -112,9 +111,8 @@ module {
 
     public type VoteNotFoundError = { #VoteNotFound: { vote_id: Nat }; };
     public type TransferIncident = { #TransferIncident: { incident_id: Nat }; };
-    public type OwnerError = { #AccountNotOwned: { caller: Principal; account_owner: Principal; }; };
     
-    public type PutBallotError = TransferFromError or VoteNotFoundError or TransferIncident or OwnerError;
+    public type PutBallotError = TransferFromError or VoteNotFoundError or TransferIncident;
     
     public type PutBallotResult = Result<Nat, PutBallotError>;
     

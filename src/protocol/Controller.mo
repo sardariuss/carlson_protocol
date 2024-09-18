@@ -19,6 +19,7 @@ module {
     type PutBallotResult = Types.PutBallotResult;
     type PreviewBallotResult = Types.PreviewBallotResult;
     type VoteBallotId = Types.VoteBallotId;
+    type ChoiceType = Types.ChoiceType;
 
     public type NewVoteArgs = {
         origin: Principal;
@@ -28,10 +29,9 @@ module {
 
     public type PutBallotArgs = {
         vote_id: Nat;
-        choice_type: Types.ChoiceType;
+        choice_type: ChoiceType;
         caller: Principal;
-        from: Types.Account;
-        reward_account: Types.Account;
+        from_subaccount: ?Blob;
         time: Time;
         amount: Nat;
     };
@@ -70,24 +70,31 @@ module {
 
         public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
 
-            let { vote_id; choice_type; } = args;
+            let { vote_id; choice_type; caller; from_subaccount; time; amount; } = args;
 
-            switch(Map.get(vote_register.votes, Map.nhash, vote_id)){
-                case(?vote_type) { #ok(vote_type_controller.preview_ballot({ vote_type; choice_type; args; })); };
-                case(null) { #err(#VoteNotFound({vote_id})); };
+            let vote_type = switch(Map.get(vote_register.votes, Map.nhash, args.vote_id)){
+                case(?v) { v };
+                case(null) { return #err(#VoteNotFound({vote_id}));  };
             };
+
+            let put_args = { vote_type; choice_type; args = { from = { owner = caller; subaccount = from_subaccount; }; time; amount; } };
+
+            #ok(vote_type_controller.preview_ballot(put_args));
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
 
-            let { vote_id; choice_type; } = args;
+            let { vote_id; choice_type; caller; from_subaccount; time; amount; } = args;
 
-            switch(Map.get(vote_register.votes, Map.nhash, vote_id)){
-                case(?vote_type) { await* vote_type_controller.put_ballot({ vote_type; choice_type; args; }); };
-                case(null) {  #err(#VoteNotFound({vote_id}));  };
+            let vote_type = switch(Map.get(vote_register.votes, Map.nhash, args.vote_id)){
+                case(?v) { v };
+                case(null) { return #err(#VoteNotFound({vote_id}));  };
             };
-        };
 
+            let put_args = { vote_type; choice_type; args = { from = { owner = caller; subaccount = from_subaccount; }; time; amount; } };
+
+            await* vote_type_controller.put_ballot(put_args);
+        };
 
         public func try_refund_and_reward({ time: Time; }) : async* [VoteBallotId] {
 

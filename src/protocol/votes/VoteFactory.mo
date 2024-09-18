@@ -80,7 +80,12 @@ module {
             decay_model;
             get_elem = func (b: YesNoBallot): HotElem { b; };
             update_elem = func (b: YesNoBallot, i: HotElem): YesNoBallot {
-                { b with hotness = i.hotness; };
+                var duration_ns = b.duration_ns;
+                // Only update duration if the reward has not been distributed yet
+                if (b.reward_state == #PENDING){
+                    duration_ns := duration_calculator.compute_duration_ns(i);
+                };
+                { b with hotness = i.hotness; duration_ns; };
             };
             key_hash = Map.nhash;
         });
