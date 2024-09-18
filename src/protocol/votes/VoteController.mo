@@ -1,6 +1,5 @@
 import BallotBuilder      "BallotBuilder";
 import Types              "../Types";
-import PayementFacade     "../payement/PayementFacade";
 import DepositScheduler   "../payement/DepositScheduler";
 import RewardDispenser    "../payement/RewardDispenser";
 import DurationCalculator "../duration/DurationCalculator";
@@ -20,7 +19,7 @@ module {
 
     public type VoteId = Nat;
 
-    type PayServiceError = PayementFacade.PayServiceError;
+    type PutBallotError = Types.PutBallotError;
     type Account = Types.Account;
     type Iter<T> = Iter.Iter<T>;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
@@ -77,7 +76,7 @@ module {
         public func preview_ballot({
             vote: Vote<A, B>;
             choice: B;
-            args: PutBallotArgs;
+            args: PutBallotArgs and { amount: Nat; };
         }) : Ballot<B> {
 
             let builder = intialize_ballot({ vote; choice; args; });
@@ -93,7 +92,11 @@ module {
             vote: Vote<A, B>;
             choice: B;
             args: PutBallotArgs;
-        }) : async* Result<Nat, PayServiceError> {
+        }) : async* Result<Nat, PutBallotError> {
+
+            if (args.caller != args.from.owner) {
+                return #err(#AccountNotOwned({caller = args.caller; account_owner = args.from.owner;}));
+            };
 
             let builder = intialize_ballot({ vote; choice; args; });
 

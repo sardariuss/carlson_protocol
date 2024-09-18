@@ -1,4 +1,4 @@
-import CarlsonProtocol    "../src/main";
+import Protocol           "../src/main";
 import Subaccount         "../src/Subaccount";
 import Types              "../src/Types";
 import Duration           "../src/duration/Duration";
@@ -98,7 +98,7 @@ shared actor class Main() = this {
         // Fee to create protocol canister
         ExperimentalCycles.add<system>(50_000_000_000);
 
-        let protocol = await CarlsonProtocol.CarlsonProtocol({
+        let protocol = await Protocol.Protocol({
             deposit_ledger = Principal.fromActor(deposit_ledger);
             reward_ledger = Principal.fromActor(reward_ledger);
             parameters = {

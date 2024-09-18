@@ -18,11 +18,6 @@
       "main": "src/protocol/main.mo",
       "type": "motoko"
     },
-    "wallet": {
-      "main": "src/wallet/main.mo",
-      "type": "motoko",
-      "dependencies": ["protocol", "ck_btc"]
-    },
     "backend": {
       "main": "src/backend/main.mo",
       "type": "motoko",
@@ -42,8 +37,12 @@
       "type": "pull",
       "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
     },
-    "scenario": {
-      "main": "scenario/main.mo",
+    "minter": {
+      "main": "simulation/minter.mo",
+      "type": "motoko"
+    },
+    "protocolsim": {
+      "main": "simulation/protocolsim.mo",
       "type": "motoko"
     }
   },

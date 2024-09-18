@@ -4,7 +4,9 @@ import { Account } from '@/declarations/protocol/protocol.did';
 import { useEffect } from "react";
 import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
 import { useAuth } from '@ic-reactor/react';
-import { walletActor } from '../actors/WalletActor';
+import { ckBtcActor } from '../actors/CkBtcActor';
+import { Principal } from '@dfinity/principal';
+import { canisterId as protocolCanisterId } from "../../declarations/protocol"
 
 const accountToString = (account: Account | undefined) : string =>  {
   var str = "";
@@ -22,30 +24,47 @@ const Balance = () => {
 
   const { authenticated, identity } = useAuth({});
 
-  if (!authenticated || identity?.getPrincipal() === null) {
-      return (
-          <></>
-      );
+  if (!authenticated || identity === null) {
+    return (
+      <></>
+    );
   }
 
-  const { data: account } = walletActor.useQueryCall({
-    functionName: 'get_account'
+  const account : Account = {
+    owner: identity?.getPrincipal(),
+    subaccount: []
+  };
+
+  const { call: refreshBalance, data: balance } = ckBtcActor.useQueryCall({
+    functionName: 'icrc1_balance_of',
+    args: [account]
   });
 
-  const { call: refreshBalance, data: balance } = walletActor.useQueryCall({
-    functionName: 'get_balance'
-  });
-
-  const { call: refreshAllowance, data: allowance } = walletActor.useQueryCall({
-    functionName: 'protocol_allowance'
-  });
-
-  const { call: approve, data: approveResult } = walletActor.useUpdateCall({
-    functionName: 'approve_protocol',
+  const { call: refreshAllowance, data: allowance } = ckBtcActor.useQueryCall({
+    functionName: 'icrc2_allowance',
     args: [{
+      account,
+      spender: {
+        owner: Principal.fromText(protocolCanisterId),
+        subaccount: []
+      }
+    }]
+  });
+
+  const { call: approve, data: approveResult } = ckBtcActor.useUpdateCall({
+    functionName: 'icrc2_approve',
+    args: [{
+      fee: [],
+      memo: [],
+      from_subaccount: [],
+      created_at_time: [],
       amount: BigInt(100_000_000),
       expected_allowance: [],
       expires_at: [],
+      spender: {
+        owner: Principal.fromText(protocolCanisterId),
+        subaccount: []
+      },
     }],
     onSuccess: (data) => {
       console.log(data)
@@ -59,7 +78,7 @@ const Balance = () => {
   useEffect(() => {
     refreshBalance();
     refreshAllowance();
-  }, [authenticated, identity, account]);
+  }, [authenticated, identity]);
 
   // Hook to refresh balance and allowance when account changes
   useEffect(() => {

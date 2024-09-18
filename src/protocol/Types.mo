@@ -111,10 +111,10 @@ module {
     public type Service = { tx_id: Nat; } -> async* { error: ?Text; };
 
     public type VoteNotFoundError = { #VoteNotFound: { vote_id: Nat }; };
+    public type TransferIncident = { #TransferIncident: { incident_id: Nat }; };
+    public type OwnerError = { #AccountNotOwned: { caller: Principal; account_owner: Principal; }; };
     
-    public type PutBallotError = TransferFromError or VoteNotFoundError or {
-        #Incident : { incident_id: Nat; }; 
-    };
+    public type PutBallotError = TransferFromError or VoteNotFoundError or TransferIncident or OwnerError;
     
     public type PutBallotResult = Result<Nat, PutBallotError>;
     

@@ -3,12 +3,9 @@ import Types      "../Types";
 import Map        "mo:map/Map";
 
 import Int        "mo:base/Int";
-import Time       "mo:base/Time";
 import Principal  "mo:base/Principal";
-import Nat64      "mo:base/Nat64";
 import Result     "mo:base/Result";
 import Error      "mo:base/Error";
-import Debug      "mo:base/Debug";
 
 import ICRC1      "mo:icrc1-mo/ICRC1/service";
 import ICRC2      "mo:icrc2-mo/ICRC2/service";
@@ -26,7 +23,7 @@ module {
     public type SendPayementError = { incident_id: Nat; };
     public type SendPayementResult = Result<TxIndex, SendPayementError>;
 
-    public type PayServiceError = ICRC2.TransferFromError or { #Incident : { incident_id: Nat; }};
+    public type PayServiceError = ICRC2.TransferFromError or { #TransferIncident : { incident_id: Nat; }};
     public type PayServiceResult = Result<TxIndex, PayServiceError>;
 
     public type IncidentRegister = Types.IncidentRegister;
@@ -48,10 +45,6 @@ module {
             amount: Nat;
             service: Service;
         }) : async* PayServiceResult {
-            
-            Debug.print("ledger: " # debug_show(Principal.fromActor(ledger)));
-            Debug.print("caller: " # debug_show(caller));
-            Debug.print("from account: " # debug_show(from));
 
             let args = {
                 // According to the ICRC2 specifications, if the from account has been approved with a
@@ -81,7 +74,7 @@ module {
                 switch(error){
                     case(?error) { 
                         let incident = #ServiceFailed({ error; original_transfer = { tx_id; args; }; });
-                        #err(#Incident{incident_id = add_incident(incident); });
+                        #err(#TransferIncident{incident_id = add_incident(incident); });
                     };
                     case(null) {
                         #ok(tx_id);
@@ -89,7 +82,7 @@ module {
                 };
             } catch(error){
                 let incident = #ServiceTrapped({ error = Error.message(error); original_transfer = { tx_id; args; }; });
-                #err(#Incident{incident_id = add_incident(incident); });
+                #err(#TransferIncident{incident_id = add_incident(incident); });
             };
         };
 

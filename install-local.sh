@@ -2,10 +2,10 @@ set -ex
 
 dfx canister create --all
 
-export DEPLOYER_PRINCIPAL=$(dfx identity get-principal)
 export CKBTC_PRINCIPAL=$(dfx canister id ck_btc)
 export LEDGER_PRINCIPAL=$(dfx canister id ledger)
 export PROTOCOL_PRINCIPAL=$(dfx canister id protocol)
+export MINTER_PRINCIPAL=$(dfx canister id minter)
 
 dfx deploy ck_btc --argument '( opt record {
   icrc1 = opt record {
@@ -17,7 +17,7 @@ dfx deploy ck_btc --argument '( opt record {
     min_burn_amount   = opt 1_000;
     initial_balances  = vec {};
     minting_account   = opt record { 
-      owner = principal "'${DEPLOYER_PRINCIPAL}'";
+      owner = principal "'${MINTER_PRINCIPAL}'";
       subaccount = null; 
     };
     advanced_settings = null;
@@ -71,10 +71,14 @@ dfx deps pull
 dfx deps init
 dfx deps deploy internet_identity
 
-dfx deploy wallet
+# Simulation specific
+dfx deploy minter
+dfx build protocolsim
+dfx canister install protocol --wasm=".dfx/local/canisters/protocolsim/protocolsim.wasm" --mode=upgrade --yes --argument='(variant {none})'
 
-dfx generate
-
-dfx deploy frontend
-
+# Initialize the protocol
 dfx canister call protocol init_facade
+
+# Frontend
+dfx generate
+dfx deploy frontend

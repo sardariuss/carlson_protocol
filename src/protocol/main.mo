@@ -9,7 +9,7 @@ import Principal      "mo:base/Principal";
 import Debug          "mo:base/Debug";
 import Option         "mo:base/Option";
 
-shared({ caller = admin }) actor class CarlsonProtocol(args: MigrationTypes.Args) = this {
+shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = this {
 
     // STABLE MEMBER
     stable var _state: MigrationTypes.State = Migrations.install(args);

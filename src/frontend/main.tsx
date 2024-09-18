@@ -8,7 +8,6 @@ import { AgentProvider } from "@ic-reactor/react";
 import { BackendActorProvider } from "./actors/BackendActor"
 import { CkBtcActorProvider } from './actors/CkBtcActor';
 import { ProtocolActorProvider } from './actors/ProtocolActor';
-import { WalletActorProvider } from './actors/WalletActor';
 import React from 'react';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
@@ -18,9 +17,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
        <BackendActorProvider>
         <CkBtcActorProvider>
           <ProtocolActorProvider>
-            <WalletActorProvider>
-              <App/>
-            </WalletActorProvider>
+            <App/>
           </ProtocolActorProvider>
         </CkBtcActorProvider>
        </BackendActorProvider>
