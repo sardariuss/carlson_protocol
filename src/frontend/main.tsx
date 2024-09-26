@@ -9,6 +9,7 @@ import { BackendActorProvider } from "./actors/BackendActor"
 import { CkBtcActorProvider } from './actors/CkBtcActor';
 import { ProtocolActorProvider } from './actors/ProtocolActor';
 import React from 'react';
+import { LedgerActorProvider } from './actors/LedgerActor';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
@@ -16,9 +17,11 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
       <HashRouter>
        <BackendActorProvider>
         <CkBtcActorProvider>
-          <ProtocolActorProvider>
-            <App/>
-          </ProtocolActorProvider>
+          <LedgerActorProvider>
+            <ProtocolActorProvider>
+              <App/>
+            </ProtocolActorProvider>
+          </LedgerActorProvider>
         </CkBtcActorProvider>
        </BackendActorProvider>
       </HashRouter>

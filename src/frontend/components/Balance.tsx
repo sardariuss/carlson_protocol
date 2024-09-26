@@ -7,6 +7,7 @@ import { useAuth } from '@ic-reactor/react';
 import { ckBtcActor } from '../actors/CkBtcActor';
 import { Principal } from '@dfinity/principal';
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
+import { ledgerActor } from '../actors/LedgerActor';
 
 const accountToString = (account: Account | undefined) : string =>  {
   var str = "";
@@ -34,6 +35,11 @@ const Balance = () => {
     owner: identity?.getPrincipal(),
     subaccount: []
   };
+
+  const { data: ledgerBalance } = ledgerActor.useQueryCall({
+    functionName: 'icrc1_balance_of',
+    args: [account]
+  });
 
   const { call: refreshBalance, data: balance } = ckBtcActor.useQueryCall({
     functionName: 'icrc1_balance_of',
@@ -87,6 +93,10 @@ const Balance = () => {
 
   return (
     <div className="flex flex-row space-x-3">
+      <div className="flex flex-row space-x-1">
+        <div>Balance</div>
+        <div>{ledgerBalance?.toString() ?? "0"} GTT </div>
+      </div>
       <div className="flex flex-row space-x-1">
         <div>Balance</div>
         <div>{balance?.toString() ?? "0"} satoshis </div>

@@ -62,7 +62,10 @@ const Header = () => {
   return (
     <header className="bg-slate-100 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full justify-between space-x-2 xl:px-4 lg:px-3 md:px-2 px-2 xl:h-18 lg:h-16 md:h-14 h-14">
       <Link to="/" className="flex flex-row items-center space-x-1">
-        <span className="xl:text-2xl text-xl font-semibold whitespace-nowrap dark:text-white text-gray-900"> GRUNT </span>
+        <div className="flex flex-row space-x-1 items-center">
+          <span className="xl:text-4xl text-xl font-wild-wolf whitespace-nowrap dark:text-grunt-green text-grunt-pink drop-shadow-lg shadow-white"> GRUNT </span>
+          <span className="xl:text-3xl text-lg font-neon-spark whitespace-nowrap drop-shadow shadow-blue-800 tracking-widest neon-effect ">.defi </span>
+        </div>
       </Link>
       <div className="flex flex-row items-center justify-center md:space-x-4">
       </div>
