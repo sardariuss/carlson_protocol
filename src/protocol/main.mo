@@ -66,6 +66,11 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         await* getFacade().try_refund_and_reward({ time = Time.now() });
     };
 
+    // Get the ballots of the given account
+    public query func get_ballots(args: Types.Account) : async [Types.QueriedBallot] {
+        getFacade().get_ballots(args);
+    };
+
     // Find a ballot by its vote_id and ballot_id
     public query func find_ballot(args: Types.VoteBallotId) : async ?Types.BallotType {
         getFacade().find_ballot(args);

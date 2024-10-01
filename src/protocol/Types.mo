@@ -107,7 +107,7 @@ module {
         #YES_NO;
     };
 
-    public type Service = { tx_id: Nat; } -> async* { error: ?Text; };
+    public type Service = { tx_id: Nat; } -> async* Result<Nat, Text>;
 
     public type VoteNotFoundError = { #VoteNotFound: { vote_id: Nat }; };
     public type TransferIncident = { #TransferIncident: { incident_id: Nat }; };
@@ -122,5 +122,7 @@ module {
         vote_id: Nat;
         ballot_id: Nat;
     };
+
+    public type QueriedBallot = VoteBallotId and { ballot: BallotType; };
 
 };

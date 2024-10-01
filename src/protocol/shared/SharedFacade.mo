@@ -16,6 +16,8 @@ module {
     type VoteBallotId = Types.VoteBallotId;
     type NewVoteArgs = Types.NewVoteArgs;
     type PutBallotArgs = Types.PutBallotArgs;
+    type Account = Types.Account;
+    type QueriedBallot = Types.QueriedBallot;
 
     public class SharedFacade(controller: Controller.Controller) {
 
@@ -38,6 +40,10 @@ module {
         public func get_votes({origin: Principal;}) : [SVoteType] {
             let vote_types = controller.get_votes({origin});
             Array.map(vote_types, SharedConversions.shareVoteType);
+        };
+
+        public func get_ballots(account: Account) : [QueriedBallot] {
+            controller.get_ballots(account);
         };
 
         public func find_ballot({vote_id: VoteId; ballot_id: Nat;}) : ?BallotType {

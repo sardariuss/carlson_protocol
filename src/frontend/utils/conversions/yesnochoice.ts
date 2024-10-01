@@ -15,8 +15,8 @@ export const toEnum = (candid: YesNoChoice) : EYesNoChoice => {
 
 export const toCandid = (enumValue: EYesNoChoice) : YesNoChoice => {
   if (enumValue === EYesNoChoice.Yes) {
-    return {'YES': null};
+    return {'YES': null };
   } else {
-    return {'NO': null};
+    return {'NO': null };
   }
 }

@@ -39,17 +39,16 @@ module {
             builder: ILockInfoBuilder<V>;
             amount: Nat;
             timestamp: Time;
-        }) : Result<(Nat, V), Text> {
-
-            let key = register.index;
-            register.index := register.index + 1;
+        }) : Result<(Nat, V), Text> {         
             
+            let key = register.index;
             let result = hot_map.add_new({ map = register.map; key; builder; args = { amount; timestamp; } });
 
             switch(result){
                 case(#err(err)){ #err(err); };
                 case(#ok(elem)){
                     Set.add(register.locks, Map.nhash, key);
+                    register.index := register.index + 1;
                     #ok((key, elem));
                 };
             };

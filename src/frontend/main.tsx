@@ -2,7 +2,6 @@ import                        './styles.css';
 import                        './styles.scss';
 import App               from './components/App';
 
-import { HashRouter }    from "react-router-dom";
 import ReactDOM          from 'react-dom/client';
 import { AgentProvider } from "@ic-reactor/react";
 import { BackendActorProvider } from "./actors/BackendActor"
@@ -14,8 +13,7 @@ import { LedgerActorProvider } from './actors/LedgerActor';
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <AgentProvider withProcessEnv>
-      <HashRouter>
-       <BackendActorProvider>
+      <BackendActorProvider>
         <CkBtcActorProvider>
           <LedgerActorProvider>
             <ProtocolActorProvider>
@@ -23,8 +21,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
             </ProtocolActorProvider>
           </LedgerActorProvider>
         </CkBtcActorProvider>
-       </BackendActorProvider>
-      </HashRouter>
+      </BackendActorProvider>
     </AgentProvider>
   </React.StrictMode>
 );

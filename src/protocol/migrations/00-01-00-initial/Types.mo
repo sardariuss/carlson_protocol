@@ -9,7 +9,10 @@ import Set   "mo:map/Set";
 // use MigrationTypes.Current property instead
 module {
 
-    // From ICRC1
+    type Map<K, V> = Map.Map<K, V>;
+    type Set<K> = Set.Set<K>;
+
+    // From ICRC1    
 
     public type Account = {
         owner : Principal;
@@ -151,8 +154,9 @@ module {
 
     public type VoteRegister = {
         var index: Nat;
-        votes: Map.Map<Nat, VoteType>;
-        by_origin: Map.Map<Principal, Set.Set<Nat>>;
+        votes: Map<Nat, VoteType>;
+        by_origin: Map<Principal, Set<Nat>>;
+        user_ballots: Map<(Principal, ?Blob), Set<(Nat, Nat)>>;
     };
 
     public type VoteType = {
@@ -182,8 +186,8 @@ module {
         var aggregate: A;
         ballot_register: {
             var index: Nat;
-            map: Map.Map<Nat, Ballot<B>>;
-            locks: Set.Set<Nat>;
+            map: Map<Nat, Ballot<B>>;
+            locks: Set<Nat>;
         };
     };
 
@@ -256,7 +260,7 @@ module {
 
     public type IncidentRegister = {
         var index: Nat;
-        incidents: Map.Map<Nat, Incident>;
+        incidents: Map<Nat, Incident>;
     };
 
     public type Duration = {

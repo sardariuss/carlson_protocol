@@ -1,6 +1,7 @@
 import Types              "Types";
 import VoteTypeController "votes/VoteTypeController";
 import PayementFacade     "payement/PayementFacade";
+import MapUtils           "utils/Map";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
@@ -9,6 +10,7 @@ import Int                "mo:base/Int";
 import Buffer             "mo:base/Buffer";
 import Array              "mo:base/Array";
 import Option             "mo:base/Option";
+import Result             "mo:base/Result";
 
 module {
 
@@ -20,6 +22,8 @@ module {
     type PreviewBallotResult = Types.PreviewBallotResult;
     type VoteBallotId = Types.VoteBallotId;
     type ChoiceType = Types.ChoiceType;
+    type QueriedBallot = Types.QueriedBallot;
+    type Account = Types.Account;
 
     public type NewVoteArgs = {
         origin: Principal;
@@ -93,7 +97,27 @@ module {
 
             let put_args = { vote_type; choice_type; args = { from = { owner = caller; subaccount = from_subaccount; }; time; amount; } };
 
-            await* vote_type_controller.put_ballot(put_args);
+            let result = await* vote_type_controller.put_ballot(put_args);
+
+            Result.iterate(result, func(ballot_id: Nat) {
+                MapUtils.putInnerSet(vote_register.user_ballots, MapUtils.acchash, (caller, from_subaccount), MapUtils.nnhash, (vote_id, ballot_id));
+            });
+
+            result;
+        };
+
+        public func get_ballots(account: Account) : [QueriedBallot] {
+            let { owner; subaccount; } = account;
+            switch(Map.get(vote_register.user_ballots, MapUtils.acchash, (owner, subaccount))){
+                case(?ballots) { 
+                    Set.toArrayMap(ballots, func((vote_id, ballot_id): (Nat, Nat)) : ?QueriedBallot =
+                        Option.map(find_ballot({vote_id; ballot_id;}), func(ballot: BallotType) : QueriedBallot = 
+                            { vote_id; ballot_id; ballot; }
+                        )
+                    );
+                };
+                case(null) { [] };
+            };
         };
 
         public func try_refund_and_reward({ time: Time; }) : async* [VoteBallotId] {

@@ -24,7 +24,7 @@ module {
     public type SendPayementResult = Result<TxIndex, SendPayementError>;
 
     public type PayServiceError = ICRC2.TransferFromError or { #TransferIncident : { incident_id: Nat; }};
-    public type PayServiceResult = Result<TxIndex, PayServiceError>;
+    public type PayServiceResult = Result<Nat, PayServiceError>;
 
     public type IncidentRegister = Types.IncidentRegister;
     public type Service = Types.Service;
@@ -68,15 +68,14 @@ module {
             
             // @todo: will try/catch actually catch traps within the async* block?
             try {
-                // Deliver the service
-                let { error } = await* service({tx_id});
-                switch(error){
-                    case(?error) { 
+                // Deliver the service;
+                switch(await* service({tx_id})){
+                    case(#err(error)) { 
                         let incident = #ServiceFailed({ error; original_transfer = { tx_id; args; }; });
                         #err(#TransferIncident{incident_id = add_incident(incident); });
                     };
-                    case(null) {
-                        #ok(tx_id);
+                    case(#ok(id)) {
+                        #ok(id);
                     };
                 };
             } catch(error){

@@ -1,4 +1,5 @@
 
+import { useAuth } from "@ic-reactor/react";
 import { SYesNoVote } from "../../declarations/backend/backend.did";
 import { backendActor } from "../actors/BackendActor";
 
@@ -11,6 +12,8 @@ interface OpenGruntProps {
 function OpenGrunt({ fetchGrunts } : OpenGruntProps) {
 
   const INPUT_BOX_ID = "open-grunt-input";
+
+  const { authenticated, login } = useAuth({});
   
   const [text, setText] = useState("");
 
@@ -49,15 +52,15 @@ function OpenGrunt({ fetchGrunts } : OpenGruntProps) {
     <div className="flex flex-col w-full gap-y-1 border-y dark:border-gray-700">
       <div id={INPUT_BOX_ID} className={`input-box break-words w-full text-sm
         ${text.length > 0 ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"}`}
-        data-placeholder="Grunt it up" contentEditable="true">
+        data-placeholder="Share something that you think is true" contentEditable="true">
       </div>
-      <div className="flex flex-row space-x-2 items-center place-self-end mx-2">
+      <div className="flex flex-row space-x-2 items-center place-self-end mx-2 mb-1">
         <button 
           className="button-simple w-36 min-w-36 h-9 justify-center items-center"
           disabled={loading || text.length === 0}
-          onClick={addGrunt}
+          onClick={ () => { authenticated ? addGrunt() : login() } }
         >
-          Open grunt
+          Open
         </button>
       </div>
     </div>

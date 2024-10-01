@@ -14,8 +14,12 @@ shared({ caller = admin }) actor class Backend() = this {
     type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate> and {
         text: ?Text;
     };
+    type QueriedBallot = ProtocolTypes.QueriedBallot and {
+        text: ?Text;
+    };
+    type Account = ProtocolTypes.Account;
 
-    let _texts = Map.new<Nat, Text>();
+    stable let _texts = Map.new<Nat, Text>();
 
     public shared({ caller }) func add_grunt(text: Text) : async ?SYesNoVote {
         if (Principal.isAnonymous(caller)){
@@ -37,6 +41,13 @@ shared({ caller = admin }) actor class Backend() = this {
                     { vote with text = Map.get<Nat, Text>(_texts, Map.nhash, vote.vote_id); };
                 };
             };
+        });
+    };
+
+    public composite query func get_ballots(account: Account) : async [QueriedBallot] {
+        let ballots = await Protocol.get_ballots({ owner = account.owner; subaccount = account.subaccount; });
+        Array.map(ballots, func(ballot: ProtocolTypes.QueriedBallot) : QueriedBallot {
+            { ballot with text = Map.get<Nat, Text>(_texts, Map.nhash, ballot.vote_id); };
         });
     };
 

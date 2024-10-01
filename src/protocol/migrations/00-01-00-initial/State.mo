@@ -27,6 +27,7 @@ module {
                 var index = 0; 
                 votes = Map.new<Nat, Types.VoteType>();
                 by_origin = Map.new<Principal, Set.Set<Nat>>();
+                user_ballots = Map.new<(Principal, ?Blob), Set.Set<(Nat, Nat)>>();
             };
             deposit = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(deposit.ledger));

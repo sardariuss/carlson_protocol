@@ -17,7 +17,7 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
     type Time = Int;
-    type PayServiceResult = PayementFacade.PayServiceResult;
+    type AddDepositResult = PayementFacade.PayServiceResult;
     type RefundState = Types.RefundState;
     type DepositInfo = Types.DepositInfo;
 
@@ -63,26 +63,21 @@ module {
         public func add_deposit({
             register: LockScheduler.LockRegister<T>;
             builder: IDepositInfoBuilder<T>;
-            callback: T -> ();
+            callback: (T) -> ();
             args: AddDepositArgs;
-        }) : async* PayServiceResult {
+        }) : async* AddDepositResult {
 
             let { from; time; amount; } = args;
 
             // Define the service to be called once the payement is done
-            func service({tx_id: Nat}) : async* { error: ?Text } {
+            func service({tx_id: Nat}) : async* Result<Nat, Text> {
                 // Set the deposit information inside the element itself
                 builder.add_deposit({ tx_id; from; deposit_state = #DEPOSITED; });
                 // Add the lock for that deposit in the scheduler
-                let result = lock_scheduler.add_lock({ register; builder; amount; timestamp = time; });
-                let error = switch(result){
-                    case(#err(err)) { ?err; };
-                    case(#ok((_, deposit))) {
-                        callback(deposit);
-                        null;
-                    };
+                switch(lock_scheduler.add_lock({ register; builder; amount; timestamp = time; })){
+                    case(#ok((id, deposit))) { callback(deposit); #ok(id); };
+                    case(#err(err)){ #err(err); };
                 };
-                { error };
             };
 
             // Perform the deposit

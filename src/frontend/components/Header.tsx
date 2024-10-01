@@ -1,10 +1,12 @@
-import { Link }      from "react-router-dom";
+import { Link, useNavigate }      from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@ic-reactor/react";
 import Balance from "./Balance";
 
 
 const Header = () => {
+
+  const navigate = useNavigate();
 
   const { login, logout, authenticated, identity } = useAuth({});
 
@@ -70,11 +72,11 @@ const Header = () => {
       <div className="flex flex-row items-center justify-center md:space-x-4">
       </div>
       <div className="flex flex-row items-center justify-end md:space-x-4 space-x-2">
-        { authenticated ? 
+        { authenticated && identity ? 
           <div className="flex flex-row items-center justify-end">
             <Balance/>
-            <button type="button" onClick={() => { logout() }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
-              Log out
+            <button type="button" onClick={() => { navigate("/user/" + identity.getPrincipal()) }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
+              Profile
             </button>
           </div> :
           <button type="button" onClick={() => { login() }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
