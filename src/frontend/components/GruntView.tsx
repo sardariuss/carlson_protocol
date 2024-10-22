@@ -100,7 +100,7 @@ const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, sele
                 </div>
             }
             </div>
-            <GruntPreview vote_id={grunt.vote_id} account={account} choice={choice} amount={amount} />
+            <GruntPreview vote_id={grunt.vote_id} choice={choice} amount={amount} />
             <Grunt 
               vote_id={grunt.vote_id} 
               account={account} 
