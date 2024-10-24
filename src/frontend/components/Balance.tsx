@@ -8,6 +8,8 @@ import { ckBtcActor } from '../actors/CkBtcActor';
 import { Principal } from '@dfinity/principal';
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
 import { ledgerActor } from '../actors/LedgerActor';
+import { formatBalanceE8s } from '../utils/conversions/token';
+import { BITCOIN_TOKEN_SYMBOL, CARLSON_TOKEN_SYMBOL } from '../constants';
 
 const accountToString = (account: Account | undefined) : string =>  {
   var str = "";
@@ -36,17 +38,17 @@ const Balance = () => {
     subaccount: []
   };
 
-  const { data: ledgerBalance } = ledgerActor.useQueryCall({
+  const { data: carlsonBalance } = ledgerActor.useQueryCall({
     functionName: 'icrc1_balance_of',
     args: [account]
   });
 
-  const { call: refreshBalance, data: balance } = ckBtcActor.useQueryCall({
+  const { call: refreshBalance, data: btcBalance } = ckBtcActor.useQueryCall({
     functionName: 'icrc1_balance_of',
     args: [account]
   });
 
-  const { call: refreshAllowance, data: allowance } = ckBtcActor.useQueryCall({
+  const { call: refreshAllowance, data: btcAllowance } = ckBtcActor.useQueryCall({
     functionName: 'icrc2_allowance',
     args: [{
       account,
@@ -95,15 +97,15 @@ const Balance = () => {
     <div className="flex flex-row space-x-3">
       <div className="flex flex-row space-x-1">
         <div>Balance</div>
-        <div>{ledgerBalance?.toString() ?? "0"} GTT </div>
+        <div>{formatBalanceE8s(carlsonBalance ?? 0n, CARLSON_TOKEN_SYMBOL)}</div>
       </div>
       <div className="flex flex-row space-x-1">
         <div>Balance</div>
-        <div>{balance?.toString() ?? "0"} satoshis </div>
+        <div>{formatBalanceE8s(btcBalance ?? 0n, BITCOIN_TOKEN_SYMBOL)}</div>
       </div>
       <div className="flex flex-row space-x-1">
         <div>Allowance</div>
-        <div>{allowance?.allowance.toString()?? "0"} satoshis </div>
+        <div>{formatBalanceE8s(btcAllowance?.allowance ?? 0n, BITCOIN_TOKEN_SYMBOL)}</div>
       </div>
       <button 
         className="button-simple w-36 min-w-36 h-9 justify-center items-center"

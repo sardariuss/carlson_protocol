@@ -2,7 +2,7 @@ import { protocolActor } from "../actors/ProtocolActor";
 import { EYesNoChoice, toCandid } from "../utils/conversions/yesnochoice";
 import { useEffect } from "react";
 import { formatDuration } from "../utils/conversions/duration";
-import { DISSENT_EMOJI, DURATION_EMOJI, MINIMUM_GRUNT } from "../constants";
+import { DISSENT_EMOJI, DURATION_EMOJI } from "../constants";
 
 interface GruntProps {
   vote_id: bigint;
@@ -18,15 +18,11 @@ const GruntPreview: React.FC<GruntProps> = ({ vote_id, choice, amount }) => {
     functionName: "preview_ballot"
   });
 
-  const getAmount = () => {
-    return amount > MINIMUM_GRUNT ? amount : MINIMUM_GRUNT;
-  }
-
   useEffect(() => {
     refreshPreview([{
       vote_id,
       from_subaccount: [],
-      amount: getAmount(),
+      amount,
       choice_type: { YES_NO: toCandid(choice) },
     }]);
   }, [choice, amount]);

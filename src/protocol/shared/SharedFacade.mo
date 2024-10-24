@@ -3,6 +3,7 @@ import Controller        "../Controller";
 import SharedConversions "SharedConversions";
 
 import Array             "mo:base/Array";
+import Option            "mo:base/Option";
 
 module {
 
@@ -42,12 +43,20 @@ module {
             Array.map(vote_types, SharedConversions.shareVoteType);
         };
 
+        public func find_vote({vote_id: VoteId;}) : ?SVoteType {
+            Option.map(controller.find_vote(vote_id), SharedConversions.shareVoteType);
+        };
+
         public func get_ballots(account: Account) : [QueriedBallot] {
             controller.get_ballots(account);
         };
 
         public func find_ballot({vote_id: VoteId; ballot_id: Nat;}) : ?BallotType {
             controller.find_ballot({vote_id; ballot_id;});
+        };
+
+        public func compute_decay(time: Time) : Float {
+            controller.compute_decay(time);
         };
 
         public func get_deposit_incidents() : [(Nat, Types.Incident)] {

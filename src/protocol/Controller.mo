@@ -2,6 +2,7 @@ import Types              "Types";
 import VoteTypeController "votes/VoteTypeController";
 import PayementFacade     "payement/PayementFacade";
 import MapUtils           "utils/Map";
+import Decay              "duration/Decay";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
@@ -11,6 +12,7 @@ import Buffer             "mo:base/Buffer";
 import Array              "mo:base/Array";
 import Option             "mo:base/Option";
 import Result             "mo:base/Result";
+import Float "mo:base/Float";
 
 module {
 
@@ -45,6 +47,7 @@ module {
         vote_type_controller: VoteTypeController.VoteTypeController;
         deposit_facade: PayementFacade.PayementFacade;
         reward_facade: PayementFacade.PayementFacade;
+        decay_model: Decay.DecayModel;
     }){
 
         public func new_vote(args: NewVoteArgs) : VoteType {
@@ -141,6 +144,10 @@ module {
             });
         };
 
+        public func find_vote(vote_id: Nat) : ?VoteType {
+            Map.get(vote_register.votes, Map.nhash, vote_id);
+        };
+
         public func find_ballot({vote_id: Nat; ballot_id: Nat;}) : ?BallotType {
             
             let vote_type = switch(Map.get(vote_register.votes, Map.nhash, vote_id)){
@@ -149,6 +156,10 @@ module {
             };
 
             vote_type_controller.find_ballot({ vote_type; ballot_id; });
+        };
+
+        public func compute_decay(time: Time) : Float {
+            decay_model.compute_decay(time);
         };
 
         public func get_deposit_incidents() : [(Nat, Types.Incident)] {

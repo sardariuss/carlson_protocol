@@ -71,6 +71,7 @@ module {
             vote_type_controller;
             deposit_facade;
             reward_facade;
+            decay_model;
         });
     };
 

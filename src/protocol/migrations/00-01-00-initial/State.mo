@@ -20,9 +20,10 @@ module {
 
     public func init(args: InitArgs) : State {
 
-        let { deposit; reward; parameters; } = args;
+        let { simulated; deposit; reward; parameters; } = args;
 
         #v0_1_0({
+            simulation = if (simulated) ?{ var time_offset_ns = 0; } else { null; };
             vote_register = { 
                 var index = 0; 
                 votes = Map.new<Nat, Types.VoteType>();

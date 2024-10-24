@@ -26,7 +26,7 @@ function GruntList() {
   });
 
   return (
-    <div className="flex flex-col border-x dark:border-gray-700 bg-white dark:bg-slate-900 xl:w-1/3 lg:w-2/3 md:w-2/3 sm:w-full w-full">
+    <div className="flex flex-col border-x dark:border-gray-700 bg-white dark:bg-slate-900">
       {
         authenticated && <OpenGrunt fetchGrunts={fetchGrunts}/>
       }

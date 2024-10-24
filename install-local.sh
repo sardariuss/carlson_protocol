@@ -49,6 +49,7 @@ dfx deploy ledger --argument '( opt record {
 
 dfx deploy protocol --argument '( variant { 
   init = record {
+    simulated = true;
     deposit = record {
       ledger = principal "'${CKBTC_PRINCIPAL}'";
       fee = 10;
@@ -71,10 +72,8 @@ dfx deps pull
 dfx deps init
 dfx deps deploy internet_identity
 
-# Simulation specific
+# Minter
 dfx deploy minter
-dfx build protocolsim
-dfx canister install protocol --wasm=".dfx/local/canisters/protocolsim/protocolsim.wasm" --mode=upgrade --yes --argument='(variant {none})'
 
 # Initialize the protocol
 dfx canister call protocol init_facade

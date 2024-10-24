@@ -1,6 +1,6 @@
 import { toEnum } from "../../utils/conversions/yesnochoice";
 import { formatDuration } from "../../utils/conversions/duration";
-import { currentTime } from "../../utils/conversions/date";
+import { dateToTime } from "../../utils/conversions/date";
 import { backendActor } from "../../actors/BackendActor";
 
 import { Principal } from "@dfinity/principal";
@@ -44,7 +44,7 @@ const User = () => {
               { ballot.ballot.YES_NO.amount.toString() } sat
               { toEnum(ballot.ballot.YES_NO.choice) }
               dissent: { ballot.ballot.YES_NO.dissent }
-              Time left: { formatDuration(ballot.ballot.YES_NO.timestamp + ballot.ballot.YES_NO.duration_ns - currentTime()) }
+              Time left: { formatDuration(ballot.ballot.YES_NO.timestamp + ballot.ballot.YES_NO.duration_ns - dateToTime(new Date())) }
             </li>
           ))
         }

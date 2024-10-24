@@ -1,10 +1,16 @@
 
-// Format a time expressed in nanoseconds to a human-readable date string.
-export const timeToDate = (time: bigint): string => {
-  const date = new Date(Number(time / 1_000_000n));
+export const dateToTime = (date: Date) : bigint => {
+  return BigInt(date.getTime() * 1_000_000);
+}
+
+export const timeToDate = (time: bigint) : Date => {
+  return new Date(Number(time / 1_000_000n));
+}
+
+export const formatDateTime = (date: Date) : string => {
   return date.toLocaleString();
 }
 
-export const currentTime = (): bigint => {
-  return BigInt(Date.now() * 1_000_000);
+export const formatDate = (date: Date) : string => {
+  return date.toLocaleDateString();
 }

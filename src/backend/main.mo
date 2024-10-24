@@ -10,8 +10,9 @@ import Protocol      "canister:protocol";
 shared({ caller = admin }) actor class Backend() = this {
 
     type YesNoAggregate = ProtocolTypes.YesNoAggregate;
+    type YesNoChoice = ProtocolTypes.YesNoChoice;
     type SVoteType = ProtocolTypes.SVoteType;
-    type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate> and {
+    type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate, YesNoChoice> and {
         text: ?Text;
     };
     type QueriedBallot = ProtocolTypes.QueriedBallot and {

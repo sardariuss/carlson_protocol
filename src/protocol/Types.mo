@@ -58,6 +58,10 @@ module {
         origin: Principal;
     };
 
+    public type FindVoteArgs = {
+        vote_id: Nat;
+    };
+
     public type PutBallotArgs = {
         vote_id: Nat;
         choice_type: ChoiceType;
@@ -73,14 +77,19 @@ module {
     // SHARED TYPES
 
     public type SVoteType = {
-        #YES_NO: SVote<YesNoAggregate>;
+        #YES_NO: SVote<YesNoAggregate, YesNoChoice>;
     };
 
-    public type SVote<A> = {
+    public type SVote<A, B> = {
         vote_id: Nat;
         date: Time;
         origin: Principal;
         aggregate: A;
+        ballot_register: {
+            index: Nat;
+            map: [(Nat, Ballot<B>)];
+            locks: [Nat];
+        };
     };
 
     // CUSTOM TYPES

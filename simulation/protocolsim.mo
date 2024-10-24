@@ -44,7 +44,7 @@ shared({ caller = admin }) actor class ProtocolSim(args: MigrationTypes.Args) = 
 
     // Create a new vote
     public shared({caller}) func new_vote(args: Types.NewVoteArgs) : async Types.SVoteType {
-        getFacade().new_vote({ args with origin = caller; time = get_time(); });
+        getFacade().new_vote({ args with origin = caller; time = time(); });
     };
 
     // Get the votes of the given origin
@@ -53,18 +53,18 @@ shared({ caller = admin }) actor class ProtocolSim(args: MigrationTypes.Args) = 
     };
 
     public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.PreviewBallotResult {
-        getFacade().preview_ballot({ args with caller; time = get_time(); });
+        getFacade().preview_ballot({ args with caller; time = time(); });
     };
 
     // Add a ballot on the given vote identified by its vote_id
     public shared({caller}) func put_ballot(args: Types.PutBallotArgs) : async Types.PutBallotResult {
-        await* getFacade().put_ballot({ args with caller; time = get_time(); });
+        await* getFacade().put_ballot({ args with caller; time = time(); });
     };
 
     // Unlock the tokens if the duration is reached
     // Return the number of ballots unlocked (whether the transfers succeded or not)
     public func try_refund_and_reward() : async [Types.VoteBallotId] {
-        await* getFacade().try_refund_and_reward({ time = get_time() });
+        await* getFacade().try_refund_and_reward({ time = time() });
     };
 
     // Get the ballots of the given account
@@ -106,7 +106,11 @@ shared({ caller = admin }) actor class ProtocolSim(args: MigrationTypes.Args) = 
         Duration.fromTime(_time_offset);
     };
 
-    func get_time() : Time.Time {
+    public shared query func get_time() : async Time.Time {
+        time();
+    };
+
+    func time() : Time.Time {
         Time.now() + _time_offset;
     };
 

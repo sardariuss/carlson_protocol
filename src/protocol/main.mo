@@ -3,6 +3,7 @@ import SharedFacade   "shared/SharedFacade";
 import Factory        "Factory";
 import MigrationTypes "migrations/Types";
 import Migrations     "migrations/Migrations";
+import Duration       "duration/Duration";
 
 import Time           "mo:base/Time";
 import Principal      "mo:base/Principal";
@@ -43,7 +44,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
 
     // Create a new vote
     public shared({caller}) func new_vote(args: Types.NewVoteArgs) : async Types.SVoteType {
-        getFacade().new_vote({ args with origin = caller; time = Time.now(); });
+        getFacade().new_vote({ args with origin = caller; time = _time(); });
     };
 
     // Get the votes of the given origin
@@ -51,19 +52,23 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_votes(args);
     };
 
+    public query func find_vote(args: Types.FindVoteArgs) : async ?Types.SVoteType {
+        getFacade().find_vote(args);
+    };
+
     public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.PreviewBallotResult {
-        getFacade().preview_ballot({ args with caller; time = Time.now(); });
+        getFacade().preview_ballot({ args with caller; time = _time(); });
     };
 
     // Add a ballot on the given vote identified by its vote_id
     public shared({caller}) func put_ballot(args: Types.PutBallotArgs) : async Types.PutBallotResult {
-        await* getFacade().put_ballot({ args with caller; time = Time.now(); });
+        await* getFacade().put_ballot({ args with caller; time = _time(); });
     };
 
     // Unlock the tokens if the duration is reached
     // Return the number of ballots unlocked (whether the transfers succeded or not)
     public func try_refund_and_reward() : async [Types.VoteBallotId] {
-        await* getFacade().try_refund_and_reward({ time = Time.now() });
+        await* getFacade().try_refund_and_reward({ time = _time() });
     };
 
     // Get the ballots of the given account
@@ -74,6 +79,10 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     // Find a ballot by its vote_id and ballot_id
     public query func find_ballot(args: Types.VoteBallotId) : async ?Types.BallotType {
         getFacade().find_ballot(args);
+    };
+
+    public query func compute_decay({ time: Time.Time }) : async Float {
+        getFacade().compute_decay(time);
     };
 
     // Get the failed refunds for the given principal
@@ -91,6 +100,46 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
             case (null) { Debug.trap("The facade is not initialized"); };
             case (?c) { c; };
         };
+    };
+
+    // SIMULATION METHODS
+
+    public shared func add_time_offset(duration: Duration.Duration) : async () {
+        _add_time_offset(Duration.toTime(duration));
+    };
+
+    public query func get_time_offset() : async Duration.Duration {
+        Duration.fromTime(_get_time_offset());
+    };
+
+    public query func get_time() : async Time.Time {
+        _time();
+    };
+
+    func _get_time_offset() : Time.Time {
+        switch(_state){
+            case(#v0_1_0(stable_data)) { 
+                switch(stable_data.simulation){
+                    case(?simulation) { simulation.time_offset_ns; };
+                    case(null) { Debug.trap("The simulation is not enabled"); };
+                };
+            };
+        };
+    };
+
+    func _add_time_offset(offset: Time.Time) {
+        switch(_state){
+            case(#v0_1_0(stable_data)) { 
+                switch(stable_data.simulation){
+                    case(?simulation) { simulation.time_offset_ns += offset; };
+                    case(null) { Debug.trap("The simulation is not enabled"); };
+                };
+            };
+        };
+    };
+
+    func _time() : Time.Time {
+        Time.now() + _get_time_offset();
     };
 
 };

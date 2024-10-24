@@ -3,9 +3,11 @@ import { SYesNoVote } from "@/declarations/backend/backend.did";
 import Grunt from "./Grunt";
 import { useEffect, useState } from "react";
 import { EYesNoChoice } from "../utils/conversions/yesnochoice";
-import { SATOSHI_SYMBOL } from "../constants";
+import { BITCOIN_TOKEN_SYMBOL } from "../constants";
 import GruntPreview from "./GruntPreview";
-import { timeToDate } from "../utils/conversions/duration";
+import { formatDateTime, timeToDate } from "../utils/conversions/date";
+import VoteChart from "./VoteChart";
+import { formatBalanceE8s } from "../utils/conversions/token";
 
 const LIMIT_DISPLAY_PERCENTAGE = 20;
 
@@ -20,16 +22,20 @@ interface GruntViewProps {
 const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, selected, setSelected }) => {
 
   const [choice, setChoice] = useState<EYesNoChoice>(EYesNoChoice.Yes);
-  const [amount, setAmount] = useState<bigint>(0n);
+  const [amount, setAmount] = useState<bigint | undefined>(undefined);
 
-  const getTotalSide = (side: EYesNoChoice) => {
+  const getAmount = () => {
+    return amount ?? 0n;
+  }
+
+  const getTotalSide = (side: EYesNoChoice) : bigint => {
     var total_side = side === EYesNoChoice.Yes ? grunt.aggregate.total_yes : grunt.aggregate.total_no;
-    total_side += (choice === side ? amount : 0n);
+    total_side += (choice === side ? getAmount() : 0n);
     return total_side;
   }
 
   const getPercentage = (side: EYesNoChoice) => {
-    const total = Number(grunt.aggregate.total_yes + grunt.aggregate.total_no + amount);
+    const total = Number(grunt.aggregate.total_yes + grunt.aggregate.total_no + getAmount());
     if (total === 0) {
       throw new Error("Total number of votes is null");
     }
@@ -65,11 +71,14 @@ const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, sele
       <div className="grid grid-cols-5 grid-gap-2 justify-items-center" onClick={(e) => { setSelected(selected === grunt.vote_id ? null : grunt.vote_id) }}>
         <div className="col-span-4 justify-self-start">{grunt.text}</div>
         <div className="flex flex-row space-x-1">
-          <div className={selected === grunt.vote_id && amount > 0 ? `animate-pulse` : ``}>{getResult()}</div>
+          <div className={selected === grunt.vote_id && getAmount() > 0n ? `animate-pulse` : ``}>{getResult()}</div>
         </div>
       </div>
       <div>
-        { timeToDate(grunt.date) }
+        { formatDateTime(timeToDate(grunt.date)) }
+      </div>
+      <div className="flex m-10 h-[20rem] w-[50rem]">
+        <VoteChart voteId={grunt.vote_id}/>
       </div>
       {
         selected === grunt.vote_id && grunt.vote_id !== undefined && account !== undefined && (
@@ -81,8 +90,8 @@ const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, sele
                   style={{ width: `${getPercentage(EYesNoChoice.Yes) + "%"}`, height: '1rem' }}
                   onClick={() => setChoice(EYesNoChoice.Yes)}>
                   { getPercentage(EYesNoChoice.Yes) > LIMIT_DISPLAY_PERCENTAGE ? (
-                    <span className={choice === EYesNoChoice.Yes && amount > 0 ? `animate-pulse` : ``}>
-                      { SATOSHI_SYMBOL + " " + getTotalSide(EYesNoChoice.Yes).toString()} Yes
+                    <span className={choice === EYesNoChoice.Yes && getAmount() > 0n ? `animate-pulse` : ``}>
+                      { formatBalanceE8s(getTotalSide(EYesNoChoice.Yes), BITCOIN_TOKEN_SYMBOL)} Yes
                     </span>
                   ) : null}
                 </div>
@@ -93,14 +102,14 @@ const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, sele
                   style={{ width: `${getPercentage(EYesNoChoice.No) + "%"}`, height: '1rem' }}
                   onClick={() => setChoice(EYesNoChoice.No)}>
                   { getPercentage(EYesNoChoice.No) > LIMIT_DISPLAY_PERCENTAGE ? (
-                    <span className={choice === EYesNoChoice.No && amount > 0 ? `animate-pulse` : ``}>
-                      { SATOSHI_SYMBOL + " " + getTotalSide(EYesNoChoice.No).toString()} No
+                    <span className={choice === EYesNoChoice.No && getAmount() > 0n ? `animate-pulse` : ``}>
+                      { formatBalanceE8s(getTotalSide(EYesNoChoice.No), BITCOIN_TOKEN_SYMBOL)} No
                     </span>
                   ) : null}
                 </div>
             }
             </div>
-            <GruntPreview vote_id={grunt.vote_id} choice={choice} amount={amount} />
+            <GruntPreview vote_id={grunt.vote_id} choice={choice} amount={getAmount()} />
             <Grunt 
               vote_id={grunt.vote_id} 
               account={account} 

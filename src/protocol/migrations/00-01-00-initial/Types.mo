@@ -280,6 +280,7 @@ module {
     };
 
     public type InitArgs = {
+        simulated: Bool;
         deposit: {
             ledger: Principal;
             fee: Nat;
@@ -299,6 +300,9 @@ module {
     };
 
     public type State = {
+        simulation: ?{
+            var time_offset_ns: Time;
+        };
         vote_register: VoteRegister;
         deposit: {
             ledger: ICRC1 and ICRC2;
