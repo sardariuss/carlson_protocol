@@ -55,7 +55,6 @@ const getRandomGrunt = () => {
 async function callCanisterMethod() {
     
     // Import the IDL factory dynamically
-    const { idlFactory: protocolSimFactory } = await import("../../.dfx/local/canisters/protocolsim/service.did.js");
     const { idlFactory: protocolFactory } = await import("../../.dfx/local/canisters/protocol/service.did.js");
     const { idlFactory: minterFactory } = await import("../../.dfx/local/canisters/minter/service.did.js");
     const { idlFactory: backendFactory } = await import("../../.dfx/local/canisters/backend/service.did.js");
@@ -75,9 +74,9 @@ async function callCanisterMethod() {
 
     let simIdentity = Ed25519KeyIdentity.generate();
 
-    let protocolSimActor = await getActor(protocolCanisterId, protocolSimFactory, simIdentity);
-    if (protocolSimActor === null) {
-        throw new Error("ProtocolSim actor is null");
+    let protocolActor = await getActor(protocolCanisterId, protocolFactory, simIdentity);
+    if (protocolActor === null) {
+        throw new Error("Protocol actor is null");
     }
 
     let backendSimActor = await getActor(backendCanisterId, backendFactory, simIdentity);
@@ -186,12 +185,12 @@ async function callCanisterMethod() {
         }
 
         await Promise.all(putBallotPromises);
-        await protocolSimActor.add_time_offset(SCENARIO_TICK_DURATION);
-        await protocolSimActor.try_refund_and_reward();
+        await protocolActor.add_time_offset(SCENARIO_TICK_DURATION);
+        await protocolActor.try_refund_and_reward();
         tick++;
     }
 
-    protocolSimActor.get_time_offset().then((result) => {
+    protocolActor.get_time_offset().then((result) => {
         console.log('Scenario time offset:', toNs(result));
     });
 }

@@ -40,10 +40,6 @@
     "minter": {
       "main": "simulation/minter.mo",
       "type": "motoko"
-    },
-    "protocolsim": {
-      "main": "simulation/protocolsim.mo",
-      "type": "motoko"
     }
   },
   "defaults": {
