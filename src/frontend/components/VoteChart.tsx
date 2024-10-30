@@ -24,11 +24,11 @@ enum ERange {
   YEAR,
 };
 
-const CHART_CONFIGURATIONS = new Map<ERange, { interval: bigint, tick: bigint, format: (date: Date) => string }>([
-  [ERange.DAY,   { interval: days(1),   tick: minutes(5), format: (date: Date) => format(date,                                     "HH:mm")} ],
-  [ERange.WEEK,  { interval: weeks(1),  tick: hours(12),  format: (date: Date) => format(date, date.getHours() === 0 ? "dd MMM" : "HH:mm" )} ],
-  [ERange.MONTH, { interval: months(1), tick: days(2),    format: (date: Date) => format(date,                                    "dd MMM")} ],
-  [ERange.YEAR,  { interval: years(1),  tick: months(1),  format: (date: Date) => format(date,                                   "MMM 'yy")} ],
+const CHART_CONFIGURATIONS = new Map<ERange, { interval: bigint, sample: bigint, tick: bigint, format: (date: Date) => string }>([
+  [ERange.DAY,   { interval: days(1),   sample: minutes(5),  tick: hours(2),  format: (date: Date) => format(date,                                     "HH:mm")} ],
+  [ERange.WEEK,  { interval: weeks(1),  sample: minutes(15), tick: hours(12), format: (date: Date) => format(date, date.getHours() === 0 ? "dd MMM" : "HH:mm" )} ],
+  [ERange.MONTH, { interval: months(1), sample: hours(1),    tick: days(2),   format: (date: Date) => format(date,                                    "dd MMM")} ],
+  [ERange.YEAR,  { interval: years(1),  sample: days(1),     tick: months(1), format: (date: Date) => format(date,                                   "MMM 'yy")} ],
 ]);
 
 type ChartData = AreaBumpSerie<{
@@ -50,9 +50,12 @@ interface CumulateBetweenDatesArgs {
 
 interface VoteChartrops {
   voteId: bigint;
+  range: ERange;
 }
 
-const VoteChart: React.FC<VoteChartrops> = ({ voteId }) => {
+const VoteChart: React.FC<VoteChartrops> = ({ voteId, range }) => {
+
+  const { interval, sample, tick, format: dateFormat } = CHART_CONFIGURATIONS.get(range)!;
 
   const { data: vote } = protocolActor.useQueryCall({
     functionName: "find_vote",
@@ -201,177 +204,177 @@ const VoteChart: React.FC<VoteChartrops> = ({ voteId }) => {
   // Assuming `data` is an array of your date values
   const reducedTickValues = data[0]?.data.map((d) => d.x).filter((_, i) => i % 5 === 0);
 
-    return (
-      <div style={{ position: 'relative' }} className="h-[20rem] w-[50rem]">
-        <ResponsiveAreaBump
-          enableGridX={false}
-          startLabel={false}
-          endLabel={true}
-          align= "end"
-          data={data}
-          margin={{ top: 40, right: 100, bottom: 40, left: 100 }}
-          spacing={0}
-          colors={["#4CAF50", "#F44336"]} // Green for YES, Red for NO
-          blendMode="multiply"
-          borderColor={{
-              from: 'color',
-              modifiers: [['darker', 0.7]]
-          }}
-          axisTop={null}
-          axisBottom={{
-            tickSize: 5,
-            tickPadding: 5,
-            tickRotation: 0,
-            tickValues: reducedTickValues,
-            legend: '',
-            legendPosition: 'middle',
-            legendOffset: 64,
-            renderTick: ({ x, y, value }) => (
-              <g transform={`translate(${x},${y})`}>
-                <text
-                  x={0}
-                  y={16}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  style={{
-                    fontSize: '14px',
-                    fill: 'gray',
-                  }}
-                >
-                  { new Date(value).toLocaleDateString() }
-                </text>
-              </g>
-            ),
-          }}
-          theme={{
-            background: "#ffffff",
-            text: {
-              fontSize: 11,
-              fill: "#333333",
-              outlineWidth: 0,
-              outlineColor: "transparent"
-            },
-            axis: {
-              domain: {
-                line: {
-                  stroke: "#777777",
-                  strokeWidth: 1
-                }
-              },
-              legend: {
-                text: {
-                  fontSize: 12,
-                  fill: "#333333",
-                  outlineWidth: 0,
-                  outlineColor: "transparent"
-                }
-              },
-              ticks: {
-                line: {
-                  stroke: "#777777",
-                  strokeWidth: 1
-                },
-                text: {
-                  fontSize: 11,
-                  fill: "#333333",
-                  outlineWidth: 0,
-                  outlineColor: "transparent"
-                }
-              }
-            },
-            grid: {
+  return (
+    <div style={{ position: 'relative' }} className="h-[20rem] w-[50rem]">
+      <ResponsiveAreaBump
+        enableGridX={false}
+        startLabel={false}
+        endLabel={true}
+        align= "end"
+        data={data}
+        margin={{ top: 40, right: 100, bottom: 40, left: 100 }}
+        spacing={0}
+        colors={["#4CAF50", "#F44336"]} // Green for YES, Red for NO
+        blendMode="multiply"
+        borderColor={{
+            from: 'color',
+            modifiers: [['darker', 0.7]]
+        }}
+        axisTop={null}
+        axisBottom={{
+          tickSize: 5,
+          tickPadding: 5,
+          tickRotation: 0,
+          tickValues: reducedTickValues,
+          legend: '',
+          legendPosition: 'middle',
+          legendOffset: 64,
+          renderTick: ({ x, y, value }) => (
+            <g transform={`translate(${x},${y})`}>
+              <text
+                x={0}
+                y={16}
+                textAnchor="middle"
+                dominantBaseline="central"
+                style={{
+                  fontSize: '14px',
+                  fill: 'gray',
+                }}
+              >
+                { new Date(value).toLocaleDateString() }
+              </text>
+            </g>
+          ),
+        }}
+        theme={{
+          background: "#ffffff",
+          text: {
+            fontSize: 11,
+            fill: "#333333",
+            outlineWidth: 0,
+            outlineColor: "transparent"
+          },
+          axis: {
+            domain: {
               line: {
-                stroke: "#dddddd",
+                stroke: "#777777",
                 strokeWidth: 1
               }
             },
-            legends: {
-              title: {
-                text: {
-                  fontSize: 11,
-                  fill: "#333333",
-                  outlineWidth: 0,
-                  outlineColor: "transparent"
-                }
+            legend: {
+              text: {
+                fontSize: 12,
+                fill: "#333333",
+                outlineWidth: 0,
+                outlineColor: "transparent"
+              }
+            },
+            ticks: {
+              line: {
+                stroke: "#777777",
+                strokeWidth: 1
               },
               text: {
                 fontSize: 11,
                 fill: "#333333",
                 outlineWidth: 0,
                 outlineColor: "transparent"
-              },
-              ticks: {
-                line: {},
-                text: {
-                  fontSize: 10,
-                  fill: "#333333",
-                  outlineWidth: 0,
-                  outlineColor: "transparent"
-                }
               }
-            },
-            annotations: {
+            }
+          },
+          grid: {
+            line: {
+              stroke: "#dddddd",
+              strokeWidth: 1
+            }
+          },
+          legends: {
+            title: {
               text: {
-                fontSize: 13,
+                fontSize: 11,
                 fill: "#333333",
-                outlineWidth: 2,
-                outlineColor: "#ffffff",
-                outlineOpacity: 1
-              },
-              link: {
-                stroke: "#000000",
-                strokeWidth: 1,
-                outlineWidth: 2,
-                outlineColor: "#ffffff",
-                outlineOpacity: 1
-              },
-              outline: {
-                stroke: "#000000",
-                strokeWidth: 2,
-                outlineWidth: 2,
-                outlineColor: "#ffffff",
-                outlineOpacity: 1
-              },
-              symbol: {
-                fill: "#000000",
-                outlineWidth: 2,
-                outlineColor: "#ffffff",
-                outlineOpacity: 1
+                outlineWidth: 0,
+                outlineColor: "transparent"
               }
             },
-            tooltip: {
-              wrapper: {},
-              container: {
-                background: "#ffffff",
-                color: "#333333",
-                fontSize: 12
-              },
-              basic: {},
-              chip: {},
-              table: {},
-              tableCell: {},
-              tableCellValue: {}
+            text: {
+              fontSize: 11,
+              fill: "#333333",
+              outlineWidth: 0,
+              outlineColor: "transparent"
+            },
+            ticks: {
+              line: {},
+              text: {
+                fontSize: 10,
+                fill: "#333333",
+                outlineWidth: 0,
+                outlineColor: "transparent"
+              }
             }
-          }}
-        />
-        <div style={{ position: 'absolute', top: 40, right: 99, bottom: 40, left: 99 }} className="flex flex-col border-l">
-          <div className="flex flex-col w-full h-full">
-            {
-              priceLevels.slice().reverse().map((price, index) => (
-                (index < (priceLevels.length - 1)) ? 
-                  <div className="flex flex-col w-full h-full">
-                    <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
-                      <div className="text-xs text-gray-500" style={{ position: 'absolute', left: -50, bottom: -7 }}>{ formatBalanceE8s(BigInt(price), "") }</div>
-                      <div className="flex w-full h-[1px] bg-gray-500 opacity-10"/>
-                    </div>
-                  </div>  
-                  : <></>
-              ))
+          },
+          annotations: {
+            text: {
+              fontSize: 13,
+              fill: "#333333",
+              outlineWidth: 2,
+              outlineColor: "#ffffff",
+              outlineOpacity: 1
+            },
+            link: {
+              stroke: "#000000",
+              strokeWidth: 1,
+              outlineWidth: 2,
+              outlineColor: "#ffffff",
+              outlineOpacity: 1
+            },
+            outline: {
+              stroke: "#000000",
+              strokeWidth: 2,
+              outlineWidth: 2,
+              outlineColor: "#ffffff",
+              outlineOpacity: 1
+            },
+            symbol: {
+              fill: "#000000",
+              outlineWidth: 2,
+              outlineColor: "#ffffff",
+              outlineOpacity: 1
             }
-          </div>
+          },
+          tooltip: {
+            wrapper: {},
+            container: {
+              background: "#ffffff",
+              color: "#333333",
+              fontSize: 12
+            },
+            basic: {},
+            chip: {},
+            table: {},
+            tableCell: {},
+            tableCellValue: {}
+          }
+        }}
+      />
+      <div style={{ position: 'absolute', top: 40, right: 99, bottom: 40, left: 99 }} className="flex flex-col border-l">
+        <div className="flex flex-col w-full h-full">
+          {
+            priceLevels.slice().reverse().map((price, index) => (
+              (index < (priceLevels.length - 1)) ? 
+                <div className="flex flex-col w-full h-full">
+                  <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
+                    <div className="text-xs text-gray-500" style={{ position: 'absolute', left: -50, bottom: -7 }}>{ formatBalanceE8s(BigInt(price), "") }</div>
+                    <div className="flex w-full h-[1px] bg-gray-500 opacity-10"/>
+                  </div>
+                </div>  
+                : <></>
+            ))
+          }
         </div>
       </div>
-    );
+    </div>
+  );
 }
 
 export default VoteChart;
