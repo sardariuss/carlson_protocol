@@ -5,9 +5,31 @@ import { Ballot } from "@/declarations/protocol/protocol.did";
 import { EYesNoChoice, toEnum } from "../utils/conversions/yesnochoice";
 import { AreaBumpSerie, ResponsiveAreaBump } from "@nivo/bump";
 import { formatBalanceE8s } from "../utils/conversions/token";
+import { format } from "date-fns";
 
 // one day in nanoseconds
 const INTERPOLATION_STEP = 24n * 60n * 60n * 1_000_000_000n;
+
+const minutes = (n: number) => BigInt(n) * 60n  * 1_000_000_000n;
+const hours   = (n: number) => BigInt(n) * 60n  * minutes(1);
+const days    = (n: number) => BigInt(n) * 24n  * hours(1);
+const weeks   = (n: number) => BigInt(n) * 7n   * days(1);
+const months  = (n: number) => BigInt(n) * 30n  * days(1);
+const years   = (n: number) => BigInt(n) * 365n * days(1);
+
+enum ERange {
+  DAY,
+  WEEK,
+  MONTH,
+  YEAR,
+};
+
+const CHART_CONFIGURATIONS = new Map<ERange, { interval: bigint, tick: bigint, format: (date: Date) => string }>([
+  [ERange.DAY,   { interval: days(1),   tick: minutes(5), format: (date: Date) => format(date,                                     "HH:mm")} ],
+  [ERange.WEEK,  { interval: weeks(1),  tick: hours(12),  format: (date: Date) => format(date, date.getHours() === 0 ? "dd MMM" : "HH:mm" )} ],
+  [ERange.MONTH, { interval: months(1), tick: days(2),    format: (date: Date) => format(date,                                    "dd MMM")} ],
+  [ERange.YEAR,  { interval: years(1),  tick: months(1),  format: (date: Date) => format(date,                                   "MMM 'yy")} ],
+]);
 
 type ChartData = AreaBumpSerie<{
   x: number;
@@ -177,10 +199,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ voteId }) => {
   , [vote, currentTime]);
 
   // Assuming `data` is an array of your date values
-  const reducedTickValues = data
-    .map(d => d.data);
-
-  console.log(reducedTickValues);
+  const reducedTickValues = data[0]?.data.map((d) => d.x).filter((_, i) => i % 5 === 0);
 
     return (
       <div style={{ position: 'relative' }} className="h-[20rem] w-[50rem]">
@@ -206,17 +225,17 @@ const VoteChart: React.FC<VoteChartrops> = ({ voteId }) => {
             tickValues: reducedTickValues,
             legend: '',
             legendPosition: 'middle',
-            legendOffset: 32,
+            legendOffset: 64,
             renderTick: ({ x, y, value }) => (
               <g transform={`translate(${x},${y})`}>
                 <text
                   x={0}
-                  y={0}
+                  y={16}
                   textAnchor="middle"
                   dominantBaseline="central"
                   style={{
                     fontSize: '14px',
-                    fill: 'black',
+                    fill: 'gray',
                   }}
                 >
                   { new Date(value).toLocaleDateString() }
@@ -335,17 +354,18 @@ const VoteChart: React.FC<VoteChartrops> = ({ voteId }) => {
             }
           }}
         />
-        <div style={{ position: 'absolute', top: 40, right: 99, bottom: 40, left: 99 }} className="flex flex-col border-x">
+        <div style={{ position: 'absolute', top: 40, right: 99, bottom: 40, left: 99 }} className="flex flex-col border-l">
           <div className="flex flex-col w-full h-full">
             {
               priceLevels.slice().reverse().map((price, index) => (
-                <>
-                  <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
-                    <div className="text-xs text-gray-500" style={{ position: 'absolute', left: -50, bottom: -7 }}>{ formatBalanceE8s(BigInt(price), "") }</div>
-                    <div className="flex w-full h-[1px] bg-gray-500 opacity-10"/>
-                  </div>
-                  { index < (priceLevels.length - 1) ? <div className="flex w-full h-full"></div> : null }
-                </>
+                (index < (priceLevels.length - 1)) ? 
+                  <div className="flex flex-col w-full h-full">
+                    <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
+                      <div className="text-xs text-gray-500" style={{ position: 'absolute', left: -50, bottom: -7 }}>{ formatBalanceE8s(BigInt(price), "") }</div>
+                      <div className="flex w-full h-[1px] bg-gray-500 opacity-10"/>
+                    </div>
+                  </div>  
+                  : <></>
               ))
             }
           </div>
