@@ -8,8 +8,14 @@ import GruntPreview from "./GruntPreview";
 import { formatDateTime, timeToDate } from "../utils/conversions/date";
 import VoteChart from "./VoteChart";
 import { formatBalanceE8s } from "../utils/conversions/token";
+import { CursorSlider } from "./CursorSlider";
 
 const LIMIT_DISPLAY_PERCENTAGE = 20;
+
+type BallotInfo = {
+  choice: EYesNoChoice;
+  amount: bigint | undefined;
+};
 
 interface GruntViewProps {
   grunt: SYesNoVote;
@@ -21,16 +27,15 @@ interface GruntViewProps {
 
 const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, selected, setSelected }) => {
 
-  const [choice, setChoice] = useState<EYesNoChoice>(EYesNoChoice.Yes);
-  const [amount, setAmount] = useState<bigint | undefined>(undefined);
+  const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
 
   const getAmount = () => {
-    return amount ?? 0n;
+    return ballot.amount ?? 0n;
   }
 
   const getTotalSide = (side: EYesNoChoice) : bigint => {
     var total_side = side === EYesNoChoice.Yes ? grunt.aggregate.total_yes : grunt.aggregate.total_no;
-    total_side += (choice === side ? getAmount() : 0n);
+    total_side += (ballot.choice === side ? getAmount() : 0n);
     return total_side;
   }
 
@@ -56,8 +61,15 @@ const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, sele
   }
 
   const resetGrunt = () => {
-    setChoice(EYesNoChoice.Yes);
-    setAmount(0n);
+    setBallot({ choice: EYesNoChoice.Yes, amount: 0n });
+  }
+
+  const setChoice = (choice: EYesNoChoice) => {
+    setBallot({ choice, amount: getAmount() });
+  }
+
+  const setAmount = (amount: bigint | undefined) => {
+    setBallot({ choice: ballot.choice, amount });
   }
 
   useEffect(() => {
@@ -80,17 +92,18 @@ const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, sele
       <div className="flex m-10 h-[20rem] w-[50rem]">
         <VoteChart voteId={grunt.vote_id}/>
       </div>
+      <CursorSlider id={grunt.vote_id} disabled={false} grunt={grunt} ballot={ballot} setBallot={setBallot} onMouseUp={() => {}} onMouseDown={() => {}}/>
       {
         selected === grunt.vote_id && grunt.vote_id !== undefined && account !== undefined && (
           <div className="flex flex-col space-y-2">
             <div className="flex w-full rounded-sm overflow-hidden" style={{ height: '1rem' }}>
             {
               getTotalSide(EYesNoChoice.Yes) > 0 &&
-                <div className={`text-xs font-medium text-center p-0.5 leading-none text-white bg-green-500 hover:border border-green-200 ${choice === EYesNoChoice.Yes ? 'border' : ''}`}
+                <div className={`text-xs font-medium text-center p-0.5 leading-none text-white bg-green-500 hover:border border-green-200 ${ballot.choice === EYesNoChoice.Yes ? 'border' : ''}`}
                   style={{ width: `${getPercentage(EYesNoChoice.Yes) + "%"}`, height: '1rem' }}
                   onClick={() => setChoice(EYesNoChoice.Yes)}>
                   { getPercentage(EYesNoChoice.Yes) > LIMIT_DISPLAY_PERCENTAGE ? (
-                    <span className={choice === EYesNoChoice.Yes && getAmount() > 0n ? `animate-pulse` : ``}>
+                    <span className={ballot.choice === EYesNoChoice.Yes && getAmount() > 0n ? `animate-pulse` : ``}>
                       { formatBalanceE8s(getTotalSide(EYesNoChoice.Yes), BITCOIN_TOKEN_SYMBOL)} Yes
                     </span>
                   ) : null}
@@ -98,25 +111,25 @@ const GruntView: React.FC<GruntViewProps> = ({ grunt, fetchGrunts, account, sele
             }
             {
               getTotalSide(EYesNoChoice.No) > 0 &&    
-                <div className={`text-xs font-medium text-center p-0.5 leading-none text-white bg-red-500 hover:border border-red-200 ${choice === EYesNoChoice.No ? 'border' : ''}`}
+                <div className={`text-xs font-medium text-center p-0.5 leading-none text-white bg-red-500 hover:border border-red-200 ${ballot.choice === EYesNoChoice.No ? 'border' : ''}`}
                   style={{ width: `${getPercentage(EYesNoChoice.No) + "%"}`, height: '1rem' }}
                   onClick={() => setChoice(EYesNoChoice.No)}>
                   { getPercentage(EYesNoChoice.No) > LIMIT_DISPLAY_PERCENTAGE ? (
-                    <span className={choice === EYesNoChoice.No && getAmount() > 0n ? `animate-pulse` : ``}>
+                    <span className={ballot.choice === EYesNoChoice.No && getAmount() > 0n ? `animate-pulse` : ``}>
                       { formatBalanceE8s(getTotalSide(EYesNoChoice.No), BITCOIN_TOKEN_SYMBOL)} No
                     </span>
                   ) : null}
                 </div>
             }
             </div>
-            <GruntPreview vote_id={grunt.vote_id} choice={choice} amount={getAmount()} />
+            <GruntPreview vote_id={grunt.vote_id} choice={ballot.choice} amount={getAmount()} />
             <Grunt 
               vote_id={grunt.vote_id} 
               account={account} 
               fetchGrunts={fetchGrunts} 
-              choice={choice} 
+              choice={ballot.choice} 
               setChoice={setChoice} 
-              amount={amount} 
+              amount={ballot.amount} 
               setAmount={setAmount}
               resetGrunt={resetGrunt}
             />
