@@ -1,11 +1,9 @@
 import { protocolActor } from "../actors/ProtocolActor";
-import { Account } from "@/declarations/wallet/wallet.did";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { EYesNoChoice, toCandid } from "../utils/conversions/yesnochoice";
-import { useEffect, useState } from "react";
-import { PutBallotArgs } from "@/declarations/protocol/protocol.did";
+import { Account } from "@/declarations/protocol/protocol.did";
 import { BITCOIN_TOKEN_SYMBOL, MINIMUM_GRUNT } from "../constants";
-import { formatBalanceE8s, fromE8s, toE8s } from "../utils/conversions/token";
+import { formatBalanceE8s, toE8s } from "../utils/conversions/token";
 
 interface GruntProps {
   vote_id: bigint;

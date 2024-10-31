@@ -79,5 +79,6 @@ dfx deploy minter
 dfx canister call protocol init_facade
 
 # Frontend
-dfx generate
+dfx generate backend
+dfx generate ledger
 dfx deploy frontend

@@ -52,7 +52,7 @@ function OpenGrunt({ fetchGrunts } : OpenGruntProps) {
     <div className="flex flex-col w-full gap-y-1 border-y dark:border-gray-700">
       <div id={INPUT_BOX_ID} className={`input-box break-words w-full text-sm
         ${text.length > 0 ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"}`}
-        data-placeholder="Share something that you think is true" contentEditable="true">
+        data-placeholder="Share something that you believe is true." contentEditable="true">
       </div>
       <div className="flex flex-row space-x-2 items-center place-self-end mx-2 mb-1">
         <button 

@@ -1,4 +1,4 @@
-import { Account } from "@/declarations/wallet/wallet.did";
+import { Account } from "@/declarations/protocol/protocol.did";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import Grunt from "./Grunt";
 import { useEffect, useState } from "react";
