@@ -1,4 +1,28 @@
 
+export enum DurationUnit {
+  NS,
+  SECOND,
+  MINUTE,
+  HOUR,
+  DAY,
+  WEEK,
+  MONTH,
+  YEAR,
+};
+
+export const toNs = (duration: number, unit: DurationUnit): bigint => {
+  switch (unit) {
+    case DurationUnit.NS:     return BigInt(duration);
+    case DurationUnit.SECOND: return BigInt(duration) * 1_000_000_000n;
+    case DurationUnit.MINUTE: return BigInt(duration) * 60n * 1_000_000_000n;
+    case DurationUnit.HOUR:   return BigInt(duration) * 60n * 60n * 1_000_000_000n;
+    case DurationUnit.DAY:    return BigInt(duration) * 24n * 60n * 60n * 1_000_000_000n;
+    case DurationUnit.WEEK:   return BigInt(duration) * 7n * 24n * 60n * 60n * 1_000_000_000n;
+    case DurationUnit.MONTH:  return BigInt(duration) * 30n * 24n * 60n * 60n * 1_000_000_000n;
+    case DurationUnit.YEAR:   return BigInt(duration) * 365n * 24n * 60n * 60n * 1_000_000_000n;
+  }
+}
+
 export const formatDuration = (ns: bigint): string => {
   const SECONDS_IN_NS = 1_000_000_000n;
   const MINUTES_IN_NS = 60n * SECONDS_IN_NS;

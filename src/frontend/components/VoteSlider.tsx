@@ -4,11 +4,7 @@ import { EYesNoChoice } from '../utils/conversions/yesnochoice';
 import { useEffect, useRef, useState } from 'react';
 import { formatBalanceE8s } from '../utils/conversions/token';
 import { BITCOIN_TOKEN_SYMBOL } from '../constants';
-
-type BallotInfo = {
-  choice: EYesNoChoice;
-  amount: bigint | undefined;
-};
+import { BallotInfo } from './types';
 
 const CURSOR_HEIGHT = "1rem";
 const LIMIT_DISPLAY_RATIO = 0.2; // 20%
@@ -104,7 +100,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
         max="1"
         step="0.01"
         type="range"
-        defaultValue={initCursor}
+        defaultValue={initCursor.toString()}
         onFocus={() => setIsActive(true)}
         onBlur={() => setIsActive(false)}
         onChange={(e) => updateBallot(Number(e.target.value))}
