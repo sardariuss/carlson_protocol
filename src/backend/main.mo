@@ -22,7 +22,7 @@ shared({ caller = admin }) actor class Backend() = this {
 
     stable let _texts = Map.new<Nat, Text>();
 
-    public shared({ caller }) func add_grunt(text: Text) : async ?SYesNoVote {
+    public shared({ caller }) func new_vote(text: Text) : async ?SYesNoVote {
         if (Principal.isAnonymous(caller)){
             return null;
         };
@@ -34,7 +34,7 @@ shared({ caller = admin }) actor class Backend() = this {
         };
     };
 
-    public composite query func get_grunts() : async [SYesNoVote] {
+    public composite query func get_votes() : async [SYesNoVote] {
         let votes = await Protocol.get_votes({ origin = Principal.fromActor(this); });
         Array.map(votes, func(vote_type: SVoteType) : SYesNoVote {
             switch(vote_type){

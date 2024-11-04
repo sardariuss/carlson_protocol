@@ -2,7 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { useAuth } from "@ic-reactor/react";
 
 import PrivateRoute from "./PrivateRoute";
-import GruntList from "../components/GruntList";
+import VoteList from "../components/VoteList";
 import User from "../components/user/User";
 
 const Router = () => {
@@ -10,7 +10,7 @@ const Router = () => {
   
     return (
       <Routes>
-        <Route path={"/"} element={<GruntList />} />
+        <Route path={"/"} element={<VoteList />} />
         <Route path={"/user/:principal"} element={<User />} />
       </Routes>
     );

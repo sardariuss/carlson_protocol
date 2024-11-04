@@ -2,12 +2,12 @@
 import { SYesNoVote } from "../../declarations/backend/backend.did";
 import { backendActor } from "../actors/BackendActor";
 import { useAuth } from "@ic-reactor/react";
-import GruntView from "./GruntView";
+import VoteView from "./VoteView";
 import { Account } from '@/declarations/protocol/protocol.did';
 import { useState } from "react";
-import OpenGrunt from "./OpenGrunt";
+import NewVote from "./NewVote";
 
-function GruntList() {
+function VoteList() {
 
   const { authenticated, identity } = useAuth();
 
@@ -18,8 +18,8 @@ function GruntList() {
     subaccount: []
   };
 
-  const { call: fetchGrunts, data: grunts } = backendActor.useQueryCall({
-    functionName: 'get_grunts',
+  const { call: fetchVotes, data: votes } = backendActor.useQueryCall({
+    functionName: 'get_votes',
     onSuccess: (data) => {
       console.log(data)
     }
@@ -28,13 +28,13 @@ function GruntList() {
   return (
     <div className="flex flex-col border-x dark:border-gray-700 bg-white dark:bg-slate-900">
       {
-        authenticated && <OpenGrunt fetchGrunts={fetchGrunts}/>
+        authenticated && <NewVote fetchVotes={fetchVotes}/>
       }
       <ul>
         {
-          grunts && grunts.map((grunt: SYesNoVote, index) => (
+          votes && votes.map((vote: SYesNoVote, index) => (
             <li key={index}>
-              <GruntView selected={selected} setSelected={setSelected} grunt={grunt} fetchGrunts={fetchGrunts} account={account}/>
+              <VoteView selected={selected} setSelected={setSelected} vote={vote} fetchVotes={fetchVotes} account={account}/>
             </li>
           ))
         }
@@ -43,4 +43,4 @@ function GruntList() {
   );
 }
 
-export default GruntList;
+export default VoteList;
