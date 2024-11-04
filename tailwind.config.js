@@ -9,11 +9,10 @@ module.exports = {
                 'neon-blue' : '#5be7dc',
             },
             fontFamily: {
-                'wild-wolf': ['WildWolf', 'sans-serif'],
+                'acelon': ['Acelon', 'sans-serif'],
                 'neon-spark': ['NeonSpark', 'sans-serif'],
             },
         },
     },
-    darkMode: 'class',
     plugins: [require('@tailwindcss/typography')],
 };

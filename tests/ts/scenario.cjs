@@ -6,7 +6,7 @@ const { toNs } = require("./duration.cjs");
 const { Ed25519KeyIdentity } = require("@dfinity/identity");
 const { Principal } = require('@dfinity/principal');
 
-const GRUNT_TO_OPEN = [
+const VOTES_TO_OPEN = [
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
     "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
     "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
@@ -31,7 +31,7 @@ const GRUNT_TO_OPEN = [
 
 const NUM_USERS = 10;
 const USER_BALANCE = 100_000_000n;
-const USER_AVERAGE_GRUNT = 100_000n;
+const AVERAGE_BALLOT_AMOUNT = 100_000n;
 const SCENARIO_DURATION = { 'DAYS': 18n };
 const SCENARIO_TICK_DURATION = { 'DAYS': 6n };
 
@@ -47,8 +47,8 @@ const getRandomUserActor = (userActors) => {
     return userActors.get(randomUserPrincipal);
 }
 
-const getRandomGrunt = () => {
-    return GRUNT_TO_OPEN[Math.floor(Math.random() * GRUNT_TO_OPEN.length)];
+const getRandomVote = () => {
+    return VOTES_TO_OPEN[Math.floor(Math.random() * VOTES_TO_OPEN.length)];
 }
   
 // Example function to call a canister method
@@ -144,20 +144,20 @@ async function callCanisterMethod() {
 
         console.log("Scenario tick: ", tick);
 
-        // A random user opens up a new grunt
-        getRandomUserActor(userActors).backend.add_grunt(getRandomGrunt()).then((result) => {
-            console.log('New grunt added');
+        // A random user opens up a new vote
+        getRandomUserActor(userActors).backend.new_vote(getRandomVote()).then((result) => {
+            console.log('New vote added');
         });
 
-        // Retrieve all grunts
-        let grunts = await backendSimActor.get_grunts();
-        console.log(grunts);
+        // Retrieve all votes
+        let votes = await backendSimActor.get_votes();
+        console.log(votes);
 
         let putBallotPromises = [];
 
         for (let [_, actors] of userActors) {
 
-            for (let grunt of grunts) {
+            for (let vote of votes) {
 
                 // 20% chance that this user vote by calling protocolActor.put_ballot
                 if (Math.random() < 0.2) {
@@ -165,9 +165,9 @@ async function callCanisterMethod() {
                     // 50% chance that this user votes YES, 50% chance that this user votes NO
                     putBallotPromises.push(
                         actors.protocol.put_ballot({
-                            vote_id: grunt.vote_id,
+                            vote_id: vote.vote_id,
                             from_subaccount: [],
-                            amount: USER_AVERAGE_GRUNT,
+                            amount: AVERAGE_BALLOT_AMOUNT,
                             choice_type: { 'YES_NO': Math.random() < 0.5 ? { 'YES' : null } : { 'NO' : null } }
                         }).then((result) => {
                             if (!result) {

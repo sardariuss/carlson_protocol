@@ -4,13 +4,13 @@ import { useEffect } from "react";
 import { formatDuration } from "../utils/conversions/duration";
 import { DISSENT_EMOJI, DURATION_EMOJI } from "../constants";
 
-interface GruntProps {
+interface PutBallotPreviewProps {
   vote_id: bigint;
   choice: EYesNoChoice;
   amount: bigint;
 }
 
-const GruntPreview: React.FC<GruntProps> = ({ vote_id, choice, amount }) => {
+const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, choice, amount }) => {
 
   // TODO: Somehow adding the args here raises the exception "Cannot convert undefined or null to object"
   // Right now there is still an error at start but at least it's not breaking the app
@@ -40,4 +40,4 @@ const GruntPreview: React.FC<GruntProps> = ({ vote_id, choice, amount }) => {
   );
 };
 
-export default GruntPreview;
+export default PutBallotPreview;

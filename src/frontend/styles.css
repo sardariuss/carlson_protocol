@@ -3,15 +3,15 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: 'WildWolf';
-  src: url('/assets/fonts/WildWolf.ttf') format('truetype');
+  font-family: 'NeonSpark';
+  src: url('/assets/fonts/NeonSpark.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
 }
 
 @font-face {
-  font-family: 'NeonSpark';
-  src: url('/assets/fonts/NeonSpark.otf') format('opentype');
+  font-family: 'Acelon';
+  src: url('/assets/fonts/Acelon.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
 }
@@ -57,17 +57,17 @@ p {
 
 @keyframes neon {
   0% {
-    text-shadow: -1px -1px 1px var(--shadow-color-light), -1px 1px 1px var(--shadow-color-light), 1px -1px 1px var(--shadow-color-light), 1px 1px 1px var(--shadow-color-light),
+    text-shadow: -100px -100px 100px var(--shadow-color-light), -100px 100px 100px var(--shadow-color-light), 100px -100px 100px var(--shadow-color-light), 100px 100px 100px var(--shadow-color-light),
     0 0 3px var(--shadow-color-light), 0 0 10px var(--shadow-color-light), 0 0 20px var(--shadow-color-light),
     0 0 30px var(--shadow-color), 0 0 40px var(--shadow-color), 0 0 50px var(--shadow-color), 0 0 70px var(--shadow-color), 0 0 100px var(--shadow-color), 0 0 200px var(--shadow-color);
   }
   50% {
-    text-shadow: -1px -1px 1px var(--shadow-color-light), -1px 1px 1px var(--shadow-color-light), 1px -1px 1px var(--shadow-color-light), 1px 1px 1px var(--shadow-color-light),
+    text-shadow: -100px -100px 100px var(--shadow-color-light), -100px 100px 100px var(--shadow-color-light), 100px -100px 100px var(--shadow-color-light), 100px 100px 100px var(--shadow-color-light),
     0 0 5px var(--shadow-color-light), 0 0 15px var(--shadow-color-light), 0 0 25px var(--shadow-color-light),
     0 0 40px var(--shadow-color), 0 0 50px var(--shadow-color), 0 0 60px var(--shadow-color), 0 0 80px var(--shadow-color), 0 0 110px var(--shadow-color), 0 0 210px var(--shadow-color);
   }
   100% {
-    text-shadow: -1px -1px 1px var(--shadow-color-light), -1px 1px 1px var(--shadow-color-light), 1px -1px 1px var(--shadow-color-light), 1px 1px 1px var(--shadow-color-light),
+    text-shadow: -100px -100px 100px var(--shadow-color-light), -100px 100px 100px var(--shadow-color-light), 100px -100px 100px var(--shadow-color-light), 100px 100px 100px var(--shadow-color-light),
     0 0 3px var(--shadow-color-light), 0 0 10px var(--shadow-color-light), 0 0 20px var(--shadow-color-light),
     0 0 30px var(--shadow-color), 0 0 40px var(--shadow-color), 0 0 50px var(--shadow-color), 0 0 70px var(--shadow-color), 0 0 100px var(--shadow-color), 0 0 200px var(--shadow-color);
   }
@@ -91,90 +91,4 @@ p {
       text-white font-medium text-center text-xs whitespace-nowrap
       inline-flex py-2.5 px-3
   }
-}
-
-/*Chrome*/
-@media screen and (-webkit-min-device-pixel-ratio:0) {
-  input[type='range'] {
-    width: var(--slider-width);
-    height: 15px;
-    background: transparent;
-  }
-  
-  input[type='range']::-webkit-slider-runnable-track {
-    height: 15px;
-    -webkit-appearance: none;
-    background: linear-gradient(
-      to right,
-      transparent               0%,
-      transparent               var(--margin-left),
-      var(--slider-left-color)  var(--margin-left),
-      var(--slider-left-color)  var(--progress-percent),
-      var(--slider-right-color) var(--progress-percent),
-      var(--slider-right-color) var(--margin-right),
-      transparent               var(--margin-right),
-      transparent               100%
-    );
-  }
-
-  input[type='range']::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    margin-top: -15px;
-    appearance: none;
-    width: var(--thumb-size);
-    height: var(--thumb-size);
-    border: 0;
-    background-color: transparent;
-    background-size: contain;
-    background-position: center center;
-    background-repeat: no-repeat;
-    cursor: var(--cursor-type);
-    background-image: var(--slider-image);
-    box-shadow:none;
-  }
-
-  /*Important: to be able to make the categories slider draggable on chrome, 
-  we need to set the thumb size to an arbitrary value, otherwise clicks are ignored*/
-
-  input[type='range'].categories::-webkit-slider-thumb {
-    border: 0;
-    background-color: transparent;
-    width: 15px;
-    height: 15px;
-    box-shadow:none;
-  }
-
-}
-
-/* Firefox */
-
-input[type="range"]::-moz-range-track {  
-  height: 15px;
-  width: var(--slider-width);
-  background: linear-gradient(
-    to right,
-    transparent               0%,
-    transparent               var(--margin-left),
-    var(--slider-left-color)  var(--margin-left),
-    var(--slider-left-color)  var(--progress-percent),
-    var(--slider-right-color) var(--progress-percent),
-    var(--slider-right-color) var(--margin-right),
-    transparent               var(--margin-right),
-    transparent               100%
-  );
-}
-
-input[type="range"]::-moz-range-thumb {
-  /* Use https://stackoverflow.com/questions/41609481/trouble-styling-range-input-thumb */
-  width: var(--thumb-size);
-  height: var(--thumb-size);
-  border: 0;
-  background-color: transparent;
-  background-size: contain;
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-image: var(--slider-image);
-  cursor: var(--cursor-type);
-  filter: drop-shadow(0 0 #0000);
-  box-shadow:none;
 }

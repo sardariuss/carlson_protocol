@@ -55,7 +55,7 @@ function AppContent() {
 
   return (
     <>
-      <div className="flex flex-col min-h-screen w-full bg-white dark:bg-slate-900 dark:border-gray-700 justify-between">
+      <div className="flex flex-col min-h-screen w-full bg-white dark:bg-slate-900 dark:border-gray-700 border-gray-200 dark:text-white text-black justify-between">
         <div className="flex flex-col w-full flex-grow items-center">
           <Header/>
           <Router/>

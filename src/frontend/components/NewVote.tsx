@@ -5,24 +5,24 @@ import { backendActor } from "../actors/BackendActor";
 
 import { useState, useEffect } from "react";
 
-interface OpenGruntProps {
-  fetchGrunts: (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>;
+interface NewVoteProps {
+  fetchVotes: (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>;
 }
 
-function OpenGrunt({ fetchGrunts } : OpenGruntProps) {
+function NewVote({ fetchVotes } : NewVoteProps) {
 
-  const INPUT_BOX_ID = "open-grunt-input";
+  const INPUT_BOX_ID = "new-vote-input";
 
   const { authenticated, login } = useAuth({});
   
   const [text, setText] = useState("");
 
-  const { call: addGrunt, loading } = backendActor.useUpdateCall({
-    functionName: 'add_grunt',
+  const { call: newVote, loading } = backendActor.useUpdateCall({
+    functionName: 'new_vote',
     args: [text],
     onSuccess: (data) => {
       console.log(data)
-      fetchGrunts();
+      fetchVotes();
     },
     onError: (error) => {
       console.error(error);
@@ -58,7 +58,7 @@ function OpenGrunt({ fetchGrunts } : OpenGruntProps) {
         <button 
           className="button-simple w-36 min-w-36 h-9 justify-center items-center"
           disabled={loading || text.length === 0}
-          onClick={ () => { authenticated ? addGrunt() : login() } }
+          onClick={ () => { authenticated ? newVote() : login() } }
         >
           Open
         </button>
@@ -67,4 +67,4 @@ function OpenGrunt({ fetchGrunts } : OpenGruntProps) {
   );
 }
 
-export default OpenGrunt;
+export default NewVote;
