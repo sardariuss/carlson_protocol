@@ -59,9 +59,6 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, account, bal
         <div className="w-6 h-6 hover:fill-white fill-gray-200" onClick={resetVote}>
           <ResetIcon />
         </div>
-        <div>
-          <div className="text-sm">Tuck</div>
-        </div>
         <div className="flex items-center space-x-1">
           <input
             ref={inputRef}
@@ -82,8 +79,8 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, account, bal
             onChange={(e) => setBallot({ choice: e.target.value as EYesNoChoice, amount: ballot.amount })}
             disabled={loading}
           >
-            <option className="text-green-500" value={EYesNoChoice.Yes}>Yes</option>
-            <option className="text-red-500" value={EYesNoChoice.No}>No</option>
+            <option className="text-green-500" value={EYesNoChoice.Yes}>{EYesNoChoice.Yes}</option>
+            <option className="text-red-500" value={EYesNoChoice.No}>{EYesNoChoice.No}</option>
           </select>
         </div>
         <button
@@ -91,7 +88,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, account, bal
           disabled={loading || isTooSmall()}
           onClick={triggerVote}
         >
-          Lock
+          Tuck it!
         </button>
       </div>
       <div className={`${isTooSmall() ? "text-white" : "text-gray-500"} text-sm`}>

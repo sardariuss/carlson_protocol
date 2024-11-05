@@ -1,8 +1,8 @@
 import { YesNoChoice } from "@/declarations/protocol/protocol.did";
 
 export enum EYesNoChoice {
-  Yes = 'Yes',
-  No = 'No'
+  Yes = 'True',
+  No = 'False'
 }
 
 export const toEnum = (candid: YesNoChoice) : EYesNoChoice => {

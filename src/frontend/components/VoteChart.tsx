@@ -176,10 +176,10 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, range = DurationUnit
         // Prepare chart data
         const chartData = [];
         if (yesData.length > 0) {
-          chartData.push({ id: "YES", data: yesData });
+          chartData.push({ id: EYesNoChoice.Yes, data: yesData });
         }
         if (noData.length > 0) {
-          chartData.push({ id: "NO", data: noData });
+          chartData.push({ id: EYesNoChoice.No, data: noData });
         }
 
         // Compute max value and price levels
@@ -210,7 +210,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, range = DurationUnit
   const { chartData, max, priceLevels, dateTicks } = useMemo<ChartProperties>(() => {
     return {
       chartData : voteData.chartData.slice().map((serie) => {
-        if (serie.id === (ballot.choice === EYesNoChoice.Yes ? "YES" : "NO")) {
+        if (serie.id === (ballot.choice.toString())) {
           const lastPoint = serie.data[serie.data.length - 1];
           const newLastPoint = { x: lastPoint.x, y: lastPoint.y + Number(ballot.amount) };
           return { id: serie.id, data: [...serie.data.slice(0, serie.data.length - 1), newLastPoint] };

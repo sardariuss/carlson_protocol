@@ -75,7 +75,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
               { 
                 cursor > LIMIT_DISPLAY_RATIO && 
                   <span className={ballot.choice === EYesNoChoice.Yes && (ballot.amount ?? 0n) > 0n ? `animate-pulse` : ``}>
-                    { formatBalanceE8s(vote.aggregate.total_yes + (ballot.choice === EYesNoChoice.Yes ? (ballot.amount ?? 0n) : 0n), BITCOIN_TOKEN_SYMBOL)} No
+                    { formatBalanceE8s(vote.aggregate.total_yes + (ballot.choice === EYesNoChoice.Yes ? (ballot.amount ?? 0n) : 0n), BITCOIN_TOKEN_SYMBOL) + " " + EYesNoChoice.Yes } 
                   </span>
               }
             </div>
@@ -87,7 +87,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
               { 
                 (1 - cursor) > LIMIT_DISPLAY_RATIO && 
                   <span className={ballot.choice === EYesNoChoice.No && (ballot.amount ?? 0n) > 0n ? `animate-pulse` : ``}>
-                    { formatBalanceE8s(vote.aggregate.total_no + (ballot.choice === EYesNoChoice.No ? (ballot.amount ?? 0n) : 0n), BITCOIN_TOKEN_SYMBOL)} No
+                    { formatBalanceE8s(vote.aggregate.total_no + (ballot.choice === EYesNoChoice.No ? (ballot.amount ?? 0n) : 0n), BITCOIN_TOKEN_SYMBOL) + " " + EYesNoChoice.No }
                   </span>
               }
             </div>
