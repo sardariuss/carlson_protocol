@@ -27,13 +27,20 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
     }]);
   }, [ballot]);
 
+  const formatDissent = (dissent: number) => {
+    if (Number.isNaN(dissent)) {
+      return "N/A";
+    }
+    return dissent.toFixed(3);
+  }
+
   return (
     <div>
       {
         preview && 'ok' in preview && 
           <div className="flex flex-row w-full items-center space-x-4 justify-center">
             <span> { DURATION_EMOJI + " ≥ " + formatDuration(preview.ok.YES_NO.duration_ns)} </span>
-            <span> { DISSENT_EMOJI + " " + preview.ok.YES_NO.dissent.toFixed(3) } </span>
+            <span> { DISSENT_EMOJI + " " + formatDissent(preview.ok.YES_NO.dissent) } </span>
         </div>
       }
     </div>

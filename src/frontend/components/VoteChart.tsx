@@ -224,7 +224,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, range = DurationUnit
   }, [voteData, ballot]);
 
   return (
-    <div style={{ position: 'relative' }} className="h-[320px] w-[50rem] ml-7">
+    <div style={{ position: 'relative' }} className="h-[320px] w-[50rem]">
       <div style={{ position: 'absolute', top: MARGIN, right: 59, bottom: MARGIN, left: 59 }} className="flex flex-col border-x z-10">
         <ul className="flex flex-col w-full" key={vote.vote_id + "levelssss"}>
           {

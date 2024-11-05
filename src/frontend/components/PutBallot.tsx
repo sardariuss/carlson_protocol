@@ -6,6 +6,7 @@ import { BITCOIN_TOKEN_SYMBOL, MINIMUM_BALLOT_AMOUNT } from "../constants";
 import { formatBalanceE8s, fromE8s, toE8s } from "../utils/conversions/token";
 import { useEffect, useRef, useState } from "react";
 import { BallotInfo } from "./types";
+import ResetIcon from "./icons/ResetIcon";
 
 interface PutBallotProps {
   vote_id: bigint;
@@ -55,8 +56,11 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, account, bal
   return (
     <div className="flex flex-col w-full items-center space-x-4 justify-center">
       <div className="flex flex-row w-full items-center space-x-4 justify-center">
+        <div className="w-6 h-6 hover:fill-white fill-gray-200" onClick={resetVote}>
+          <ResetIcon />
+        </div>
         <div>
-          <div className="text-sm">Vote</div>
+          <div className="text-sm">Tuck</div>
         </div>
         <div className="flex items-center space-x-1">
           <input
@@ -90,7 +94,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, account, bal
           Lock
         </button>
       </div>
-      <div className={`${isTooSmall() ? "text-red-500" : "text-white"} text-sm`}>
+      <div className={`${isTooSmall() ? "text-white" : "text-gray-500"} text-sm`}>
         Minimum {formatBalanceE8s(MINIMUM_BALLOT_AMOUNT, BITCOIN_TOKEN_SYMBOL)}
       </div>
     </div>
