@@ -2,7 +2,9 @@ import BallotBuilder      "BallotBuilder";
 import Types              "../Types";
 import DepositScheduler   "../payement/DepositScheduler";
 import RewardDispenser    "../payement/RewardDispenser";
+import MintController     "../payement/MintController";
 import DurationCalculator "../duration/DurationCalculator";
+import MapUtils           "../utils/Map";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
@@ -17,13 +19,15 @@ module {
 
     type Time = Int;
 
-    public type VoteId = Nat;
-
     type PutBallotError = Types.PutBallotError;
     type Account = Types.Account;
     type Iter<T> = Iter.Iter<T>;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type IDurationCalculator = DurationCalculator.IDurationCalculator;
+    type DatedAggregate<A> = Types.DatedAggregate<A>;
+    type VoteId = Types.VoteId;
+    type BallotId = Types.BallotId;
+    type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
 
     type Vote<A, B> = Types.Vote<A, B>;
 
@@ -33,9 +37,6 @@ module {
 
     public type UpdatePolicy<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
     public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
-    public type ComputeConsent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
-
-    let TEMP_REWARD_MULTIPLIER = 1000;
 
     public type PutBallotArgs = {
         from: {
@@ -50,10 +51,8 @@ module {
         empty_aggregate: A;
         update_aggregate: UpdatePolicy<A, B>;
         compute_dissent: ComputeDissent<A, B>;
-        compute_consent: ComputeConsent<A, B>;
         duration_calculator: IDurationCalculator;
         deposit_scheduler: DepositScheduler.DepositScheduler<Ballot<B>>;
-        reward_dispenser: RewardDispenser.RewardDispenser<Ballot<B>>;
     }){
 
         public func new_vote({
@@ -64,8 +63,9 @@ module {
             {
                 vote_id;
                 date;
+                last_mint = date;
                 origin;
-                var aggregate = empty_aggregate;
+                var aggregate_history = [{ date; aggregate = empty_aggregate; }];
                 ballot_register = {
                     var index = 0;
                     map = Map.new<Nat, Ballot<B>>();
@@ -99,12 +99,14 @@ module {
 
             // Update the aggregate only once the deposit is done
             let callback = func(ballot: Ballot<B>) {
-                vote.aggregate := update_aggregate({ 
-                    aggregate = vote.aggregate;
+                let aggregate = update_aggregate({ 
+                    aggregate = lastAggregate(vote);
                     choice = ballot.choice;
                     amount = ballot.amount; 
                     time = ballot.timestamp;
                 });
+
+                vote.aggregate_history := Array.append(vote.aggregate_history, [{ date = ballot.timestamp; aggregate; }]);
             };
 
             // Perform the deposit
@@ -116,46 +118,24 @@ module {
             });
         };
 
-        public func try_refund_and_reward({
+        public func try_release({
             vote: Vote<A, B>;
-            time: Time
-        }) : async* [Nat] {
+            on_release_attempt: ({ vote: Vote<A, B>; ballot: Ballot<B>; update_ballot: (Ballot<B>) -> (); released: ?Time;  }) -> ();
+            time: Time;
+        }) : async* () {
 
-            let ballot_ids = await* deposit_scheduler.try_refund({
+            await* deposit_scheduler.attempt_release({
                 register = vote.ballot_register;
                 time;
-            });
-
-            label reward_loop for (ballot_id in Array.vals(ballot_ids)){
-                
-                let ballot = switch(Map.get(vote.ballot_register.map, Map.nhash, ballot_id)){
-                    case (null) { continue reward_loop; }; // @todo: add an incident
-                    case (?b) { b; };
-                };
-
-                let reward_fct = func() : async() {
-
-                    let { choice; amount; dissent; timestamp; } = ballot;
-
-                    let consent = compute_consent({ aggregate = vote.aggregate; choice; amount; time; });
-                    let days_locked = toDays(time - timestamp);
-                    let reward = TEMP_REWARD_MULTIPLIER * Int.abs(Float.toInt(days_locked * dissent * consent));
-
-                    await* reward_dispenser.send_reward({
-                        to = ballot;
-                        amount = reward;
-                        time;
-                        update_elem = func(ballot: Ballot<B>) {
-                            Map.set(vote.ballot_register.map, Map.nhash, ballot_id, ballot);
-                        };
+                on_release_attempt = func({elem: Ballot<B>; update_elem: (Ballot<B>) -> (); release_time: ?Time; }) {
+                    on_release_attempt({
+                        vote;
+                        ballot = elem;
+                        update_ballot = update_elem;
+                        released = release_time;
                     });
                 };
-
-                // Trigger the reward but do not wait for it to complete
-                ignore reward_fct();
-            };
-
-            ballot_ids;
+            });
         };
 
         public func find_ballot({
@@ -178,19 +158,20 @@ module {
                 choice;
                 amount;
                 dissent = compute_dissent({
-                    aggregate = vote.aggregate;
+                    aggregate = lastAggregate(vote);
                     choice;
                     amount;
                     time;
-                })
-            });
-            builder.add_reward({
-                reward_account = args.from; // @todo: decide if the reward account shall be just removed or passed as an argument
-                reward_state = #PENDING;
+                });
+                accumulated_reward = 0;
             });
             builder;
         };
 
+    };
+
+    func lastAggregate<A, B>(vote: Vote<A, B>) : A {
+        vote.aggregate_history[Array.size(vote.aggregate_history) - 1].aggregate;
     };
 
     func toDays(time: Time) : Float {

@@ -33,13 +33,13 @@ module {
     public type YesNoAggregate    = Types.Current.YesNoAggregate;
     public type Decayed           = Types.Current.Decayed;
     public type YesNoChoice       = Types.Current.YesNoChoice;
+    public type DatedAggregate<A> = Types.Current.DatedAggregate<A>;
     public type Vote<A, B>        = Types.Current.Vote<A, B>;
     public type BallotInfo<B>     = Types.Current.BallotInfo<B>;
     public type DepositInfo       = Types.Current.DepositInfo;
     public type DepositState      = Types.Current.DepositState;
     public type RefundState       = Types.Current.RefundState;
     public type HotInfo           = Types.Current.HotInfo;
-    public type RewardInfo        = Types.Current.RewardInfo;
     public type RewardState       = Types.Current.RewardState;
     public type DurationInfo      = Types.Current.DurationInfo;
     public type Ballot<B>         = Types.Current.Ballot<B>;
@@ -84,7 +84,7 @@ module {
         vote_id: Nat;
         date: Time;
         origin: Principal;
-        aggregate: A;
+        aggregate_history: [DatedAggregate<A>];
         ballot_register: {
             index: Nat;
             map: [(Nat, Ballot<B>)];
@@ -127,11 +127,19 @@ module {
     
     public type PreviewBallotResult = Result<BallotType, VoteNotFoundError>;
 
+    public type VoteId = Nat;
+    public type BallotId = Nat;
     public type VoteBallotId = {
-        vote_id: Nat;
-        ballot_id: Nat;
+        vote_id: VoteId;
+        ballot_id: BallotId;
     };
 
     public type QueriedBallot = VoteBallotId and { ballot: BallotType; };
+
+    public type ReleaseAttempt<T> = {
+        elem: T;
+        release_time: ?Time;
+        update_elem: T -> ();
+    };
 
 };

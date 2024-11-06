@@ -36,7 +36,6 @@ module {
 
     public func build_yes_no({
         deposit_facade: PayementFacade.PayementFacade;
-        reward_facade: PayementFacade.PayementFacade;
         decay_model: Decay.DecayModel;
         duration_calculator: DurationCalculator.IDurationCalculator;
     }) : VoteController<YesNoAggregate, YesNoChoice> {
@@ -67,25 +66,26 @@ module {
             });
         };
 
-        func compute_consent({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
-            Incentives.compute_consent({
-                choice;
-                amount;
-                total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
-                total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
-            });
-        };
+//        func compute_consent({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
+//            Incentives.compute_consent({
+//                choice;
+//                amount;
+//                total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
+//                total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
+//            });
+//        };
 
         let hot_map = HotMap.HotMap<Nat, YesNoBallot>({
             decay_model;
             get_elem = func (b: YesNoBallot): HotElem { b; };
-            update_elem = func (b: YesNoBallot, i: HotElem): YesNoBallot {
-                var duration_ns = b.duration_ns;
-                // Only update duration if the reward has not been distributed yet
-                if (b.reward_state == #PENDING){
-                    duration_ns := duration_calculator.compute_duration_ns(i);
+            update_hotness = func ({v: YesNoBallot; hotness: Float; time: Time}): YesNoBallot {
+                var duration_ns = v.duration_ns;
+                // Only update the duration if the lock is not expired
+                // TODO: this logic shall be handled elsewhere, it feels like a hack
+                if (v.timestamp + duration_ns < time){
+                    duration_ns := duration_calculator.compute_duration_ns({hotness});
                 };
-                { b with hotness = i.hotness; duration_ns; };
+                { v with hotness; duration_ns; };
             };
             key_hash = Map.nhash;
         });
@@ -101,21 +101,13 @@ module {
             get_deposit = func (b: YesNoBallot): Deposit { b; };
             tag_refunded = func (b: YesNoBallot, s: RefundState): YesNoBallot { Conversion.tag_refunded<YesNoChoice>(b, s); };
         });
-
-        let reward_dispenser = RewardDispenser.RewardDispenser<YesNoBallot>({
-            reward_facade;
-            get_reward = func (b: YesNoBallot): RewardInfo { Conversion.to_reward_info<YesNoChoice>(b); };
-            update_reward = func (b: YesNoBallot, i: RewardInfo): YesNoBallot { Conversion.update_reward_info<YesNoChoice>(b, i); };
-        });
         
         VoteController.VoteController<YesNoAggregate, YesNoChoice>({
             empty_aggregate;
             update_aggregate;
             compute_dissent;
-            compute_consent;
             duration_calculator;
             deposit_scheduler;
-            reward_dispenser;
         });
     };
 

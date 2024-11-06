@@ -156,7 +156,7 @@ module {
         var index: Nat;
         votes: Map<Nat, VoteType>;
         by_origin: Map<Principal, Set<Nat>>;
-        user_ballots: Map<(Principal, ?Blob), Set<(Nat, Nat)>>;
+        user_ballots: Map<Account, Set<(Nat, Nat)>>;
     };
 
     public type VoteType = {
@@ -178,12 +178,17 @@ module {
         #YES;
         #NO;
     };
+
+    public type DatedAggregate<A> = {
+        date: Time;
+        aggregate: A;
+    };
     
     public type Vote<A, B> = {
         vote_id: Nat;
         date: Time;
         origin: Principal;
-        var aggregate: A;
+        var aggregate_history: [DatedAggregate<A>];
         ballot_register: {
             var index: Nat;
             map: Map<Nat, Ballot<B>>;
@@ -196,6 +201,7 @@ module {
         choice: B;
         amount: Nat;
         dissent: Float;
+        accumulated_reward: Nat;
     };
 
     public type DepositInfo = {
@@ -223,11 +229,6 @@ module {
         decay: Float;
     };
 
-    public type RewardInfo = {
-        reward_account: Account;
-        reward_state: RewardState;
-    };
-
     public type RewardState = {
         #PENDING;
         #PENDING_TRANSFER: { amount: Nat; since: Time };
@@ -239,7 +240,7 @@ module {
         duration_ns: Nat;
     };
 
-    public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and RewardInfo and DurationInfo;
+    public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and DurationInfo;
 
     public type Incident = {
         #ServiceTrapped: ServiceError;

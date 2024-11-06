@@ -25,6 +25,8 @@ module {
         add_deposit: (DepositInfo) -> ();
     };
 
+    type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
+
     public type Deposit = {
         tx_id: Nat;
         from: Account;
@@ -40,6 +42,7 @@ module {
 
     type DepositState = Types.DepositState;
 
+    // @todo: why pass register in every function?
     public class DepositScheduler<T>({
         deposit_facade: PayementFacade.PayementFacade;
         lock_scheduler: LockScheduler.LockScheduler<T>;
@@ -84,40 +87,48 @@ module {
             await* deposit_facade.pay_service({ args and { service; } });
         };
 
-        public func try_refund({
+        public func attempt_release({
             register: LockScheduler.LockRegister<T>;
             time: Time;
-        }) : async* [Nat] {
+            on_release_attempt: (ReleaseAttempt<T>) -> ();
+        }) : async* () {
 
-            let unlocked = lock_scheduler.try_unlock({ register; time; });
+            let release_attempts = lock_scheduler.attempt_release({ register; time; });
 
-            // For each unlocked deposit, refund the locked amount to the sender
-            for((id, elem) in unlocked.vals()) {
+            for((id, attempt) in release_attempts.vals()) {
 
-                let deposit = get_deposit(elem);
+                on_release_attempt(attempt);
 
-                let refund_fct = func() : async() {
+                // If the attempt was successful, refund the deposit
+                switch(attempt.release_time){
+                    case(?since){
 
-                    // Perform the refund
-                    let refund_result = await* deposit_facade.send_payement({
-                        amount = deposit.amount;
-                        to = deposit.from;
-                    });
+                        let deposit = get_deposit(attempt.elem);
 
-                    // Update the deposit state
-                    let transfer = switch(refund_result){
-                        case(#ok(tx_id)) { #SUCCESS({tx_id;}); };
-                        case(#err({incident_id})) { #FAILED{incident_id}; };
+                        let refund_fct = func() : async() {
+
+                            // Perform the refund
+                            let refund_result = await* deposit_facade.send_payement({
+                                amount = deposit.amount;
+                                to = deposit.from;
+                            });
+
+                            // Update the deposit state
+                            let transfer = switch(refund_result){
+                                case(#ok(tx_id)) { #SUCCESS({tx_id;}); };
+                                case(#err({incident_id})) { #FAILED{incident_id}; };
+                            };
+                            // @todo: this does not seem to work
+                            Map.set(register.map, Map.nhash, id, tag_refunded(attempt.elem, { transfer; since; }));
+                        };
+
+                        // Trigger the refund but do not wait for it to complete
+                        ignore refund_fct();
                     };
-                    // @todo: this does not seem to work
-                    Map.set(register.map, Map.nhash, id, tag_refunded(elem, { transfer; since = time; }));
+                    case(null) {};
                 };
 
-                // Trigger the refund but do not wait for it to complete
-                ignore refund_fct();
             };
-
-            Buffer.toArray(Buffer.map<(Nat, T), Nat>(unlocked, func((id, elem): (Nat, T)) : Nat { id; }));
         };
 
     };

@@ -12,6 +12,7 @@ module {
 
   type Time          = Int;
   type State         = MigrationTypes.State;
+  type Account       = Types.Account;
   type ICRC1         = Types.ICRC1;
   type ICRC2         = Types.ICRC2;
   type InitArgs      = Types.InitArgs;
@@ -28,7 +29,7 @@ module {
                 var index = 0; 
                 votes = Map.new<Nat, Types.VoteType>();
                 by_origin = Map.new<Principal, Set.Set<Nat>>();
-                user_ballots = Map.new<(Principal, ?Blob), Set.Set<(Nat, Nat)>>();
+                user_ballots = Map.new<Account, Set.Set<(Nat, Nat)>>();
             };
             deposit = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(deposit.ledger));
@@ -39,6 +40,7 @@ module {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(reward.ledger));
                 fee = reward.fee;
                 incidents = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
+                owed_pending = Map.new<Account, Float>();
             };
             parameters = { parameters with 
                 decay = {

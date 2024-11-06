@@ -13,7 +13,9 @@ module {
     type YesNoChoice = Types.YesNoChoice;
     type PutBallotError = Types.PutBallotError;
     type YesNoBallot = Ballot<Types.YesNoChoice>;
+    type ReleaseAttempt<B> = Types.ReleaseAttempt<B>;
     type Time = Int;
+    type YesNoVote = Types.Vote<YesNoAggregate, YesNoChoice>;
 
     public type VoteId = Nat;
 
@@ -49,9 +51,30 @@ module {
             };
         };
 
-        public func try_refund_and_reward({ vote_type: VoteType; time: Time; }) : async* [Nat] {
+        public func try_release({
+            vote_type: VoteType;
+            on_release_attempt: ({vote_type: VoteType; ballot_type: BallotType; update_ballot: (BallotType) -> (); released: ?Time;}) -> ();
+            time: Time;
+        }) : async* () {
             switch(vote_type){
-                case(#YES_NO(vote)) { await* yes_no_controller.try_refund_and_reward({ vote; time; }); };
+                case(#YES_NO(vote)) { 
+                    await* yes_no_controller.try_release({ 
+                        vote; 
+                        time; 
+                        on_release_attempt = func({vote: YesNoVote; ballot: YesNoBallot; update_ballot: (YesNoBallot) -> (); released: ?Time; }) {
+                            on_release_attempt({ 
+                                vote_type = #YES_NO(vote);
+                                ballot_type = #YES_NO(ballot); 
+                                update_ballot = func(b: BallotType) { 
+                                    switch(b){
+                                        case(#YES_NO(b)) { update_ballot(b); };
+                                    };
+                                };
+                                released;
+                            });
+                        };
+                    }); 
+                };
             };
         };
 

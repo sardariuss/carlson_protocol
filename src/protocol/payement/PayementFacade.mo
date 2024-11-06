@@ -32,6 +32,7 @@ module {
     public type Incident = Types.Incident;
     
     // @todo: is setting created_at_time a good practice?
+    // @todo: rename into LedgerFacade and put provider only to pay_service arg
     public class PayementFacade({
         provider: Principal;
         ledger: ICRC1.service and ICRC2.service;

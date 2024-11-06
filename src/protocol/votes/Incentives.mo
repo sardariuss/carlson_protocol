@@ -14,12 +14,11 @@ module {
     
     public func compute_consent({
         choice: Types.YesNoChoice;
-        total_yes: Float;
-        total_no: Float;
+        aggregate: Types.YesNoAggregate;
     }) : Float {
         let { same; opposit; } = switch(choice){
-            case(#YES) { { same = total_yes; opposit = total_no; }; };
-            case(#NO) { { same = total_no; opposit = total_yes; }; };
+            case(#YES) { { same = Float.fromInt(aggregate.total_yes); opposit = Float.fromInt(aggregate.total_no);  }; };
+            case(#NO)  { { same = Float.fromInt(aggregate.total_no);  opposit = Float.fromInt(aggregate.total_yes); }; };
         };
         let length = same + opposit;
         Math.logistic_regression({

@@ -27,11 +27,17 @@ module {
     };
 
     public type HotElem = HotInput and HotOutput;
+
+    public type UpdateHotness<V> = {
+        v: V;
+        hotness: Float;
+        time: Time;
+    } -> V;
     
     public class HotMap<K, V>({
         decay_model: IDecayModel;
         get_elem: V -> HotElem;
-        update_elem: (V, HotElem) -> V;
+        update_hotness: UpdateHotness<V>;
         key_hash: Map.HashUtils<K>;
     }){
 
@@ -70,12 +76,12 @@ module {
 
                 // Compute the weight between the two elems
                 let weight = prev_elem.decay / get_elem(elem).decay;
+
+                // Add to the hotness of the new elem
+                let hotness = prev_elem.hotness + Float.fromInt(amount) * weight;
                 
                 // Update the hotness of the previous elem
-                Map.set(map, key_hash, id, update_elem(prv, { 
-                    prev_elem with 
-                    hotness = prev_elem.hotness + Float.fromInt(amount) * weight
-                }));
+                Map.set(map, key_hash, id, update_hotness({ v = prv; hotness; time = timestamp; })); 
             };
 
             // Add the new elem

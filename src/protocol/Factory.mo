@@ -5,6 +5,7 @@ import DurationCalculator "duration/DurationCalculator";
 import VoteFactory        "votes/VoteFactory";
 import VoteTypeController "votes/VoteTypeController";
 import PayementFacade     "payement/PayementFacade";
+import MintController     "payement/MintController";
 
 import ICRC1              "mo:icrc1-mo/ICRC1/service";
 import ICRC2              "mo:icrc2-mo/ICRC2/service";
@@ -66,9 +67,15 @@ module {
             yes_no_controller;
         });
 
+        let mint_controller = MintController.MintController({
+            vote_register;
+            reward_facade;
+        });
+
         Controller.Controller({
             vote_register;
             vote_type_controller;
+            mint_controller;
             deposit_facade;
             reward_facade;
             decay_model;

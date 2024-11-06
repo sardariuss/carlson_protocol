@@ -8,7 +8,7 @@ import Option            "mo:base/Option";
 module {
 
     type Time = Int;
-    type VoteId = Nat;
+    type VoteId = Types.VoteId;
     type VoteType = Types.VoteType;
     type BallotType = Types.BallotType;
     type SVoteType = Types.SVoteType;
@@ -34,8 +34,8 @@ module {
             await* controller.put_ballot(args);
         };
 
-        public func try_refund_and_reward({ time: Time; }) : async* [VoteBallotId] {
-            await* controller.try_refund_and_reward({ time });
+        public func run({ time: Time; }) : async* Nat {
+            await* controller.run({time});
         };
 
         public func get_votes({origin: Principal;}) : [SVoteType] {

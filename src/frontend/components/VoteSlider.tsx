@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { formatBalanceE8s } from '../utils/conversions/token';
 import { BITCOIN_TOKEN_SYMBOL } from '../constants';
 import { BallotInfo } from './types';
+import { get_cursor, get_no_votes, get_total_votes, get_yes_votes } from '../utils/conversions/vote';
 
 const CURSOR_HEIGHT = "1rem";
 const LIMIT_DISPLAY_RATIO = 0.2; // 20%
@@ -27,7 +28,8 @@ type Props = {
 
 const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDown}: Props) => {
 
-  const initCursor = clampCursor(Number(vote.aggregate.total_yes) / Number(vote.aggregate.total_yes + vote.aggregate.total_no));
+
+  const initCursor = clampCursor(get_cursor(vote));
 
   const [cursor, setCursor] = useState(initCursor);
 
@@ -36,8 +38,8 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
     value = clampCursor(value);
     setCursor(value);
 
-    const total = Number(vote.aggregate.total_yes + vote.aggregate.total_no);
-    const yes = Number(vote.aggregate.total_yes);
+    const total = Number(get_total_votes(vote));
+    const yes = Number(get_yes_votes(vote));
 
     const choice = value < initCursor ? EYesNoChoice.No : EYesNoChoice.Yes;
     const amount = BigInt(Math.floor(choice === EYesNoChoice.No ? (yes / value - total) : ((value * total - yes) / (1 - value))));
@@ -51,8 +53,8 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
   const updateInputValue = (ballot: BallotInfo) => {
     if (inputRef.current && !isActive) { // Only update if input is not focused, i.e. the stimulus comes from an external component
       const amount = ballot.amount ?? 0n;
-      var newCursor = Number(vote.aggregate.total_yes + (ballot.choice === EYesNoChoice.Yes ? amount : 0n));
-      newCursor = newCursor / Number(vote.aggregate.total_yes + vote.aggregate.total_no + amount);
+      var newCursor = Number(get_yes_votes(vote) + (ballot.choice === EYesNoChoice.Yes ? amount : 0n));
+      newCursor = newCursor / Number(get_total_votes(vote) + amount);
       setCursor(newCursor);
       inputRef.current.value = newCursor.toString();
     }
@@ -75,7 +77,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
               { 
                 cursor > LIMIT_DISPLAY_RATIO && 
                   <span className={ballot.choice === EYesNoChoice.Yes && (ballot.amount ?? 0n) > 0n ? `animate-pulse` : ``}>
-                    { formatBalanceE8s(vote.aggregate.total_yes + (ballot.choice === EYesNoChoice.Yes ? (ballot.amount ?? 0n) : 0n), BITCOIN_TOKEN_SYMBOL) + " " + EYesNoChoice.Yes } 
+                    { formatBalanceE8s(get_yes_votes(vote) + (ballot.choice === EYesNoChoice.Yes ? (ballot.amount ?? 0n) : 0n), BITCOIN_TOKEN_SYMBOL) + " " + EYesNoChoice.Yes } 
                   </span>
               }
             </div>
@@ -87,7 +89,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
               { 
                 (1 - cursor) > LIMIT_DISPLAY_RATIO && 
                   <span className={ballot.choice === EYesNoChoice.No && (ballot.amount ?? 0n) > 0n ? `animate-pulse` : ``}>
-                    { formatBalanceE8s(vote.aggregate.total_no + (ballot.choice === EYesNoChoice.No ? (ballot.amount ?? 0n) : 0n), BITCOIN_TOKEN_SYMBOL) + " " + EYesNoChoice.No }
+                    { formatBalanceE8s(get_no_votes(vote) + (ballot.choice === EYesNoChoice.No ? (ballot.amount ?? 0n) : 0n), BITCOIN_TOKEN_SYMBOL) + " " + EYesNoChoice.No }
                   </span>
               }
             </div>

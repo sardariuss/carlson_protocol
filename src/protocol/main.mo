@@ -65,10 +65,9 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         await* getFacade().put_ballot({ args with caller; time = _time(); });
     };
 
-    // Unlock the tokens if the duration is reached
-    // Return the number of ballots unlocked (whether the transfers succeded or not)
-    public func try_refund_and_reward() : async [Types.VoteBallotId] {
-        await* getFacade().try_refund_and_reward({ time = _time() });
+    // Run the protocol
+    public func run() : async Nat {
+        await* getFacade().run({ time = _time() });
     };
 
     // Get the ballots of the given account
