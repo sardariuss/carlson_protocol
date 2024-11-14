@@ -33,7 +33,8 @@ module {
     public type YesNoAggregate    = Types.Current.YesNoAggregate;
     public type Decayed           = Types.Current.Decayed;
     public type YesNoChoice       = Types.Current.YesNoChoice;
-    public type DatedAggregate<A> = Types.Current.DatedAggregate<A>;
+    public type History<T>        = Types.Current.History<T>;
+    public type HistoryEntry<T>   = Types.Current.HistoryEntry<T>;
     public type Vote<A, B>        = Types.Current.Vote<A, B>;
     public type BallotInfo<B>     = Types.Current.BallotInfo<B>;
     public type DepositInfo       = Types.Current.DepositInfo;
@@ -47,6 +48,7 @@ module {
     public type ServiceError      = Types.Current.ServiceError;
     public type IncidentRegister  = Types.Current.IncidentRegister;
     public type Duration          = Types.Current.Duration;
+    public type State             = Types.Current.State;
 
     // CANISTER ARGS
 
@@ -84,7 +86,7 @@ module {
         vote_id: Nat;
         date: Time;
         origin: Principal;
-        aggregate_history: [DatedAggregate<A>];
+        aggregate_history: [HistoryEntry<A>];
         ballot_register: {
             index: Nat;
             map: [(Nat, Ballot<B>)];
@@ -106,6 +108,10 @@ module {
 
     public type BallotType = {
         #YES_NO: Ballot<YesNoChoice>;
+    };
+
+    public type AggregateHistoryType = {
+        #YES_NO: [HistoryEntry<YesNoAggregate>];
     };
 
     public type ChoiceType = {

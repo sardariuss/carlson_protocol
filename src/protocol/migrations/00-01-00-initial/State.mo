@@ -1,5 +1,6 @@
 import Types          "Types";
 import MigrationTypes "../Types";
+import Duration       "../../duration/Duration";
 
 import Map            "mo:map/Map";
 import Set            "mo:map/Set";
@@ -7,6 +8,7 @@ import Set            "mo:map/Set";
 import Principal      "mo:base/Principal";
 import Time           "mo:base/Time";
 import Debug          "mo:base/Debug";
+import Float          "mo:base/Float";
 
 module {
 
@@ -21,7 +23,8 @@ module {
 
     public func init(args: InitArgs) : State {
 
-        let { simulated; deposit; reward; parameters; } = args;
+        let { simulated; deposit; presence; resonance; parameters; } = args;
+        let now = Time.now();
 
         #v0_1_0({
             simulation = if (simulated) ?{ var time_offset_ns = 0; } else { null; };
@@ -36,16 +39,25 @@ module {
                 fee = deposit.fee;
                 incidents = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
             };
-            reward = {
-                ledger : ICRC1 and ICRC2 = actor(Principal.toText(reward.ledger));
-                fee = reward.fee;
+            presence = {
+                ledger : ICRC1 and ICRC2 = actor(Principal.toText(presence.ledger));
+                fee = presence.fee;
                 incidents = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
-                owed_pending = Map.new<Account, Float>();
+                parameters = {
+                    presence_per_ns = Float.fromInt(presence.mint_per_day) / Float.fromInt(Duration.NS_IN_DAY);
+                    var time_last_dispense = now;
+                    amount_history = { var entries = []; };
+                };
+            };
+            resonance = {
+                ledger : ICRC1 and ICRC2 = actor(Principal.toText(resonance.ledger));
+                fee = resonance.fee;
+                incidents = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
             };
             parameters = { parameters with 
                 decay = {
                     half_life = parameters.ballot_half_life;
-                    time_init = Time.now();
+                    time_init = now;
                 };
             };
         });

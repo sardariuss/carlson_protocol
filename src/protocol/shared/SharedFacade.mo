@@ -34,7 +34,7 @@ module {
             await* controller.put_ballot(args);
         };
 
-        public func run({ time: Time; }) : async* Nat {
+        public func run({ time: Time; }) : async* () {
             await* controller.run({time});
         };
 
@@ -63,8 +63,12 @@ module {
             controller.get_deposit_incidents();
         };
         
-        public func get_reward_incidents() : [(Nat, Types.Incident)] {
-            controller.get_reward_incidents();
+        public func get_presence_incidents() : [(Nat, Types.Incident)] {
+            controller.get_presence_incidents();
+        };
+
+        public func get_resonance_incidents() : [(Nat, Types.Incident)] {
+            controller.get_resonance_incidents();
         };
         
     };

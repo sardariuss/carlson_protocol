@@ -35,8 +35,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         switch(_state){
             case(#v0_1_0(stable_data)) {
                 _facade := ?SharedFacade.SharedFacade(Factory.build({
-                    stable_data;
-                    provider = Principal.fromActor(this);
+                    stable_data with provider = Principal.fromActor(this);
                 }));
             };
         };
@@ -66,7 +65,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     };
 
     // Run the protocol
-    public func run() : async Nat {
+    public func run() : async () {
         await* getFacade().run({ time = _time() });
     };
 
@@ -90,8 +89,12 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     };
 
     // Get the failed rewards for the given principal
-    public query func get_reward_incidents() : async [(Nat, Types.Incident)] {
-        getFacade().get_reward_incidents();
+    public query func get_presence_incidents() : async [(Nat, Types.Incident)] {
+        getFacade().get_presence_incidents();
+    };
+
+    public query func get_resonance_incidents() : async [(Nat, Types.Incident)] {
+        getFacade().get_resonance_incidents();
     };
 
     func getFacade() : SharedFacade.SharedFacade {

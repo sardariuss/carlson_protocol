@@ -5,7 +5,7 @@ import DurationCalculator "duration/DurationCalculator";
 import VoteFactory        "votes/VoteFactory";
 import VoteTypeController "votes/VoteTypeController";
 import PayementFacade     "payement/PayementFacade";
-import MintController     "payement/MintController";
+import PresenceDispenser  "PresenceDispenser";
 
 import ICRC1              "mo:icrc1-mo/ICRC1/service";
 import ICRC2              "mo:icrc2-mo/ICRC2/service";
@@ -16,39 +16,20 @@ module {
     type Duration = Types.Duration;
     type Time = Int;
     type IncidentRegister = Types.IncidentRegister;
+    type State = Types.State;
 
-    type BuildArguments = {
-        stable_data: {
-            vote_register: VoteRegister;
-            deposit: {
-                ledger: ICRC1.service and ICRC2.service;
-                fee: Nat;
-                incidents: IncidentRegister;
-            };
-            reward: {
-                ledger: ICRC1.service and ICRC2.service;
-                fee: Nat;
-                incidents: IncidentRegister;
-            };
-            parameters: {
-                nominal_lock_duration: Duration;
-                decay: {
-                    half_life: Duration;
-                    time_init: Time;
-                };
-            };
-        };
+    type BuildArguments = State and {
         provider: Principal;
     };
 
     public func build(args: BuildArguments) : Controller.Controller {
 
-        let { stable_data; provider; } = args;
-        let { vote_register; deposit; reward; parameters; } = stable_data;
+        let { vote_register; deposit; presence; resonance; parameters; provider; } = args;
         let { nominal_lock_duration; decay; } = parameters;
 
         let deposit_facade = PayementFacade.PayementFacade({ deposit with provider; });
-        let reward_facade = PayementFacade.PayementFacade({ reward with provider; });
+        let presence_facade = PayementFacade.PayementFacade({ presence with provider; });
+        let resonance_facade = PayementFacade.PayementFacade({ resonance with provider; });
 
         let decay_model = Decay.DecayModel(decay);
 
@@ -58,7 +39,6 @@ module {
 
         let yes_no_controller = VoteFactory.build_yes_no({
             deposit_facade;
-            reward_facade;
             decay_model;
             duration_calculator;
         });
@@ -67,17 +47,15 @@ module {
             yes_no_controller;
         });
 
-        let mint_controller = MintController.MintController({
-            vote_register;
-            reward_facade;
-        });
+        let presence_dispenser = PresenceDispenser.PresenceDispenser({ parameters = presence.parameters });
 
         Controller.Controller({
             vote_register;
             vote_type_controller;
-            mint_controller;
             deposit_facade;
-            reward_facade;
+            presence_facade;
+            resonance_facade;
+            presence_dispenser;
             decay_model;
         });
     };

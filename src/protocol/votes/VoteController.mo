@@ -24,7 +24,6 @@ module {
     type Iter<T> = Iter.Iter<T>;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type IDurationCalculator = DurationCalculator.IDurationCalculator;
-    type DatedAggregate<A> = Types.DatedAggregate<A>;
     type VoteId = Types.VoteId;
     type BallotId = Types.BallotId;
     type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
@@ -35,8 +34,9 @@ module {
 
     type DepositState = Types.DepositState;
 
-    public type UpdatePolicy<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
+    public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
     public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
+    public type ComputeConsent<A, B> = ({aggregate: A; choice: B; time: Time}) -> Float;
 
     public type PutBallotArgs = {
         from: {
@@ -49,8 +49,9 @@ module {
    
     public class VoteController<A, B>({
         empty_aggregate: A;
-        update_aggregate: UpdatePolicy<A, B>;
+        update_aggregate: UpdateAggregate<A, B>;
         compute_dissent: ComputeDissent<A, B>;
+        compute_consent: ComputeConsent<A, B>;
         duration_calculator: IDurationCalculator;
         deposit_scheduler: DepositScheduler.DepositScheduler<Ballot<B>>;
     }){
@@ -65,7 +66,7 @@ module {
                 date;
                 last_mint = date;
                 origin;
-                var aggregate_history = [{ date; aggregate = empty_aggregate; }];
+                aggregate_history = { var entries = [{ timestamp = date; data = empty_aggregate; }] };
                 ballot_register = {
                     var index = 0;
                     map = Map.new<Nat, Ballot<B>>();
@@ -80,7 +81,8 @@ module {
             args: PutBallotArgs;
         }) : Ballot<B> {
 
-            let builder = intialize_ballot({ vote; choice; args; });
+            let aggregate = update_aggregate({ args with aggregate = lastAggregate(vote); choice; });
+            let builder = intialize_ballot({ choice; args; aggregate; });
 
             deposit_scheduler.preview_deposit({
                 register = vote.ballot_register;
@@ -95,18 +97,19 @@ module {
             args: PutBallotArgs;
         }) : async* Result<Nat, PutBallotError> {
 
-            let builder = intialize_ballot({ vote; choice; args; });
+            let aggregate = update_aggregate({ args with aggregate = lastAggregate(vote); choice; });
+            let builder = intialize_ballot({ choice; args; aggregate; });
 
             // Update the aggregate only once the deposit is done
             let callback = func(ballot: Ballot<B>) {
-                let aggregate = update_aggregate({ 
-                    aggregate = lastAggregate(vote);
-                    choice = ballot.choice;
-                    amount = ballot.amount; 
-                    time = ballot.timestamp;
-                });
-
-                vote.aggregate_history := Array.append(vote.aggregate_history, [{ date = ballot.timestamp; aggregate; }]);
+                // Recompute the aggregate because other ballots might have been added during the awaited deposit, hence changing the aggregate.
+                let aggregate = update_aggregate({ ballot with time = ballot.timestamp; aggregate = lastAggregate(vote); });
+                // Update the aggregate history
+                vote.aggregate_history.entries := Array.append(vote.aggregate_history.entries, [{ timestamp = ballot.timestamp; data = aggregate; }]);
+                // Update the ballot consents
+                for ((id, bal) in Map.entries(vote.ballot_register.map)) {
+                    Map.set(vote.ballot_register.map, Map.nhash, id, { bal with consent = compute_consent({ aggregate; choice = bal.choice; time = bal.timestamp; }) });
+                };
             };
 
             // Perform the deposit
@@ -120,21 +123,14 @@ module {
 
         public func try_release({
             vote: Vote<A, B>;
-            on_release_attempt: ({ vote: Vote<A, B>; ballot: Ballot<B>; update_ballot: (Ballot<B>) -> (); released: ?Time;  }) -> ();
             time: Time;
+            on_release_attempt: ReleaseAttempt<Ballot<B>> -> ();
         }) : async* () {
 
             await* deposit_scheduler.attempt_release({
                 register = vote.ballot_register;
                 time;
-                on_release_attempt = func({elem: Ballot<B>; update_elem: (Ballot<B>) -> (); release_time: ?Time; }) {
-                    on_release_attempt({
-                        vote;
-                        ballot = elem;
-                        update_ballot = update_elem;
-                        released = release_time;
-                    });
-                };
+                on_release_attempt;
             });
         };
 
@@ -146,7 +142,7 @@ module {
         };
 
         func intialize_ballot({
-            vote: Vote<A, B>;
+            aggregate: A;
             choice: B;
             args: PutBallotArgs;
         }) : BallotBuilder.BallotBuilder<B> {
@@ -157,13 +153,9 @@ module {
                 timestamp = time;
                 choice;
                 amount;
-                dissent = compute_dissent({
-                    aggregate = lastAggregate(vote);
-                    choice;
-                    amount;
-                    time;
-                });
-                accumulated_reward = 0;
+                dissent = compute_dissent({ aggregate; choice; amount; time; });
+                consent = compute_consent({ aggregate; choice; time; });
+                presence = 0.0;
             });
             builder;
         };
@@ -171,7 +163,8 @@ module {
     };
 
     func lastAggregate<A, B>(vote: Vote<A, B>) : A {
-        vote.aggregate_history[Array.size(vote.aggregate_history) - 1].aggregate;
+        let entries = vote.aggregate_history.entries;
+        entries[Array.size(entries) - 1].data;
     };
 
     func toDays(time: Time) : Float {

@@ -14,7 +14,7 @@ module {
     public func shareVote<A, B>(vote: Types.Vote<A, B>) : Types.SVote<A, B> {
         { 
             vote with 
-            aggregate_history = vote.aggregate_history;
+            aggregate_history = vote.aggregate_history.entries;
             ballot_register = {
                 index = vote.ballot_register.index;
                 map = Map.toArray(vote.ballot_register.map);

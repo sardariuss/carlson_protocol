@@ -1,5 +1,4 @@
 import VoteController     "VoteController";
-import Conversion         "BallotConversion";
 import Incentives         "Incentives";
 
 import Types              "../Types";
@@ -66,14 +65,13 @@ module {
             });
         };
 
-//        func compute_consent({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
-//            Incentives.compute_consent({
-//                choice;
-//                amount;
-//                total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
-//                total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
-//            });
-//        };
+        func compute_consent({aggregate: YesNoAggregate; choice: YesNoChoice; time: Time;}) : Float {
+            Incentives.compute_consent({ 
+                choice;
+                total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
+                total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
+            });
+        };
 
         let hot_map = HotMap.HotMap<Nat, YesNoBallot>({
             decay_model;
@@ -99,13 +97,14 @@ module {
             deposit_facade;
             lock_scheduler;
             get_deposit = func (b: YesNoBallot): Deposit { b; };
-            tag_refunded = func (b: YesNoBallot, s: RefundState): YesNoBallot { Conversion.tag_refunded<YesNoChoice>(b, s); };
+            tag_refunded = func (b: YesNoBallot, s: RefundState): YesNoBallot { { b with deposit_state = #REFUNDED(s); } };
         });
         
         VoteController.VoteController<YesNoAggregate, YesNoChoice>({
             empty_aggregate;
             update_aggregate;
             compute_dissent;
+            compute_consent;
             duration_calculator;
             deposit_scheduler;
         });

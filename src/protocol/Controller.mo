@@ -1,10 +1,12 @@
 import Types              "Types";
 import VoteTypeController "votes/VoteTypeController";
 import PayementFacade     "payement/PayementFacade";
+import PresenceDispenser  "PresenceDispenser";
 import MintController     "payement/MintController";
 import MapUtils           "utils/Map";
 import Decay              "duration/Decay";
 import Incentives         "votes/Incentives";
+import VoteUtils          "votes/VoteUtils";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
@@ -30,6 +32,14 @@ module {
     type Account = Types.Account;
     type VoteId = Types.VoteId;
     type BallotId = Types.BallotId;
+    type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
+    type ExtendedLock = PresenceDispenser.ExtendedLock;
+
+    type WeightParams = {
+        ballot: BallotType;
+        update_ballot: (BallotType) -> ();
+        weight: Float;
+    };
 
     public type NewVoteArgs = {
         origin: Principal;
@@ -49,9 +59,10 @@ module {
     public class Controller({
         vote_register: VoteRegister;
         vote_type_controller: VoteTypeController.VoteTypeController;
-        mint_controller: MintController.MintController;
         deposit_facade: PayementFacade.PayementFacade;
-        reward_facade: PayementFacade.PayementFacade;
+        presence_facade: PayementFacade.PayementFacade;
+        resonance_facade: PayementFacade.PayementFacade;
+        presence_dispenser: PresenceDispenser.PresenceDispenser;
         decay_model: Decay.DecayModel;
     }){
 
@@ -129,69 +140,47 @@ module {
             };
         };
 
-        public func run({ time: Time; }) : async* Nat {
+        public func run({ time: Time; }) : async* () {
 
-            var total_weights = 0.0;
-            
-            type WeightParams = {
-                account: Account;
-                weight: Float;
-                add_reward: (Nat) -> ();
-            };
-            let buffer = Buffer.Buffer<WeightParams>(0);
+            let release_attempts = Buffer.Buffer<ReleaseAttempt<BallotType>>(0);
 
-            let compute_weights = func({vote_type: VoteType; ballot_type: BallotType; update_ballot: (BallotType) -> (); released: ?Time; }) : () {
-
-                let param = switch(vote_type, ballot_type){
-                    case(#YES_NO(vote), #YES_NO(ballot)) { 
-                        let weight = MintController.compute_weighted_amount({
-                            time;
-                            released;
-                            ballot;
-                            aggregate_history = vote.aggregate_history;
-                            compute_consent = Incentives.compute_consent;
-                        });
-                        { 
-                            account = ballot.from;
-                            weight; 
-                            add_reward = func(amount: Nat) { update_ballot(#YES_NO({ ballot with accumulated_reward = ballot.accumulated_reward + amount })); }; 
-                        };
-                    };
-                };
-
-                buffer.add(param);
-                total_weights += param.weight;
-            };
-
+            // TODO: parallelize awaits*
             for ((vote_id, vote_type) in Map.entries(vote_register.votes)){
-                await* vote_type_controller.try_release({ vote_type; time; on_release_attempt = compute_weights; });
-            };
-
-            let minting_owed = Map.new<Account, Nat>();
-            
-            for ({ weight; add_reward; account; } in buffer.vals()){
-                
-                // Compute the reward
-                let reward = MintController.compute_reward({ total_weights; weight = weight; });
-
-                // Add it to the ballot cumulated reward
-                add_reward(reward);
-                
-                // Add it to the minting owed to the account
-                ignore Map.update<Account, Nat>(minting_owed, MapUtils.acchash, account, func(k: Account, v: ?Nat) : ?Nat {
-                    ?(Option.get(v, 0) + reward);
+                await* vote_type_controller.try_release({ 
+                    vote_type; 
+                    time; 
+                    on_release_attempt = func(attempt: ReleaseAttempt<BallotType>) {
+                        release_attempts.add(attempt);
+                    };
                 });
             };
-            
-            // Mint the rewards
-            var total_amount = 0;
-            for ((to, amount) in Map.entries(minting_owed)){
-                total_amount += amount;
-                // TODO: parallelize
-                ignore (await* reward_facade.send_payement({ to; amount; }));
-            };
 
-            total_amount;
+            ignore presence_dispenser.dispense({ 
+                locks = Buffer.toArray(Buffer.map<ReleaseAttempt<BallotType>, ExtendedLock>(release_attempts, to_lock)); 
+                time_dispense = time
+            });
+
+            // TODO: parallelize awaits*
+            for ({ elem; release_time; } in release_attempts.vals()){
+                if(Option.isSome(release_time)){                    
+                    // Mint the presence
+                    let _ = await* presence_facade.send_payement({ 
+                        to = VoteUtils.get_account(elem); 
+                        amount = Int.abs(Float.toInt(VoteUtils.get_presence(elem)));
+                    });
+                    // Mint the resonance
+                    let _ = await* resonance_facade.send_payement({ 
+                        to = VoteUtils.get_account(elem); 
+                        amount = Int.abs(Float.toInt(Incentives.compute_resonance({
+                            amount = VoteUtils.get_amount(elem);
+                            dissent = VoteUtils.get_dissent(elem);
+                            consent = VoteUtils.get_consent(elem);
+                            start = VoteUtils.get_timestamp(elem);
+                            end = time;
+                        })));
+                    });
+                };
+            };
         };
 
         public func get_votes({origin: Principal;}) : [VoteType] {
@@ -223,8 +212,22 @@ module {
             deposit_facade.get_incidents();
         };
         
-        public func get_reward_incidents() : [(Nat, Types.Incident)] {
-            reward_facade.get_incidents();
+        public func get_presence_incidents() : [(Nat, Types.Incident)] {
+            presence_facade.get_incidents();
+        };
+
+        public func get_resonance_incidents() : [(Nat, Types.Incident)] {
+            resonance_facade.get_incidents();
+        };
+
+        func to_lock(attempt: ReleaseAttempt<BallotType>) : ExtendedLock {
+            {
+                attempt with
+                amount = switch(attempt.elem){ case(#YES_NO(b)) { b.amount; }; };
+                add_presence = func(presence: Float) {
+                    attempt.update_elem(VoteUtils.add_presence(attempt.elem, presence));
+                };
+            };
         };
 
     };

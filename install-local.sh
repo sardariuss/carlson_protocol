@@ -3,7 +3,8 @@ set -ex
 dfx canister create --all
 
 export CKBTC_PRINCIPAL=$(dfx canister id ck_btc)
-export LEDGER_PRINCIPAL=$(dfx canister id ledger)
+export PRESENCE_PRINCIPAL=$(dfx canister id presence_ledger)
+export RESONANCE_PRINCIPAL=$(dfx canister id resonance_ledger)
 export PROTOCOL_PRINCIPAL=$(dfx canister id protocol)
 export MINTER_PRINCIPAL=$(dfx canister id minter)
 
@@ -27,10 +28,11 @@ dfx deploy ck_btc --argument '( opt record {
   icrc4 = null;
 })'
 
-dfx deploy ledger --argument '( opt record {
+# TODO: review supply etc.
+dfx deploy presence_ledger --argument '( opt record {
   icrc1 = opt record {
-    name              = opt "Carlson";
-    symbol            = opt "CRLS";
+    name              = opt "Carlson Presence Token";
+    symbol            = opt "CPT";
     decimals          = 8;
     fee               = opt variant { Fixed = 10 };
     max_supply        = opt 2_100_000_000_000_000;
@@ -47,6 +49,27 @@ dfx deploy ledger --argument '( opt record {
   icrc4 = null;
 })'
 
+dfx deploy resonance_ledger --argument '( opt record {
+  icrc1 = opt record {
+    name              = opt "Carlson Resonance Token";
+    symbol            = opt "CRT";
+    decimals          = 8;
+    fee               = opt variant { Fixed = 10 };
+    max_supply        = opt 2_100_000_000_000_000;
+    min_burn_amount   = opt 1_000;
+    initial_balances  = vec {};
+    minting_account   = opt record { 
+      owner = principal "'${PROTOCOL_PRINCIPAL}'";
+      subaccount = null; 
+    };
+    advanced_settings = null;
+  };
+  icrc2 = null;
+  icrc3 = null;
+  icrc4 = null;
+})'
+
+# TODO: check why ledgers are required as arguments
 dfx deploy protocol --argument '( variant { 
   init = record {
     simulated = true;
@@ -54,8 +77,12 @@ dfx deploy protocol --argument '( variant {
       ledger = principal "'${CKBTC_PRINCIPAL}'";
       fee = 10;
     };
-    reward =  record {
-      ledger  = principal "'${LEDGER_PRINCIPAL}'";
+    presence =  record {
+      ledger  = principal "'${PRESENCE_PRINCIPAL}'";
+      fee = 10;
+    };
+    resonance = record {
+      ledger  = principal "'${RESONANCE_PRINCIPAL}'";
       fee = 10;
     };
     parameters = record {

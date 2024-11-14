@@ -13,7 +13,7 @@ module {
     type Account = Types.Account;
     type RewardState = Types.RewardState;
     type VoteRegister = Types.VoteRegister;
-    type DatedAggregate<A> = Types.DatedAggregate<A>;
+    type HistoryEntry<A> = Types.HistoryEntry<A>;
     type VoteId = Types.VoteId;
     type BallotId = Types.BallotId;
     
@@ -28,7 +28,7 @@ module {
         time: Time;
         released: ?Time;
         ballot: Types.Ballot<B>;
-        aggregate_history: [DatedAggregate<A>];
+        aggregate_history: [HistoryEntry<A>];
         compute_consent: ComputeConssent<A, B>;
     }): Float {
         return 0.0; // @todo

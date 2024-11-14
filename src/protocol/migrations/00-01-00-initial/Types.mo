@@ -152,6 +152,15 @@ module {
 
     type Time = Int;
 
+    public type History<T> = {
+        var entries: [HistoryEntry<T>];
+    };
+
+    public type HistoryEntry<T> = {
+        timestamp: Time;
+        data: T;
+    };
+
     public type VoteRegister = {
         var index: Nat;
         votes: Map<Nat, VoteType>;
@@ -178,17 +187,12 @@ module {
         #YES;
         #NO;
     };
-
-    public type DatedAggregate<A> = {
-        date: Time;
-        aggregate: A;
-    };
     
     public type Vote<A, B> = {
         vote_id: Nat;
         date: Time;
         origin: Principal;
-        var aggregate_history: [DatedAggregate<A>];
+        aggregate_history: History<A>;
         ballot_register: {
             var index: Nat;
             map: Map<Nat, Ballot<B>>;
@@ -201,7 +205,8 @@ module {
         choice: B;
         amount: Nat;
         dissent: Float;
-        accumulated_reward: Nat;
+        consent: Float;
+        presence: Float;
     };
 
     public type DepositInfo = {
@@ -273,6 +278,12 @@ module {
         #NS: Nat;
     };
 
+    public type PresenseParameters = {
+        presence_per_ns: Float;
+        var time_last_dispense: Time;
+        amount_history: History<Nat>;
+    };
+
     public type Args = {
         #init: InitArgs;
         #upgrade: UpgradeArgs;
@@ -286,7 +297,12 @@ module {
             ledger: Principal;
             fee: Nat;
         };
-        reward: {
+        presence: {
+            ledger: Principal;
+            fee: Nat;
+            mint_per_day: Nat;
+        };
+        resonance: {
             ledger: Principal;
             fee: Nat;
         };
@@ -310,7 +326,13 @@ module {
             fee: Nat;
             incidents: IncidentRegister;
         };
-        reward: {
+        presence: {
+            ledger: ICRC1 and ICRC2;
+            fee: Nat;
+            incidents: IncidentRegister;
+            parameters: PresenseParameters;
+        };
+        resonance: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
             incidents: IncidentRegister;

@@ -40,8 +40,8 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 ## 🚧 TODOs
 
 ### Backend
+ - Verify how decay is used, especially in computing the dissent and consent
  - Do not allow an anonymous principal to open a vote
- - Temporarly multiply rewards by 10^8 until the minting logic is implemented
 
 ### Frontend
 
