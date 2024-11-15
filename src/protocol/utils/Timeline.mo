@@ -11,7 +11,7 @@ module {
     var entries: [HistoryEntry<T>];
   };
 
-  type HistoryEntry<T> = {
+  public type HistoryEntry<T> = {
     timestamp: Time;
     data: T;
   };

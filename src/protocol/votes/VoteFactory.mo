@@ -6,7 +6,6 @@ import Decay              "../duration/Decay";
 import DurationCalculator "../duration/DurationCalculator";
 import PayementFacade     "../payement/PayementFacade";
 import DepositScheduler   "../payement/DepositScheduler";
-import RewardDispenser    "../payement/RewardDispenser";
 import LockScheduler      "../locks/LockScheduler";
 import HotMap             "../locks/HotMap";
 
@@ -28,7 +27,6 @@ module {
 
     type HotElem = HotMap.HotElem;
     type Deposit = DepositScheduler.Deposit;
-    type RewardInfo = RewardDispenser.RewardInfo;
     type Lock = LockScheduler.Lock;
 
     type Time = Int;

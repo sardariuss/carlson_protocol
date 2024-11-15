@@ -1,8 +1,6 @@
 import BallotBuilder      "BallotBuilder";
 import Types              "../Types";
 import DepositScheduler   "../payement/DepositScheduler";
-import RewardDispenser    "../payement/RewardDispenser";
-import MintController     "../payement/MintController";
 import DurationCalculator "../duration/DurationCalculator";
 import MapUtils           "../utils/Map";
 

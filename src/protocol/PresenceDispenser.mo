@@ -32,14 +32,11 @@ module {
   type PresenseParameters = {
     presence_per_ns: Float;
     var time_last_dispense: Time;
-    amount_history: History<Nat>;
   };
 
   public class PresenceDispenser({
     parameters: PresenseParameters;
   }) {
-
-    let locked_timeline = Timeline.Timeline(parameters.amount_history);
 
     public func get_presence_parameters() : PresenseParameters {
       parameters;
@@ -48,6 +45,7 @@ module {
     public func dispense({
       locks: [ExtendedLock];
       time_dispense: Time;
+      total_locked_timeline: Timeline.Timeline<Nat>;
     }) : Result<(), Text> {
 
       // Map locks contains all the locks with their index as key
@@ -76,6 +74,9 @@ module {
         else { #equal }
       });
 
+      // If there is an unlock, there has to be at least one entry in the timeline.
+      var total_locked = total_locked_timeline.unwrap_last_entry().data;
+
       // Dispense the locks
       for ({ key; time; } in released.vals()) {
 
@@ -85,11 +86,13 @@ module {
         };
 
         // Dispense the locks up to the time of release which is the time of release of the lock here
-        dispense_locks(map_locks, time);
+        dispense_locks(total_locked, map_locks, time);
 
-        // Subtract the amount from the total locked and update the timeline accordingly
-        let new_amount : Nat = locked_timeline.unwrap_last_entry().data - amount;
-        switch(locked_timeline.add_entry({ timestamp = time; data = new_amount; })) {
+        // Subtract the amount from the total locked;
+        total_locked -= amount;
+
+        // Update the timeline accordingly
+        switch(total_locked_timeline.add_entry({ timestamp = time; data = total_locked; })) {
           case(#err(err)) { return #err(err); };
           case(#ok(_)) {};
         };
@@ -98,14 +101,12 @@ module {
         Map.delete(map_locks, Map.nhash, key);
       };
 
-      dispense_locks(map_locks, time_dispense);
+      dispense_locks(total_locked, map_locks, time_dispense);
 
       #ok;
     };
 
-    public func dispense_locks(map_locks: Map.Map<Nat, Lock>, time: Time) {
-
-      let total_locked = locked_timeline.unwrap_last_entry().data;
+    public func dispense_locks(total_locked: Nat, map_locks: Map.Map<Nat, Lock>, time: Time) {
 
       for ({ amount; add_presence; } in Map.vals(map_locks)) {
         add_presence(Float.fromInt(amount) / Float.fromInt(total_locked) * parameters.presence_per_ns * Float.fromInt(time - parameters.time_last_dispense));

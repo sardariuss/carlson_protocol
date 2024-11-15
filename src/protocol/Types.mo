@@ -41,7 +41,6 @@ module {
     public type DepositState      = Types.Current.DepositState;
     public type RefundState       = Types.Current.RefundState;
     public type HotInfo           = Types.Current.HotInfo;
-    public type RewardState       = Types.Current.RewardState;
     public type DurationInfo      = Types.Current.DurationInfo;
     public type Ballot<B>         = Types.Current.Ballot<B>;
     public type Incident          = Types.Current.Incident;

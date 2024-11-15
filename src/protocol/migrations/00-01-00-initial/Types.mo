@@ -234,13 +234,6 @@ module {
         decay: Float;
     };
 
-    public type RewardState = {
-        #PENDING;
-        #PENDING_TRANSFER: { amount: Nat; since: Time };
-        #FAILED_TRANSFER: { incident_id: Nat; };
-        #TRANSFERRED: { tx_id: Nat };
-    };
-
     public type DurationInfo = {
         duration_ns: Nat;
     };
@@ -281,7 +274,6 @@ module {
     public type PresenseParameters = {
         presence_per_ns: Float;
         var time_last_dispense: Time;
-        amount_history: History<Nat>;
     };
 
     public type Args = {
@@ -325,6 +317,7 @@ module {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
             incidents: IncidentRegister;
+            total_locked_history: History<Nat>;
         };
         presence: {
             ledger: ICRC1 and ICRC2;

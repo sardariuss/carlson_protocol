@@ -80,6 +80,7 @@ dfx deploy protocol --argument '( variant {
     presence =  record {
       ledger  = principal "'${PRESENCE_PRINCIPAL}'";
       fee = 10;
+      mint_per_day = 100_000_000_000;
     };
     resonance = record {
       ledger  = principal "'${RESONANCE_PRINCIPAL}'";
@@ -106,6 +107,8 @@ dfx deploy minter
 dfx canister call protocol init_facade
 
 # Frontend
+dfx generate presence_ledger
+dfx generate resonance_ledger
+dfx generate protocol
 dfx generate backend
-dfx generate ledger
 dfx deploy frontend

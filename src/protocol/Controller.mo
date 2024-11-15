@@ -2,21 +2,21 @@ import Types              "Types";
 import VoteTypeController "votes/VoteTypeController";
 import PayementFacade     "payement/PayementFacade";
 import PresenceDispenser  "PresenceDispenser";
-import MintController     "payement/MintController";
 import MapUtils           "utils/Map";
 import Decay              "duration/Decay";
 import Incentives         "votes/Incentives";
 import VoteUtils          "votes/VoteUtils";
+import Timeline           "utils/Timeline";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
 
 import Int                "mo:base/Int";
 import Buffer             "mo:base/Buffer";
-import Array              "mo:base/Array";
 import Option             "mo:base/Option";
 import Result             "mo:base/Result";
 import Float              "mo:base/Float";
+import Time               "mo:base/Time";
 
 module {
 
@@ -34,6 +34,7 @@ module {
     type BallotId = Types.BallotId;
     type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
     type ExtendedLock = PresenceDispenser.ExtendedLock;
+    type HistoryEntry<T> = Timeline.HistoryEntry<T>;
 
     type WeightParams = {
         ballot: BallotType;
@@ -63,6 +64,7 @@ module {
         presence_facade: PayementFacade.PayementFacade;
         resonance_facade: PayementFacade.PayementFacade;
         presence_dispenser: PresenceDispenser.PresenceDispenser;
+        total_locked_timeline: Timeline.Timeline<Nat>;
         decay_model: Decay.DecayModel;
     }){
 
@@ -121,7 +123,13 @@ module {
             let result = await* vote_type_controller.put_ballot(put_args);
 
             Result.iterate(result, func(ballot_id: Nat) {
+                // Update the user_ballots map
                 MapUtils.putInnerSet(vote_register.user_ballots, MapUtils.acchash, from, MapUtils.nnhash, (vote_id, ballot_id));
+                // Update the locked amount history
+                let total_locked = Option.getMapped(total_locked_timeline.get_last_entry(), func(entry: HistoryEntry<Nat>) : Nat = entry.data, 0);
+                // TODO: Should we return the result of the add_entry? What to do if it ever fails?
+                // TODO: Should the timeline be flexible enough to allow adding entries in the past?
+                ignore total_locked_timeline.add_entry({ timestamp = Time.now(); data = total_locked + amount; });
             });
 
             result;
@@ -155,9 +163,10 @@ module {
                 });
             };
 
-            ignore presence_dispenser.dispense({ 
+            ignore presence_dispenser.dispense({
                 locks = Buffer.toArray(Buffer.map<ReleaseAttempt<BallotType>, ExtendedLock>(release_attempts, to_lock)); 
-                time_dispense = time
+                time_dispense = time;
+                total_locked_timeline;
             });
 
             // TODO: parallelize awaits*

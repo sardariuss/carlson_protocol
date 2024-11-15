@@ -3,7 +3,7 @@ import { YesNoAggregate } from "@/declarations/protocol/protocol.did";
 import { EYesNoChoice } from "./yesnochoice";
 
 export const last_aggregate = (vote: SYesNoVote): YesNoAggregate => {
-  return vote.aggregate_history[vote.aggregate_history.length - 1].aggregate;
+  return vote.aggregate_history[vote.aggregate_history.length - 1].data;
 }
 
 export const get_total_votes = (vote: SYesNoVote): bigint => {

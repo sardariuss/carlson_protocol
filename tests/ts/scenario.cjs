@@ -186,7 +186,7 @@ async function callCanisterMethod() {
 
         await Promise.all(putBallotPromises);
         await protocolActor.add_time_offset(SCENARIO_TICK_DURATION);
-        await protocolActor.run();
+        //await protocolActor.run();
         tick++;
     }
 
