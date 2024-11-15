@@ -6,3 +6,5 @@ export const MINIMUM_BALLOT_AMOUNT = 100n;
 export const DURATION_EMOJI = "⏳";
 export const DISSENT_EMOJI = "⚔️";
 export const CONSENT_EMOJI = "🤝";
+
+export const CHART_BACKGROUND_COLOR = "#ffffff";
