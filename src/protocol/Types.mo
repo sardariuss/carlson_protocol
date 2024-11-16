@@ -48,6 +48,7 @@ module {
     public type IncidentRegister  = Types.Current.IncidentRegister;
     public type Duration          = Types.Current.Duration;
     public type State             = Types.Current.State;
+    public type ClockParameters   = Types.Current.ClockParameters;
 
     // CANISTER ARGS
 

@@ -24,23 +24,25 @@ module {
     type SQueriedBallot = Types.SQueriedBallot;
     type SBallotType = Types.SBallotType;
     type VoteNotFoundError = Types.VoteNotFoundError;
+    type Duration = Types.Duration;
+    type Result<Ok, Err> = Result.Result<Ok, Err>;
 
     public class SharedFacade(controller: Controller.Controller) {
 
-        public func new_vote(args: NewVoteArgs and { origin: Principal; time: Time; }) : SVoteType {
+        public func new_vote(args: NewVoteArgs and { origin: Principal; }) : SVoteType {
             SharedConversions.shareVoteType(controller.new_vote(args));
         };
 
-        public func preview_ballot(args: PutBallotArgs and { caller: Principal; time: Time; }) : SPreviewBallotResult {
+        public func preview_ballot(args: PutBallotArgs and { caller: Principal; }) : SPreviewBallotResult {
             Result.mapOk<BallotType, SBallotType, VoteNotFoundError>(controller.preview_ballot(args), SharedConversions.shareBallotType);
         };
 
-        public func put_ballot(args: PutBallotArgs and { caller: Principal; time: Time; }) : async* PutBallotResult {
+        public func put_ballot(args: PutBallotArgs and { caller: Principal; }) : async* PutBallotResult {
             await* controller.put_ballot(args);
         };
 
-        public func run({ time: Time; }) : async* () {
-            await* controller.run({time});
+        public func run() : async* () {
+            await* controller.run(null);
         };
 
         public func get_votes({origin: Principal;}) : [SVoteType] {
@@ -75,6 +77,19 @@ module {
         public func get_resonance_incidents() : [(Nat, Types.Incident)] {
             controller.get_resonance_incidents();
         };
+
+        public func add_offset(duration: Duration) : Result<(), Text> {
+            controller.get_clock().add_offset(duration);
+        };
+
+        public func get_offset() : Duration {
+            controller.get_clock().get_offset();
+        };
+
+        public func get_time() : Time {
+            controller.get_clock().get_time();
+        };
+
         
     };
 };

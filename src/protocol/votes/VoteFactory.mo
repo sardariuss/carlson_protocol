@@ -10,11 +10,10 @@ import LockScheduler      "../locks/LockScheduler";
 import HotMap             "../locks/HotMap";
 import History            "../utils/History";
 
-
 import Map                "mo:map/Map";
 
 import Float              "mo:base/Float";
-import Option            "mo:base/Option";
+import Debug              "mo:base/Debug";
 
 module {
 
@@ -79,14 +78,13 @@ module {
             decay_model;
             get_elem = func (b: YesNoBallot): HotElem { b; };
             update_hotness = func ({v: YesNoBallot; hotness: Float; time: Time}): YesNoBallot {
-                let last_duration_ns = History.unwrap_last(v.duration_ns).data;
-                //let last_duration_ns = Option.getMapped(History.get_last(v.duration_ns), func(entry: HistoryEntry<Nat>) : Nat { entry.data }, 0);
-                // Only update the duration if the lock is not expired
+                let update = { v with hotness; };
+                // Update the duration of the lock if the lock is still active
                 // TODO: this logic shall be handled elsewhere, it feels like a hack
-                if (v.timestamp + last_duration_ns < time){
-                    History.add(v.duration_ns, time, duration_calculator.compute_duration_ns({hotness}));
+                if (v.timestamp + History.unwrap_last(v.duration_ns).data > time){
+                    History.add(update.duration_ns, time, duration_calculator.compute_duration_ns({hotness}));
                 };
-                { v with hotness; };
+                update;
             };
             key_hash = Map.nhash;
         });

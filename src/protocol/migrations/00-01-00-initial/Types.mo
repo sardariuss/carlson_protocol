@@ -230,7 +230,7 @@ module {
     };
 
     public type HotInfo = {
-        hotness: Float; // TODO: put as var
+        hotness: Float;
         decay: Float;
     };
 
@@ -276,6 +276,11 @@ module {
         var time_last_dispense: Time;
     };
 
+    public type ClockParameters = { 
+        var offset_ns: Nat;
+        mutable: Bool;
+    };
+
     public type Args = {
         #init: InitArgs;
         #upgrade: UpgradeArgs;
@@ -309,9 +314,7 @@ module {
     };
 
     public type State = {
-        simulation: ?{
-            var time_offset_ns: Time;
-        };
+        clock_parameters: ClockParameters;
         vote_register: VoteRegister;
         deposit: {
             ledger: ICRC1 and ICRC2;

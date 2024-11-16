@@ -7,6 +7,7 @@ import Decay              "duration/Decay";
 import Incentives         "votes/Incentives";
 import VoteUtils          "votes/VoteUtils";
 import Timeline           "utils/Timeline";
+import Clock              "utils/Clock";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
@@ -14,9 +15,9 @@ import Set                "mo:map/Set";
 import Int                "mo:base/Int";
 import Buffer             "mo:base/Buffer";
 import Option             "mo:base/Option";
-import Result             "mo:base/Result";
 import Float              "mo:base/Float";
 import Time               "mo:base/Time";
+import Debug              "mo:base/Debug";
 
 module {
 
@@ -44,7 +45,6 @@ module {
 
     public type NewVoteArgs = {
         origin: Principal;
-        time: Time;
         type_enum: Types.VoteTypeEnum;
     };
 
@@ -53,11 +53,11 @@ module {
         choice_type: ChoiceType;
         caller: Principal;
         from_subaccount: ?Blob;
-        time: Time;
         amount: Nat;
     };
 
     public class Controller({
+        clock: Clock.Clock;
         vote_register: VoteRegister;
         vote_type_controller: VoteTypeController.VoteTypeController;
         deposit_facade: PayementFacade.PayementFacade;
@@ -70,7 +70,7 @@ module {
 
         public func new_vote(args: NewVoteArgs) : VoteType {
 
-            let { type_enum; time; origin; } = args;
+            let { type_enum; origin; } = args;
 
             // Get the next vote_id
             let vote_id = vote_register.index;
@@ -80,7 +80,7 @@ module {
             let vote = vote_type_controller.new_vote({
                 vote_id;
                 vote_type_enum = type_enum;
-                date = time;
+                date = clock.get_time();
                 origin;
             });
             Map.set(vote_register.votes, Map.nhash, vote_id, vote);
@@ -95,21 +95,21 @@ module {
 
         public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
 
-            let { vote_id; choice_type; caller; from_subaccount; time; amount; } = args;
+            let { vote_id; choice_type; caller; from_subaccount; amount; } = args;
 
             let vote_type = switch(Map.get(vote_register.votes, Map.nhash, args.vote_id)){
                 case(?v) { v };
                 case(null) { return #err(#VoteNotFound({vote_id}));  };
             };
 
-            let put_args = { vote_type; choice_type; args = { from = { owner = caller; subaccount = from_subaccount; }; time; amount; } };
+            let put_args = { vote_type; choice_type; args = { from = { owner = caller; subaccount = from_subaccount; }; time = clock.get_time(); amount; } };
 
             #ok(vote_type_controller.preview_ballot(put_args));
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
 
-            let { vote_id; choice_type; caller; from_subaccount; time; amount; } = args;
+            let { vote_id; choice_type; caller; from_subaccount; amount; } = args;
 
             let vote_type = switch(Map.get(vote_register.votes, Map.nhash, args.vote_id)){
                 case(?v) { v };
@@ -118,20 +118,27 @@ module {
 
             let from = { owner = caller; subaccount = from_subaccount; };
 
+            let time = clock.get_time();
+
             let put_args = { vote_type; choice_type; args = { from; time; amount; } };
 
             let result = await* vote_type_controller.put_ballot(put_args);
 
-            Result.iterate(result, func(ballot_id: Nat) {
-                // Update the user_ballots map
-                MapUtils.putInnerSet(vote_register.user_ballots, MapUtils.acchash, from, MapUtils.nnhash, (vote_id, ballot_id));
-                // Update the locked amount history
-                let total_locked = Option.getMapped(total_locked_timeline.get_last_entry(), func(entry: HistoryEntry<Nat>) : Nat = entry.data, 0);
-                // TODO: Should we return the result of the add_entry? What to do if it ever fails?
-                // TODO: Should the timeline be flexible enough to allow adding entries in the past?
-                // TODO: show use Time.now() instead but taking into account the simulation time
-                ignore total_locked_timeline.add_entry({ timestamp = time; data = total_locked + amount; });
-            });
+            switch(result){
+                case(#err(_)) {};
+                case(#ok(ballot_id)) {
+                    // Update the user_ballots map
+                    MapUtils.putInnerSet(vote_register.user_ballots, MapUtils.acchash, from, MapUtils.nnhash, (vote_id, ballot_id));
+                    // Update the locked amount history
+                    let total_locked = Option.getMapped(total_locked_timeline.get_last_entry(), func(entry: HistoryEntry<Nat>) : Nat = entry.data, 0);
+                    // TODO: Should the timeline be flexible enough to allow adding entries in the past?
+                    // TODO: should get clock.get_time() instead
+                    ignore total_locked_timeline.add_entry({ timestamp = time; data = total_locked + amount; });
+                    // WATCHOUT: Need to disburse the presence until now, because the presence dispenser is not clever enough
+                    // to take into account the start date of the lock
+                    let _ = await* run(?time);
+                };
+            };
 
             result;
         };
@@ -149,7 +156,10 @@ module {
             };
         };
 
-        public func run({ time: Time; }) : async* () {
+        public func run(opt_time: ?Time) : async* () {
+
+            let time = Option.get(opt_time, clock.get_time());
+            Debug.print("Running controller at time: " # debug_show(time));
 
             let release_attempts = Buffer.Buffer<ReleaseAttempt<BallotType>>(0);
 
@@ -157,9 +167,14 @@ module {
             for ((vote_id, vote_type) in Map.entries(vote_register.votes)){
                 await* vote_type_controller.try_release({ 
                     vote_type; 
-                    time; 
+                    time;
                     on_release_attempt = func(attempt: ReleaseAttempt<BallotType>) {
-                        release_attempts.add(attempt);
+                        // TODO: fix this giga hack here to avoid considering the ballot that has just been added
+                        if (VoteUtils.get_timestamp(attempt.elem) == time) {
+                            Debug.print("Do not consider the ballot that has been just added!");
+                        } else {
+                            release_attempts.add(attempt);
+                        };
                     };
                 });
             };
@@ -233,6 +248,10 @@ module {
 
         public func get_resonance_incidents() : [(Nat, Types.Incident)] {
             resonance_facade.get_incidents();
+        };
+
+        public func get_clock() : Clock.Clock {
+            clock;
         };
 
         func to_lock(attempt: ReleaseAttempt<BallotType>, time: Time) : ExtendedLock {

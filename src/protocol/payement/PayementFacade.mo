@@ -6,6 +6,8 @@ import Int        "mo:base/Int";
 import Principal  "mo:base/Principal";
 import Result     "mo:base/Result";
 import Error      "mo:base/Error";
+import Time       "mo:base/Time";
+import Nat64      "mo:base/Nat64";
 
 import ICRC1      "mo:icrc1-mo/ICRC1/service";
 import ICRC2      "mo:icrc2-mo/ICRC2/service";
@@ -58,7 +60,7 @@ module {
                 amount = amount + fee;
                 fee = null;
                 memo = null;
-                created_at_time = null;
+                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
             };
 
             // Perform the transfer
@@ -96,7 +98,7 @@ module {
                 amount;
                 fee = null;
                 memo = null;
-                created_at_time = null;
+                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
             };
 
             // Perform the transfer

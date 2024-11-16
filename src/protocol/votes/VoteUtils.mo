@@ -21,6 +21,12 @@ module {
         };
     };
 
+    public func get_timestamp(ballot: BallotType): Time {
+        switch(ballot){
+            case(#YES_NO(b)) { b.timestamp; };
+        };
+    };
+
     public func get_presence(ballot: BallotType): Float {
         switch(ballot){
             case(#YES_NO(b)) { Option.getMapped(History.get_last(b.presence), func(entry: HistoryEntry<Float>) : Float { entry.data }, 0.0); };
@@ -42,12 +48,6 @@ module {
     public func get_consent(ballot: BallotType): Float {
         switch(ballot){
             case(#YES_NO(b)) { Option.getMapped(History.get_last(b.consent), func(entry: HistoryEntry<Float>) : Float { entry.data }, 0.0); };
-        };
-    };
-
-    public func get_timestamp(ballot: BallotType): Time {
-        switch(ballot){
-            case(#YES_NO(b)) { b.timestamp; };
         };
     };
 

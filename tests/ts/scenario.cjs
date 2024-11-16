@@ -159,9 +159,9 @@ async function callCanisterMethod() {
 
             for (let vote of votes) {
 
-                // 20% chance that this user vote by calling protocolActor.put_ballot
-                if (Math.random() < 0.2) {
-                    //await sleep(500); // uncomment to not have errors due to duplicate transfers
+                // 35% chance that this user vote by calling protocolActor.put_ballot
+                if (Math.random() < 0.35) {
+                    await sleep(500);
                     // 50% chance that this user votes YES, 50% chance that this user votes NO
                     putBallotPromises.push(
                         actors.protocol.put_ballot({
@@ -179,18 +179,17 @@ async function callCanisterMethod() {
                         .catch((error) => {
                             console.error('Error putting ballot: ', error);
                         })
-                    );;
+                    );
                 }
             }
         }
 
         await Promise.all(putBallotPromises);
-        await protocolActor.add_time_offset(SCENARIO_TICK_DURATION);
-        //await protocolActor.run();
+        await protocolActor.add_offset(SCENARIO_TICK_DURATION);
         tick++;
     }
 
-    protocolActor.get_time_offset().then((result) => {
+    protocolActor.get_offset().then((result) => {
         console.log('Scenario time offset:', toNs(result));
     });
 }
