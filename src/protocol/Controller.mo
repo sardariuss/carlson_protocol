@@ -129,7 +129,8 @@ module {
                 let total_locked = Option.getMapped(total_locked_timeline.get_last_entry(), func(entry: HistoryEntry<Nat>) : Nat = entry.data, 0);
                 // TODO: Should we return the result of the add_entry? What to do if it ever fails?
                 // TODO: Should the timeline be flexible enough to allow adding entries in the past?
-                ignore total_locked_timeline.add_entry({ timestamp = Time.now(); data = total_locked + amount; });
+                // TODO: show use Time.now() instead but taking into account the simulation time
+                ignore total_locked_timeline.add_entry({ timestamp = time; data = total_locked + amount; });
             });
 
             result;
@@ -164,7 +165,12 @@ module {
             };
 
             ignore presence_dispenser.dispense({
-                locks = Buffer.toArray(Buffer.map<ReleaseAttempt<BallotType>, ExtendedLock>(release_attempts, to_lock)); 
+                locks = Buffer.toArray(Buffer.map<ReleaseAttempt<BallotType>, ExtendedLock>(
+                    release_attempts,
+                    func(attempt: ReleaseAttempt<BallotType>) : ExtendedLock {
+                        to_lock(attempt, time);
+                    }
+                ));
                 time_dispense = time;
                 total_locked_timeline;
             });
@@ -229,12 +235,12 @@ module {
             resonance_facade.get_incidents();
         };
 
-        func to_lock(attempt: ReleaseAttempt<BallotType>) : ExtendedLock {
+        func to_lock(attempt: ReleaseAttempt<BallotType>, time: Time) : ExtendedLock {
             {
                 attempt with
                 amount = switch(attempt.elem){ case(#YES_NO(b)) { b.amount; }; };
                 add_presence = func(presence: Float) {
-                    attempt.update_elem(VoteUtils.add_presence(attempt.elem, presence));
+                    attempt.update_elem(VoteUtils.accumulate_presence(attempt.elem, presence, time));
                 };
             };
         };

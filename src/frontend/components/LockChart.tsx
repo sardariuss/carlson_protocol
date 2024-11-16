@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { ResponsiveLine } from '@nivo/line';
 import { CHART_BACKGROUND_COLOR } from '../constants';
-import { QueriedBallot } from '@/declarations/protocol/protocol.did';
+import { SQueriedBallot } from '@/declarations/protocol/protocol.did';
+import { get_first, get_last } from '../utils/history';
 
 interface LockChartProps {
-  ballots: QueriedBallot[];
+  ballots: SQueriedBallot[];
 };
 
 const LockChart = ({ ballots }: LockChartProps) => {
@@ -20,11 +21,11 @@ const LockChart = ({ ballots }: LockChartProps) => {
           y: index,
         },
         {
-          x: new Date(Number((timestamp + duration_ns / 2n) / 1_000_000n)), // Midpoint
+          x: new Date(Number((timestamp + get_first(duration_ns).data) / 1_000_000n)),
           y: index,
         },
         {
-          x: new Date(Number((timestamp + duration_ns) / 1_000_000n)),
+          x: new Date(Number((timestamp + get_last(duration_ns).data / 1_000_000n))),
           y: index,
         },
       ],
@@ -32,12 +33,12 @@ const LockChart = ({ ballots }: LockChartProps) => {
   });
 
 
-  // Function to calculate the number of days between two dates
-  const getDaysDifference = (startTime: number, endTime: number) => {
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-    const timeDiff = end - start;
-    return timeDiff / (1000 * 3600 * 24); // convert milliseconds to days
+  // Function to calculate the number of days between two timestamps
+  const getDaysDifference = (startTime: number, endTime: number): number => {
+    const start = new Date(startTime);  // Converts startTime to a Date object
+    const end = new Date(endTime);      // Converts endTime to a Date object
+    const timeDiff = end.getTime() - start.getTime();  // Difference in milliseconds
+    return timeDiff / (1000 * 3600 * 24); // Convert milliseconds to days
   };
 
   // Get the range of the data in terms of time (from first to last date)
@@ -55,7 +56,7 @@ const LockChart = ({ ballots }: LockChartProps) => {
   const chartWidth = Math.max(1, (dateRange.daysDiff / 30)) * 800; // 800px per month
 
   // Set up the chart container ref
-  const chartContainerRef = useRef(null);
+  const chartContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const currentDate = new Date();
@@ -95,7 +96,12 @@ const LockChart = ({ ballots }: LockChartProps) => {
     });
   }, [data]);
 
-  const customLayer = ({ xScale, yScale }) => {
+  interface CustomLayerProps {
+    xScale: (value: number | string | Date) => number; // Nivo scale function
+    yScale: (value: number | string | Date) => number; // Nivo scale function
+  }
+
+  const customLayer = ({ xScale, yScale }: CustomLayerProps) => {
     return (
       <>
         {/* Render custom lines */}

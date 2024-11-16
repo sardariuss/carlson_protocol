@@ -55,7 +55,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().find_vote(args);
     };
 
-    public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.PreviewBallotResult {
+    public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.SPreviewBallotResult {
         getFacade().preview_ballot({ args with caller; time = _time(); });
     };
 
@@ -70,12 +70,12 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     };
 
     // Get the ballots of the given account
-    public query func get_ballots(args: Types.Account) : async [Types.QueriedBallot] {
+    public query func get_ballots(args: Types.Account) : async [Types.SQueriedBallot] {
         getFacade().get_ballots(args);
     };
 
     // Find a ballot by its vote_id and ballot_id
-    public query func find_ballot(args: Types.VoteBallotId) : async ?Types.BallotType {
+    public query func find_ballot(args: Types.VoteBallotId) : async ?Types.SBallotType {
         getFacade().find_ballot(args);
     };
 

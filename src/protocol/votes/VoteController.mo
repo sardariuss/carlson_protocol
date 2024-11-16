@@ -3,6 +3,7 @@ import Types              "../Types";
 import DepositScheduler   "../payement/DepositScheduler";
 import DurationCalculator "../duration/DurationCalculator";
 import MapUtils           "../utils/Map";
+import History            "../utils/History";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
@@ -12,6 +13,7 @@ import Result             "mo:base/Result";
 import Int                "mo:base/Int";
 import Float              "mo:base/Float";
 import Array              "mo:base/Array";
+import Time               "mo:base/Time";
 
 module {
 
@@ -100,13 +102,16 @@ module {
 
             // Update the aggregate only once the deposit is done
             let callback = func(ballot: Ballot<B>) {
+                // Get the updated time after async call
+                // TODO: should be Time.now() of the simulation instead
+                let time = ballot.timestamp;
                 // Recompute the aggregate because other ballots might have been added during the awaited deposit, hence changing the aggregate.
-                let aggregate = update_aggregate({ ballot with time = ballot.timestamp; aggregate = lastAggregate(vote); });
+                let aggregate = update_aggregate({ ballot with time; aggregate = lastAggregate(vote); });
                 // Update the aggregate history
-                vote.aggregate_history.entries := Array.append(vote.aggregate_history.entries, [{ timestamp = ballot.timestamp; data = aggregate; }]);
+                vote.aggregate_history.entries := Array.append(vote.aggregate_history.entries, [{ timestamp = time; data = aggregate; }]);
                 // Update the ballot consents
                 for ((id, bal) in Map.entries(vote.ballot_register.map)) {
-                    Map.set(vote.ballot_register.map, Map.nhash, id, { bal with consent = compute_consent({ aggregate; choice = bal.choice; time = bal.timestamp; }) });
+                    History.add(bal.consent, time, compute_consent({ aggregate; choice = bal.choice; time; }));
                 };
             };
 
@@ -152,8 +157,8 @@ module {
                 choice;
                 amount;
                 dissent = compute_dissent({ aggregate; choice; amount; time; });
-                consent = compute_consent({ aggregate; choice; time; });
-                presence = 0.0;
+                consent = History.initialize(time, compute_consent({ aggregate; choice; time; }));
+                presence = History.initialize(time, 0.0);
             });
             builder;
         };
@@ -163,10 +168,6 @@ module {
     func lastAggregate<A, B>(vote: Vote<A, B>) : A {
         let entries = vote.aggregate_history.entries;
         entries[Array.size(entries) - 1].data;
-    };
-
-    func toDays(time: Time) : Float {
-        Float.fromInt(time) / Float.fromInt(24 * 60 * 60 * 1_000_000_000);
     };
 
 };

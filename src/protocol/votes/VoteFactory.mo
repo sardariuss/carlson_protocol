@@ -8,10 +8,13 @@ import PayementFacade     "../payement/PayementFacade";
 import DepositScheduler   "../payement/DepositScheduler";
 import LockScheduler      "../locks/LockScheduler";
 import HotMap             "../locks/HotMap";
+import History            "../utils/History";
+
 
 import Map                "mo:map/Map";
 
 import Float              "mo:base/Float";
+import Option            "mo:base/Option";
 
 module {
 
@@ -24,6 +27,7 @@ module {
     type YesNoChoice = Types.YesNoChoice;
     type RefundState = Types.RefundState;
     type Duration = Types.Duration;
+    type HistoryEntry<T> = Types.HistoryEntry<T>;
 
     type HotElem = HotMap.HotElem;
     type Deposit = DepositScheduler.Deposit;
@@ -75,20 +79,25 @@ module {
             decay_model;
             get_elem = func (b: YesNoBallot): HotElem { b; };
             update_hotness = func ({v: YesNoBallot; hotness: Float; time: Time}): YesNoBallot {
-                var duration_ns = v.duration_ns;
+                let last_duration_ns = History.unwrap_last(v.duration_ns).data;
+                //let last_duration_ns = Option.getMapped(History.get_last(v.duration_ns), func(entry: HistoryEntry<Nat>) : Nat { entry.data }, 0);
                 // Only update the duration if the lock is not expired
                 // TODO: this logic shall be handled elsewhere, it feels like a hack
-                if (v.timestamp + duration_ns < time){
-                    duration_ns := duration_calculator.compute_duration_ns({hotness});
+                if (v.timestamp + last_duration_ns < time){
+                    History.add(v.duration_ns, time, duration_calculator.compute_duration_ns({hotness}));
                 };
-                { v with hotness; duration_ns; };
+                { v with hotness; };
             };
             key_hash = Map.nhash;
         });
 
         let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
             hot_map;
-            lock_info = func (b: YesNoBallot): Lock { b; };
+            lock_info = func (b: YesNoBallot): Lock {
+                //let last_duration_ns = Option.getMapped(History.get_last(b.duration_ns), func(entry: HistoryEntry<Nat>) : Nat { entry.data }, 0);
+                //{ timestamp = b.timestamp; duration_ns = last_duration_ns; };
+                { timestamp = b.timestamp; duration_ns = History.unwrap_last(b.duration_ns).data; } 
+            };
         });
 
         let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({

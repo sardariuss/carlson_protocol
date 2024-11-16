@@ -205,8 +205,8 @@ module {
         choice: B;
         amount: Nat;
         dissent: Float;
-        consent: Float;
-        presence: Float;
+        consent: History<Float>;
+        presence: History<Float>;
     };
 
     public type DepositInfo = {
@@ -230,12 +230,12 @@ module {
     };
 
     public type HotInfo = {
-        hotness: Float;
+        hotness: Float; // TODO: put as var
         decay: Float;
     };
 
     public type DurationInfo = {
-        duration_ns: Nat;
+        duration_ns: History<Nat>;
     };
 
     public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and DurationInfo;

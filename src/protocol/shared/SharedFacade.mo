@@ -4,6 +4,7 @@ import SharedConversions "SharedConversions";
 
 import Array             "mo:base/Array";
 import Option            "mo:base/Option";
+import Result            "mo:base/Result";
 
 module {
 
@@ -14,11 +15,15 @@ module {
     type SVoteType = Types.SVoteType;
     type PutBallotResult = Types.PutBallotResult;
     type PreviewBallotResult = Types.PreviewBallotResult;
+    type SPreviewBallotResult = Types.SPreviewBallotResult;
     type VoteBallotId = Types.VoteBallotId;
     type NewVoteArgs = Types.NewVoteArgs;
     type PutBallotArgs = Types.PutBallotArgs;
     type Account = Types.Account;
     type QueriedBallot = Types.QueriedBallot;
+    type SQueriedBallot = Types.SQueriedBallot;
+    type SBallotType = Types.SBallotType;
+    type VoteNotFoundError = Types.VoteNotFoundError;
 
     public class SharedFacade(controller: Controller.Controller) {
 
@@ -26,8 +31,8 @@ module {
             SharedConversions.shareVoteType(controller.new_vote(args));
         };
 
-        public func preview_ballot(args: PutBallotArgs and { caller: Principal; time: Time; }) : PreviewBallotResult {
-            controller.preview_ballot(args);
+        public func preview_ballot(args: PutBallotArgs and { caller: Principal; time: Time; }) : SPreviewBallotResult {
+            Result.mapOk<BallotType, SBallotType, VoteNotFoundError>(controller.preview_ballot(args), SharedConversions.shareBallotType);
         };
 
         public func put_ballot(args: PutBallotArgs and { caller: Principal; time: Time; }) : async* PutBallotResult {
@@ -47,12 +52,12 @@ module {
             Option.map(controller.find_vote(vote_id), SharedConversions.shareVoteType);
         };
 
-        public func get_ballots(account: Account) : [QueriedBallot] {
-            controller.get_ballots(account);
+        public func get_ballots(account: Account) : [SQueriedBallot] {
+            Array.map(controller.get_ballots(account), SharedConversions.shareQueriedBallot);
         };
 
-        public func find_ballot({vote_id: VoteId; ballot_id: Nat;}) : ?BallotType {
-            controller.find_ballot({vote_id; ballot_id;});
+        public func find_ballot({vote_id: VoteId; ballot_id: Nat;}) : ?SBallotType {
+            Option.map<BallotType, SBallotType>(controller.find_ballot({vote_id; ballot_id;}), SharedConversions.shareBallotType);
         };
 
         public func compute_decay(time: Time) : Float {

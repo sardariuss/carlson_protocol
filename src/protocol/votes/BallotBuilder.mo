@@ -1,5 +1,6 @@
 import Types "../Types";
 import DurationCalculator "../duration/DurationCalculator";
+import Timeline "../utils/Timeline";
 
 import Debug "mo:base/Debug";
 
@@ -35,11 +36,11 @@ module {
             };
         };
 
-        public func add_hot(hot : HotInfo){
+        public func add_hot(hot : HotInfo, timestamp : Time){
             switch(_hot, _duration){
                 case(null, null) { 
-                    _hot := ?hot; 
-                    _duration := ?{ duration_ns = duration_calculator.compute_duration_ns(hot); };
+                    _hot := ?hot;
+                    _duration := ?{ duration_ns = Timeline.initialize(timestamp, duration_calculator.compute_duration_ns(hot)) }; 
                 };
                 case(_) { Debug.trap("Hot Info has already been added")};
             };

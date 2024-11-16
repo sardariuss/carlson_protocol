@@ -12,7 +12,7 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
     public type IHotElemBuilder<V> = {
-        add_hot: HotOutput -> ();
+        add_hot: (HotOutput, Time) -> ();
         build: () -> V;
     };
 
@@ -150,7 +150,7 @@ module {
                 hotness += Float.fromInt(prev_elem.amount) * weight;
             };
 
-            builder.add_hot({ hotness; decay; });
+            builder.add_hot({ hotness; decay; }, timestamp);
             builder.build();
         };
 

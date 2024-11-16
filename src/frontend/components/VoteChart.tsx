@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { protocolActor } from "../actors/ProtocolActor";
-import { Ballot } from "@/declarations/protocol/protocol.did";
+import { SBallot } from "@/declarations/protocol/protocol.did";
 import { EYesNoChoice, toEnum } from "../utils/conversions/yesnochoice";
 import { AreaBumpSerie, ResponsiveAreaBump } from "@nivo/bump";
 import { formatBalanceE8s } from "../utils/conversions/token";
@@ -11,7 +11,7 @@ import { DurationUnit, toNs } from "../utils/conversions/duration";
 import { CHART_BACKGROUND_COLOR } from "../constants";
 
 interface CumulateBetweenDatesArgs {
-  ballots: [bigint, Ballot][] | undefined;
+  ballots: [bigint, SBallot][] | undefined;
   startDate: bigint;
   endDate: bigint;
   sampleInterval: bigint;

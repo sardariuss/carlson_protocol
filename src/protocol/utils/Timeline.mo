@@ -16,12 +16,16 @@ module {
     data: T;
   };
 
+  public func initialize<T>(timestamp: Time, data: T) : History<T> {
+    { var entries = [{ timestamp; data; }] };
+  };
+
   public class Timeline<T>(history: History<T>) {
 
     // Adds an entry to the history, ensuring it has a unique, ascending date
     public func add_entry(entry: HistoryEntry<T>) : Result<[HistoryEntry<T>], Text> {
       if (has_non_ascending_date(entry.timestamp)) {
-        return #err("Date must be strictly greater than the last date");
+        return #err("Date must be greater than the last date");
       };
       history.entries := Array.append(history.entries, [entry]);
       #ok(history.entries);
@@ -54,7 +58,7 @@ module {
     private func has_non_ascending_date(date: Time) : Bool {
       let lastEntry = get_last_entry();
       switch (lastEntry) {
-        case (?entry) { date <= entry.timestamp };
+        case (?entry) { date < entry.timestamp };
         case null { false };
       }
     }

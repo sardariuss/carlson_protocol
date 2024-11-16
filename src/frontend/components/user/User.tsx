@@ -1,6 +1,7 @@
 import { toEnum } from "../../utils/conversions/yesnochoice";
 import { formatDuration } from "../../utils/conversions/duration";
 import { dateToTime } from "../../utils/conversions/date";
+import { get_last } from "../../utils/history";
 import { backendActor } from "../../actors/BackendActor";
 
 import { Principal } from "@dfinity/principal";
@@ -45,7 +46,7 @@ const User = () => {
               <div>{ ballot.ballot.YES_NO.amount.toString() } sat</div>
               <div>{ toEnum(ballot.ballot.YES_NO.choice) }</div>
               <div>dissent: { ballot.ballot.YES_NO.dissent }</div>
-              <div>Time left: { formatDuration(ballot.ballot.YES_NO.timestamp + ballot.ballot.YES_NO.duration_ns - dateToTime(new Date())) }</div>
+              <div>Time left: { formatDuration(ballot.ballot.YES_NO.timestamp + get_last(ballot.ballot.YES_NO.duration_ns).data - dateToTime(new Date())) }</div>
             </li>
           ))
         }

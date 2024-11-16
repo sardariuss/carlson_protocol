@@ -1,10 +1,7 @@
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { YesNoAggregate } from "@/declarations/protocol/protocol.did";
 import { EYesNoChoice } from "./yesnochoice";
-
-export const last_aggregate = (vote: SYesNoVote): YesNoAggregate => {
-  return vote.aggregate_history[vote.aggregate_history.length - 1].data;
-}
+import { get_last } from "../history";
 
 export const get_total_votes = (vote: SYesNoVote): bigint => {
   const aggregate = last_aggregate(vote);
@@ -26,4 +23,8 @@ export const get_votes = (vote: SYesNoVote, choice: EYesNoChoice): bigint => {
 export const get_cursor = (vote: SYesNoVote): number => {
   const aggregate = last_aggregate(vote);
   return Number(aggregate.total_yes) / Number(aggregate.total_yes + aggregate.total_no);
+}
+
+const last_aggregate = (vote: SYesNoVote): YesNoAggregate => {
+  return get_last(vote.aggregate_history).data;
 }

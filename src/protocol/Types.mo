@@ -81,14 +81,37 @@ module {
         #YES_NO: SVote<YesNoAggregate, YesNoChoice>;
     };
 
+    public type SBallotType = {
+        #YES_NO: SBallot<YesNoChoice>;
+    };
+
+    public type SHistory<T> = {
+        entries: [HistoryEntry<T>];
+    };
+
+    public type SBallotInfo<B> = {
+        timestamp: Time;
+        choice: B;
+        amount: Nat;
+        dissent: Float;
+        consent: SHistory<Float>;
+        presence: SHistory<Float>;
+    };
+
+    public type SDurationInfo = {
+        duration_ns: SHistory<Nat>;
+    };
+
+    public type SBallot<B> = SBallotInfo<B> and DepositInfo and HotInfo and SDurationInfo;
+
     public type SVote<A, B> = {
         vote_id: Nat;
         date: Time;
         origin: Principal;
-        aggregate_history: [HistoryEntry<A>];
+        aggregate_history: SHistory<A>;
         ballot_register: {
             index: Nat;
-            map: [(Nat, Ballot<B>)];
+            map: [(Nat, SBallot<B>)];
             locks: [Nat];
         };
     };
@@ -140,6 +163,8 @@ module {
     };
 
     public type QueriedBallot = VoteBallotId and { ballot: BallotType; };
+    public type SQueriedBallot = VoteBallotId and { ballot: SBallotType; };
+    public type SPreviewBallotResult = Result<SBallotType, VoteNotFoundError>;
 
     public type ReleaseAttempt<T> = {
         elem: T;

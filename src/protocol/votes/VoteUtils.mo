@@ -1,4 +1,6 @@
 import Types  "../Types";
+import History "../utils/History";
+import Option "mo:base/Option";
 
 module {
 
@@ -6,6 +8,8 @@ module {
     type AggregateHistoryType = Types.AggregateHistoryType;
     type Account              = Types.Account;
     type BallotType           = Types.BallotType;
+    type History<T>           = Types.History<T>;
+    type HistoryEntry<T>      = Types.HistoryEntry<T>;
     type Time                 = Int;
 
     // TODO: it would probably be clever to put the typed choice outside of the BallotInfo type
@@ -19,7 +23,7 @@ module {
 
     public func get_presence(ballot: BallotType): Float {
         switch(ballot){
-            case(#YES_NO(b)) { b.presence; };
+            case(#YES_NO(b)) { Option.getMapped(History.get_last(b.presence), func(entry: HistoryEntry<Float>) : Float { entry.data }, 0.0); };
         };
     };
 
@@ -37,7 +41,7 @@ module {
 
     public func get_consent(ballot: BallotType): Float {
         switch(ballot){
-            case(#YES_NO(b)) { b.consent; };
+            case(#YES_NO(b)) { Option.getMapped(History.get_last(b.consent), func(entry: HistoryEntry<Float>) : Float { entry.data }, 0.0); };
         };
     };
 
@@ -47,9 +51,13 @@ module {
         };
     };
 
-    public func add_presence(ballot: BallotType, presence: Float): BallotType {
+    public func accumulate_presence(ballot: BallotType, presence: Float, time: Time): BallotType {
         switch(ballot){
-            case(#YES_NO(b)) { #YES_NO({ b with presence = b.presence + presence }); };
+            case(#YES_NO(b)) { 
+                History.add(b.presence, time, Option.getMapped(
+                    History.get_last(b.presence), func(entry: HistoryEntry<Float>) : Float { entry.data }, 0.0) + presence);
+                #YES_NO(b); 
+            };
         };
     };
 
