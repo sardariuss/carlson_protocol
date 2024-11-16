@@ -13,7 +13,9 @@ module {
     type YesNoChoice = Types.YesNoChoice;
     type PutBallotError = Types.PutBallotError;
     type YesNoBallot = Ballot<Types.YesNoChoice>;
+    type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
     type Time = Int;
+    type YesNoVote = Types.Vote<YesNoAggregate, YesNoChoice>;
 
     public type VoteId = Nat;
 
@@ -49,9 +51,21 @@ module {
             };
         };
 
-        public func try_refund_and_reward({ vote_type: VoteType; time: Time; }) : async* [Nat] {
+        public func try_release({
+            vote_type: VoteType;
+            on_release_attempt: ReleaseAttempt<BallotType> -> ();
+            time: Time;
+        }) : async* () {
             switch(vote_type){
-                case(#YES_NO(vote)) { await* yes_no_controller.try_refund_and_reward({ vote; time; }); };
+                case(#YES_NO(vote)) { 
+                    await* yes_no_controller.try_release({ 
+                        vote; 
+                        time; 
+                        on_release_attempt = func(release_attempt: ReleaseAttempt<YesNoBallot>) {
+                            on_release_attempt(wrap_attempt(release_attempt));
+                        };
+                    }); 
+                };
             };
         };
 
@@ -59,6 +73,18 @@ module {
             switch(vote_type){
                 case(#YES_NO(vote)) { 
                     Option.map(yes_no_controller.find_ballot({ vote; ballot_id; }), func(b: YesNoBallot) : Types.BallotType { #YES_NO(b); }); 
+                };
+            };
+        };
+
+        func wrap_attempt(release_attempt: ReleaseAttempt<YesNoBallot>) : ReleaseAttempt<BallotType> {
+            { 
+                release_attempt with
+                elem = #YES_NO(release_attempt.elem); 
+                update_elem = func(b: BallotType) { 
+                    switch(b){
+                        case(#YES_NO(b)) { release_attempt.update_elem(b); };
+                    };
                 };
             };
         };

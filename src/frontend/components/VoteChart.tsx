@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { protocolActor } from "../actors/ProtocolActor";
-import { Ballot } from "@/declarations/protocol/protocol.did";
+import { SBallot } from "@/declarations/protocol/protocol.did";
 import { EYesNoChoice, toEnum } from "../utils/conversions/yesnochoice";
 import { AreaBumpSerie, ResponsiveAreaBump } from "@nivo/bump";
 import { formatBalanceE8s } from "../utils/conversions/token";
@@ -8,9 +8,10 @@ import { format } from "date-fns";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { BallotInfo } from "./types";
 import { DurationUnit, toNs } from "../utils/conversions/duration";
+import { CHART_BACKGROUND_COLOR } from "../constants";
 
 interface CumulateBetweenDatesArgs {
-  ballots: [bigint, Ballot][] | undefined;
+  ballots: [bigint, SBallot][] | undefined;
   startDate: bigint;
   endDate: bigint;
   sampleInterval: bigint;
@@ -226,7 +227,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, range = DurationUnit
   return (
     <div style={{ position: 'relative' }} className="h-[320px] w-[50rem]">
       <div style={{ position: 'absolute', top: MARGIN, right: 59, bottom: MARGIN, left: 59 }} className="flex flex-col border-x z-10">
-        <ul className="flex flex-col w-full" key={vote.vote_id + "levelssss"}>
+        <ul className="flex flex-col w-full" key={vote.vote_id}>
           {
             priceLevels.slice().reverse().map((price, index) => (
               <li key={index}>
@@ -287,114 +288,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, range = DurationUnit
           ),
         }}
         theme={{
-          background: "#ffffff",
-          text: {
-            fontSize: 11,
-            fill: "#333333",
-            outlineWidth: 0,
-            outlineColor: "transparent"
-          },
-          axis: {
-            domain: {
-              line: {
-                stroke: "#777777",
-                strokeWidth: 1
-              }
-            },
-            legend: {
-              text: {
-                fontSize: 12,
-                fill: "#333333",
-                outlineWidth: 0,
-                outlineColor: "transparent"
-              }
-            },
-            ticks: {
-              line: {
-                stroke: "#777777",
-                strokeWidth: 1
-              },
-              text: {
-                fontSize: 11,
-                fill: "#333333",
-                outlineWidth: 0,
-                outlineColor: "transparent"
-              }
-            }
-          },
-          grid: {
-            line: {
-              stroke: "#dddddd",
-              strokeWidth: 1
-            }
-          },
-          legends: {
-            title: {
-              text: {
-                fontSize: 11,
-                fill: "#333333",
-                outlineWidth: 0,
-                outlineColor: "transparent"
-              }
-            },
-            text: {
-              fontSize: 11,
-              fill: "#333333",
-              outlineWidth: 0,
-              outlineColor: "transparent"
-            },
-            ticks: {
-              line: {},
-              text: {
-                fontSize: 10,
-                fill: "#333333",
-                outlineWidth: 0,
-                outlineColor: "transparent"
-              }
-            }
-          },
-          annotations: {
-            text: {
-              fontSize: 13,
-              fill: "#333333",
-              outlineWidth: 2,
-              outlineColor: "#ffffff",
-              outlineOpacity: 1
-            },
-            link: {
-              stroke: "#000000",
-              strokeWidth: 1,
-              outlineWidth: 2,
-              outlineColor: "#ffffff",
-              outlineOpacity: 1
-            },
-            outline: {
-              stroke: "#000000",
-              strokeWidth: 2,
-              outlineWidth: 2,
-              outlineColor: "#ffffff",
-              outlineOpacity: 1
-            },
-            symbol: {
-              fill: "#000000",
-              outlineWidth: 2,
-              outlineColor: "#ffffff",
-              outlineOpacity: 1
-            }
-          },
-          tooltip: {
-            wrapper: {},
-            container: {
-              background: "#ffffff",
-              color: "#333333",
-              fontSize: 12
-            },
-            basic: {},
-            chip: {},
-            table: {},
-            tableCell: {},
-            tableCellValue: {}
-          }
+          background: CHART_BACKGROUND_COLOR,
         }}
       />
     </div>

@@ -1,8 +1,9 @@
 import BallotBuilder      "BallotBuilder";
 import Types              "../Types";
 import DepositScheduler   "../payement/DepositScheduler";
-import RewardDispenser    "../payement/RewardDispenser";
 import DurationCalculator "../duration/DurationCalculator";
+import MapUtils           "../utils/Map";
+import History            "../utils/History";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
@@ -12,18 +13,20 @@ import Result             "mo:base/Result";
 import Int                "mo:base/Int";
 import Float              "mo:base/Float";
 import Array              "mo:base/Array";
+import Time               "mo:base/Time";
 
 module {
 
     type Time = Int;
-
-    public type VoteId = Nat;
 
     type PutBallotError = Types.PutBallotError;
     type Account = Types.Account;
     type Iter<T> = Iter.Iter<T>;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type IDurationCalculator = DurationCalculator.IDurationCalculator;
+    type VoteId = Types.VoteId;
+    type BallotId = Types.BallotId;
+    type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
 
     type Vote<A, B> = Types.Vote<A, B>;
 
@@ -31,11 +34,9 @@ module {
 
     type DepositState = Types.DepositState;
 
-    public type UpdatePolicy<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
+    public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
     public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
-    public type ComputeConsent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
-
-    let TEMP_REWARD_MULTIPLIER = 1000;
+    public type ComputeConsent<A, B> = ({aggregate: A; choice: B; time: Time}) -> Float;
 
     public type PutBallotArgs = {
         from: {
@@ -48,12 +49,11 @@ module {
    
     public class VoteController<A, B>({
         empty_aggregate: A;
-        update_aggregate: UpdatePolicy<A, B>;
+        update_aggregate: UpdateAggregate<A, B>;
         compute_dissent: ComputeDissent<A, B>;
         compute_consent: ComputeConsent<A, B>;
         duration_calculator: IDurationCalculator;
         deposit_scheduler: DepositScheduler.DepositScheduler<Ballot<B>>;
-        reward_dispenser: RewardDispenser.RewardDispenser<Ballot<B>>;
     }){
 
         public func new_vote({
@@ -64,8 +64,9 @@ module {
             {
                 vote_id;
                 date;
+                last_mint = date;
                 origin;
-                var aggregate = empty_aggregate;
+                aggregate_history = { var entries = [{ timestamp = date; data = empty_aggregate; }] };
                 ballot_register = {
                     var index = 0;
                     map = Map.new<Nat, Ballot<B>>();
@@ -80,7 +81,8 @@ module {
             args: PutBallotArgs;
         }) : Ballot<B> {
 
-            let builder = intialize_ballot({ vote; choice; args; });
+            let aggregate = update_aggregate({ args with aggregate = lastAggregate(vote); choice; });
+            let builder = intialize_ballot({ choice; args; aggregate; });
 
             deposit_scheduler.preview_deposit({
                 register = vote.ballot_register;
@@ -95,16 +97,22 @@ module {
             args: PutBallotArgs;
         }) : async* Result<Nat, PutBallotError> {
 
-            let builder = intialize_ballot({ vote; choice; args; });
+            let aggregate = update_aggregate({ args with aggregate = lastAggregate(vote); choice; });
+            let builder = intialize_ballot({ choice; args; aggregate; });
 
             // Update the aggregate only once the deposit is done
             let callback = func(ballot: Ballot<B>) {
-                vote.aggregate := update_aggregate({ 
-                    aggregate = vote.aggregate;
-                    choice = ballot.choice;
-                    amount = ballot.amount; 
-                    time = ballot.timestamp;
-                });
+                // Get the updated time after async call
+                // TODO: should be Time.now() of the simulation instead
+                let time = ballot.timestamp;
+                // Recompute the aggregate because other ballots might have been added during the awaited deposit, hence changing the aggregate.
+                let aggregate = update_aggregate({ ballot with time; aggregate = lastAggregate(vote); });
+                // Update the aggregate history
+                vote.aggregate_history.entries := Array.append(vote.aggregate_history.entries, [{ timestamp = time; data = aggregate; }]);
+                // Update the ballot consents
+                for ((id, bal) in Map.entries(vote.ballot_register.map)) {
+                    History.add(bal.consent, time, compute_consent({ aggregate; choice = bal.choice; time; }));
+                };
             };
 
             // Perform the deposit
@@ -116,46 +124,17 @@ module {
             });
         };
 
-        public func try_refund_and_reward({
+        public func try_release({
             vote: Vote<A, B>;
-            time: Time
-        }) : async* [Nat] {
+            time: Time;
+            on_release_attempt: ReleaseAttempt<Ballot<B>> -> ();
+        }) : async* () {
 
-            let ballot_ids = await* deposit_scheduler.try_refund({
+            await* deposit_scheduler.attempt_release({
                 register = vote.ballot_register;
                 time;
+                on_release_attempt;
             });
-
-            label reward_loop for (ballot_id in Array.vals(ballot_ids)){
-                
-                let ballot = switch(Map.get(vote.ballot_register.map, Map.nhash, ballot_id)){
-                    case (null) { continue reward_loop; }; // @todo: add an incident
-                    case (?b) { b; };
-                };
-
-                let reward_fct = func() : async() {
-
-                    let { choice; amount; dissent; timestamp; } = ballot;
-
-                    let consent = compute_consent({ aggregate = vote.aggregate; choice; amount; time; });
-                    let days_locked = toDays(time - timestamp);
-                    let reward = TEMP_REWARD_MULTIPLIER * Int.abs(Float.toInt(days_locked * dissent * consent));
-
-                    await* reward_dispenser.send_reward({
-                        to = ballot;
-                        amount = reward;
-                        time;
-                        update_elem = func(ballot: Ballot<B>) {
-                            Map.set(vote.ballot_register.map, Map.nhash, ballot_id, ballot);
-                        };
-                    });
-                };
-
-                // Trigger the reward but do not wait for it to complete
-                ignore reward_fct();
-            };
-
-            ballot_ids;
         };
 
         public func find_ballot({
@@ -166,7 +145,7 @@ module {
         };
 
         func intialize_ballot({
-            vote: Vote<A, B>;
+            aggregate: A;
             choice: B;
             args: PutBallotArgs;
         }) : BallotBuilder.BallotBuilder<B> {
@@ -177,24 +156,18 @@ module {
                 timestamp = time;
                 choice;
                 amount;
-                dissent = compute_dissent({
-                    aggregate = vote.aggregate;
-                    choice;
-                    amount;
-                    time;
-                })
-            });
-            builder.add_reward({
-                reward_account = args.from; // @todo: decide if the reward account shall be just removed or passed as an argument
-                reward_state = #PENDING;
+                dissent = compute_dissent({ aggregate; choice; amount; time; });
+                consent = History.initialize(time, compute_consent({ aggregate; choice; time; }));
+                presence = History.initialize(time, 0.0);
             });
             builder;
         };
 
     };
 
-    func toDays(time: Time) : Float {
-        Float.fromInt(time) / Float.fromInt(24 * 60 * 60 * 1_000_000_000);
+    func lastAggregate<A, B>(vote: Vote<A, B>) : A {
+        let entries = vote.aggregate_history.entries;
+        entries[Array.size(entries) - 1].data;
     };
 
 };

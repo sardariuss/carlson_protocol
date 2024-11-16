@@ -10,7 +10,11 @@
         }
       }
     },
-    "ledger": {
+    "presence_ledger": {
+      "main": "src/ledger/main.mo",
+      "type": "motoko"
+    },
+    "resonance_ledger": {
       "main": "src/ledger/main.mo",
       "type": "motoko"
     },

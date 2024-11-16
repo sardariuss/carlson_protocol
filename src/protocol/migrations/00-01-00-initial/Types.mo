@@ -152,11 +152,20 @@ module {
 
     type Time = Int;
 
+    public type History<T> = {
+        var entries: [HistoryEntry<T>];
+    };
+
+    public type HistoryEntry<T> = {
+        timestamp: Time;
+        data: T;
+    };
+
     public type VoteRegister = {
         var index: Nat;
         votes: Map<Nat, VoteType>;
         by_origin: Map<Principal, Set<Nat>>;
-        user_ballots: Map<(Principal, ?Blob), Set<(Nat, Nat)>>;
+        user_ballots: Map<Account, Set<(Nat, Nat)>>;
     };
 
     public type VoteType = {
@@ -183,7 +192,7 @@ module {
         vote_id: Nat;
         date: Time;
         origin: Principal;
-        var aggregate: A;
+        aggregate_history: History<A>;
         ballot_register: {
             var index: Nat;
             map: Map<Nat, Ballot<B>>;
@@ -196,6 +205,8 @@ module {
         choice: B;
         amount: Nat;
         dissent: Float;
+        consent: History<Float>;
+        presence: History<Float>;
     };
 
     public type DepositInfo = {
@@ -219,27 +230,15 @@ module {
     };
 
     public type HotInfo = {
-        hotness: Float;
+        hotness: Float; // TODO: put as var
         decay: Float;
     };
 
-    public type RewardInfo = {
-        reward_account: Account;
-        reward_state: RewardState;
-    };
-
-    public type RewardState = {
-        #PENDING;
-        #PENDING_TRANSFER: { amount: Nat; since: Time };
-        #FAILED_TRANSFER: { incident_id: Nat; };
-        #TRANSFERRED: { tx_id: Nat };
-    };
-
     public type DurationInfo = {
-        duration_ns: Nat;
+        duration_ns: History<Nat>;
     };
 
-    public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and RewardInfo and DurationInfo;
+    public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and DurationInfo;
 
     public type Incident = {
         #ServiceTrapped: ServiceError;
@@ -272,6 +271,11 @@ module {
         #NS: Nat;
     };
 
+    public type PresenseParameters = {
+        presence_per_ns: Float;
+        var time_last_dispense: Time;
+    };
+
     public type Args = {
         #init: InitArgs;
         #upgrade: UpgradeArgs;
@@ -285,7 +289,12 @@ module {
             ledger: Principal;
             fee: Nat;
         };
-        reward: {
+        presence: {
+            ledger: Principal;
+            fee: Nat;
+            mint_per_day: Nat;
+        };
+        resonance: {
             ledger: Principal;
             fee: Nat;
         };
@@ -308,8 +317,15 @@ module {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
             incidents: IncidentRegister;
+            total_locked_history: History<Nat>;
         };
-        reward: {
+        presence: {
+            ledger: ICRC1 and ICRC2;
+            fee: Nat;
+            incidents: IncidentRegister;
+            parameters: PresenseParameters;
+        };
+        resonance: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
             incidents: IncidentRegister;

@@ -35,8 +35,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         switch(_state){
             case(#v0_1_0(stable_data)) {
                 _facade := ?SharedFacade.SharedFacade(Factory.build({
-                    stable_data;
-                    provider = Principal.fromActor(this);
+                    stable_data with provider = Principal.fromActor(this);
                 }));
             };
         };
@@ -56,7 +55,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().find_vote(args);
     };
 
-    public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.PreviewBallotResult {
+    public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.SPreviewBallotResult {
         getFacade().preview_ballot({ args with caller; time = _time(); });
     };
 
@@ -65,19 +64,18 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         await* getFacade().put_ballot({ args with caller; time = _time(); });
     };
 
-    // Unlock the tokens if the duration is reached
-    // Return the number of ballots unlocked (whether the transfers succeded or not)
-    public func try_refund_and_reward() : async [Types.VoteBallotId] {
-        await* getFacade().try_refund_and_reward({ time = _time() });
+    // Run the protocol
+    public func run() : async () {
+        await* getFacade().run({ time = _time() });
     };
 
     // Get the ballots of the given account
-    public query func get_ballots(args: Types.Account) : async [Types.QueriedBallot] {
+    public query func get_ballots(args: Types.Account) : async [Types.SQueriedBallot] {
         getFacade().get_ballots(args);
     };
 
     // Find a ballot by its vote_id and ballot_id
-    public query func find_ballot(args: Types.VoteBallotId) : async ?Types.BallotType {
+    public query func find_ballot(args: Types.VoteBallotId) : async ?Types.SBallotType {
         getFacade().find_ballot(args);
     };
 
@@ -91,8 +89,12 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     };
 
     // Get the failed rewards for the given principal
-    public query func get_reward_incidents() : async [(Nat, Types.Incident)] {
-        getFacade().get_reward_incidents();
+    public query func get_presence_incidents() : async [(Nat, Types.Incident)] {
+        getFacade().get_presence_incidents();
+    };
+
+    public query func get_resonance_incidents() : async [(Nat, Types.Incident)] {
+        getFacade().get_resonance_incidents();
     };
 
     func getFacade() : SharedFacade.SharedFacade {

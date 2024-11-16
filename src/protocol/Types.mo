@@ -33,20 +33,21 @@ module {
     public type YesNoAggregate    = Types.Current.YesNoAggregate;
     public type Decayed           = Types.Current.Decayed;
     public type YesNoChoice       = Types.Current.YesNoChoice;
+    public type History<T>        = Types.Current.History<T>;
+    public type HistoryEntry<T>   = Types.Current.HistoryEntry<T>;
     public type Vote<A, B>        = Types.Current.Vote<A, B>;
     public type BallotInfo<B>     = Types.Current.BallotInfo<B>;
     public type DepositInfo       = Types.Current.DepositInfo;
     public type DepositState      = Types.Current.DepositState;
     public type RefundState       = Types.Current.RefundState;
     public type HotInfo           = Types.Current.HotInfo;
-    public type RewardInfo        = Types.Current.RewardInfo;
-    public type RewardState       = Types.Current.RewardState;
     public type DurationInfo      = Types.Current.DurationInfo;
     public type Ballot<B>         = Types.Current.Ballot<B>;
     public type Incident          = Types.Current.Incident;
     public type ServiceError      = Types.Current.ServiceError;
     public type IncidentRegister  = Types.Current.IncidentRegister;
     public type Duration          = Types.Current.Duration;
+    public type State             = Types.Current.State;
 
     // CANISTER ARGS
 
@@ -80,14 +81,37 @@ module {
         #YES_NO: SVote<YesNoAggregate, YesNoChoice>;
     };
 
+    public type SBallotType = {
+        #YES_NO: SBallot<YesNoChoice>;
+    };
+
+    public type SHistory<T> = {
+        entries: [HistoryEntry<T>];
+    };
+
+    public type SBallotInfo<B> = {
+        timestamp: Time;
+        choice: B;
+        amount: Nat;
+        dissent: Float;
+        consent: SHistory<Float>;
+        presence: SHistory<Float>;
+    };
+
+    public type SDurationInfo = {
+        duration_ns: SHistory<Nat>;
+    };
+
+    public type SBallot<B> = SBallotInfo<B> and DepositInfo and HotInfo and SDurationInfo;
+
     public type SVote<A, B> = {
         vote_id: Nat;
         date: Time;
         origin: Principal;
-        aggregate: A;
+        aggregate_history: SHistory<A>;
         ballot_register: {
             index: Nat;
-            map: [(Nat, Ballot<B>)];
+            map: [(Nat, SBallot<B>)];
             locks: [Nat];
         };
     };
@@ -106,6 +130,10 @@ module {
 
     public type BallotType = {
         #YES_NO: Ballot<YesNoChoice>;
+    };
+
+    public type AggregateHistoryType = {
+        #YES_NO: [HistoryEntry<YesNoAggregate>];
     };
 
     public type ChoiceType = {
@@ -127,11 +155,21 @@ module {
     
     public type PreviewBallotResult = Result<BallotType, VoteNotFoundError>;
 
+    public type VoteId = Nat;
+    public type BallotId = Nat;
     public type VoteBallotId = {
-        vote_id: Nat;
-        ballot_id: Nat;
+        vote_id: VoteId;
+        ballot_id: BallotId;
     };
 
     public type QueriedBallot = VoteBallotId and { ballot: BallotType; };
+    public type SQueriedBallot = VoteBallotId and { ballot: SBallotType; };
+    public type SPreviewBallotResult = Result<SBallotType, VoteNotFoundError>;
+
+    public type ReleaseAttempt<T> = {
+        elem: T;
+        release_time: ?Time;
+        update_elem: T -> ();
+    };
 
 };

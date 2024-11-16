@@ -1,5 +1,4 @@
 import VoteController     "VoteController";
-import Conversion         "BallotConversion";
 import Incentives         "Incentives";
 
 import Types              "../Types";
@@ -7,13 +6,15 @@ import Decay              "../duration/Decay";
 import DurationCalculator "../duration/DurationCalculator";
 import PayementFacade     "../payement/PayementFacade";
 import DepositScheduler   "../payement/DepositScheduler";
-import RewardDispenser    "../payement/RewardDispenser";
 import LockScheduler      "../locks/LockScheduler";
 import HotMap             "../locks/HotMap";
+import History            "../utils/History";
+
 
 import Map                "mo:map/Map";
 
 import Float              "mo:base/Float";
+import Option            "mo:base/Option";
 
 module {
 
@@ -26,17 +27,16 @@ module {
     type YesNoChoice = Types.YesNoChoice;
     type RefundState = Types.RefundState;
     type Duration = Types.Duration;
+    type HistoryEntry<T> = Types.HistoryEntry<T>;
 
     type HotElem = HotMap.HotElem;
     type Deposit = DepositScheduler.Deposit;
-    type RewardInfo = RewardDispenser.RewardInfo;
     type Lock = LockScheduler.Lock;
 
     type Time = Int;
 
     public func build_yes_no({
         deposit_facade: PayementFacade.PayementFacade;
-        reward_facade: PayementFacade.PayementFacade;
         decay_model: Decay.DecayModel;
         duration_calculator: DurationCalculator.IDurationCalculator;
     }) : VoteController<YesNoAggregate, YesNoChoice> {
@@ -67,10 +67,9 @@ module {
             });
         };
 
-        func compute_consent({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
-            Incentives.compute_consent({
+        func compute_consent({aggregate: YesNoAggregate; choice: YesNoChoice; time: Time;}) : Float {
+            Incentives.compute_consent({ 
                 choice;
-                amount;
                 total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
                 total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
             });
@@ -79,33 +78,33 @@ module {
         let hot_map = HotMap.HotMap<Nat, YesNoBallot>({
             decay_model;
             get_elem = func (b: YesNoBallot): HotElem { b; };
-            update_elem = func (b: YesNoBallot, i: HotElem): YesNoBallot {
-                var duration_ns = b.duration_ns;
-                // Only update duration if the reward has not been distributed yet
-                if (b.reward_state == #PENDING){
-                    duration_ns := duration_calculator.compute_duration_ns(i);
+            update_hotness = func ({v: YesNoBallot; hotness: Float; time: Time}): YesNoBallot {
+                let last_duration_ns = History.unwrap_last(v.duration_ns).data;
+                //let last_duration_ns = Option.getMapped(History.get_last(v.duration_ns), func(entry: HistoryEntry<Nat>) : Nat { entry.data }, 0);
+                // Only update the duration if the lock is not expired
+                // TODO: this logic shall be handled elsewhere, it feels like a hack
+                if (v.timestamp + last_duration_ns < time){
+                    History.add(v.duration_ns, time, duration_calculator.compute_duration_ns({hotness}));
                 };
-                { b with hotness = i.hotness; duration_ns; };
+                { v with hotness; };
             };
             key_hash = Map.nhash;
         });
 
         let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
             hot_map;
-            lock_info = func (b: YesNoBallot): Lock { b; };
+            lock_info = func (b: YesNoBallot): Lock {
+                //let last_duration_ns = Option.getMapped(History.get_last(b.duration_ns), func(entry: HistoryEntry<Nat>) : Nat { entry.data }, 0);
+                //{ timestamp = b.timestamp; duration_ns = last_duration_ns; };
+                { timestamp = b.timestamp; duration_ns = History.unwrap_last(b.duration_ns).data; } 
+            };
         });
 
         let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({
             deposit_facade;
             lock_scheduler;
             get_deposit = func (b: YesNoBallot): Deposit { b; };
-            tag_refunded = func (b: YesNoBallot, s: RefundState): YesNoBallot { Conversion.tag_refunded<YesNoChoice>(b, s); };
-        });
-
-        let reward_dispenser = RewardDispenser.RewardDispenser<YesNoBallot>({
-            reward_facade;
-            get_reward = func (b: YesNoBallot): RewardInfo { Conversion.to_reward_info<YesNoChoice>(b); };
-            update_reward = func (b: YesNoBallot, i: RewardInfo): YesNoBallot { Conversion.update_reward_info<YesNoChoice>(b, i); };
+            tag_refunded = func (b: YesNoBallot, s: RefundState): YesNoBallot { { b with deposit_state = #REFUNDED(s); } };
         });
         
         VoteController.VoteController<YesNoAggregate, YesNoChoice>({
@@ -115,7 +114,6 @@ module {
             compute_consent;
             duration_calculator;
             deposit_scheduler;
-            reward_dispenser;
         });
     };
 

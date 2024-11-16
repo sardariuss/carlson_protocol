@@ -28,7 +28,7 @@ module {
         let _shift = Float.fromInt(time_init) * _lambda;
 
         public func create_decayed(value: Float, time: Time) : Decayed {
-            #DECAYED(value * compute_decay(time));
+            #DECAYED(value * compute_decay(time)); // @todo: avoid multiplication and potential overflow ?
         };
 
         public func unwrap_decayed(decayed: Decayed, now: Time) : Float {

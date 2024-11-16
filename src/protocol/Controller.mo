@@ -1,18 +1,22 @@
 import Types              "Types";
 import VoteTypeController "votes/VoteTypeController";
 import PayementFacade     "payement/PayementFacade";
+import PresenceDispenser  "PresenceDispenser";
 import MapUtils           "utils/Map";
 import Decay              "duration/Decay";
+import Incentives         "votes/Incentives";
+import VoteUtils          "votes/VoteUtils";
+import Timeline           "utils/Timeline";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
 
 import Int                "mo:base/Int";
 import Buffer             "mo:base/Buffer";
-import Array              "mo:base/Array";
 import Option             "mo:base/Option";
 import Result             "mo:base/Result";
-import Float "mo:base/Float";
+import Float              "mo:base/Float";
+import Time               "mo:base/Time";
 
 module {
 
@@ -26,6 +30,17 @@ module {
     type ChoiceType = Types.ChoiceType;
     type QueriedBallot = Types.QueriedBallot;
     type Account = Types.Account;
+    type VoteId = Types.VoteId;
+    type BallotId = Types.BallotId;
+    type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
+    type ExtendedLock = PresenceDispenser.ExtendedLock;
+    type HistoryEntry<T> = Timeline.HistoryEntry<T>;
+
+    type WeightParams = {
+        ballot: BallotType;
+        update_ballot: (BallotType) -> ();
+        weight: Float;
+    };
 
     public type NewVoteArgs = {
         origin: Principal;
@@ -46,7 +61,10 @@ module {
         vote_register: VoteRegister;
         vote_type_controller: VoteTypeController.VoteTypeController;
         deposit_facade: PayementFacade.PayementFacade;
-        reward_facade: PayementFacade.PayementFacade;
+        presence_facade: PayementFacade.PayementFacade;
+        resonance_facade: PayementFacade.PayementFacade;
+        presence_dispenser: PresenceDispenser.PresenceDispenser;
+        total_locked_timeline: Timeline.Timeline<Nat>;
         decay_model: Decay.DecayModel;
     }){
 
@@ -98,20 +116,28 @@ module {
                 case(null) { return #err(#VoteNotFound({vote_id}));  };
             };
 
-            let put_args = { vote_type; choice_type; args = { from = { owner = caller; subaccount = from_subaccount; }; time; amount; } };
+            let from = { owner = caller; subaccount = from_subaccount; };
+
+            let put_args = { vote_type; choice_type; args = { from; time; amount; } };
 
             let result = await* vote_type_controller.put_ballot(put_args);
 
             Result.iterate(result, func(ballot_id: Nat) {
-                MapUtils.putInnerSet(vote_register.user_ballots, MapUtils.acchash, (caller, from_subaccount), MapUtils.nnhash, (vote_id, ballot_id));
+                // Update the user_ballots map
+                MapUtils.putInnerSet(vote_register.user_ballots, MapUtils.acchash, from, MapUtils.nnhash, (vote_id, ballot_id));
+                // Update the locked amount history
+                let total_locked = Option.getMapped(total_locked_timeline.get_last_entry(), func(entry: HistoryEntry<Nat>) : Nat = entry.data, 0);
+                // TODO: Should we return the result of the add_entry? What to do if it ever fails?
+                // TODO: Should the timeline be flexible enough to allow adding entries in the past?
+                // TODO: show use Time.now() instead but taking into account the simulation time
+                ignore total_locked_timeline.add_entry({ timestamp = time; data = total_locked + amount; });
             });
 
             result;
         };
 
         public func get_ballots(account: Account) : [QueriedBallot] {
-            let { owner; subaccount; } = account;
-            switch(Map.get(vote_register.user_ballots, MapUtils.acchash, (owner, subaccount))){
+            switch(Map.get(vote_register.user_ballots, MapUtils.acchash, account)){
                 case(?ballots) { 
                     Set.toArrayMap(ballots, func((vote_id, ballot_id): (Nat, Nat)) : ?QueriedBallot =
                         Option.map(find_ballot({vote_id; ballot_id;}), func(ballot: BallotType) : QueriedBallot = 
@@ -123,18 +149,53 @@ module {
             };
         };
 
-        public func try_refund_and_reward({ time: Time; }) : async* [VoteBallotId] {
+        public func run({ time: Time; }) : async* () {
 
-            let buffer = Buffer.Buffer<VoteBallotId>(0);
+            let release_attempts = Buffer.Buffer<ReleaseAttempt<BallotType>>(0);
 
+            // TODO: parallelize awaits*
             for ((vote_id, vote_type) in Map.entries(vote_register.votes)){
-                let ballot_ids = await* vote_type_controller.try_refund_and_reward({ vote_type; time; });
-                for (ballot_id in Array.vals(ballot_ids)){
-                    buffer.add({vote_id; ballot_id;});
-                };
+                await* vote_type_controller.try_release({ 
+                    vote_type; 
+                    time; 
+                    on_release_attempt = func(attempt: ReleaseAttempt<BallotType>) {
+                        release_attempts.add(attempt);
+                    };
+                });
             };
 
-            Buffer.toArray(buffer);
+            ignore presence_dispenser.dispense({
+                locks = Buffer.toArray(Buffer.map<ReleaseAttempt<BallotType>, ExtendedLock>(
+                    release_attempts,
+                    func(attempt: ReleaseAttempt<BallotType>) : ExtendedLock {
+                        to_lock(attempt, time);
+                    }
+                ));
+                time_dispense = time;
+                total_locked_timeline;
+            });
+
+            // TODO: parallelize awaits*
+            for ({ elem; release_time; } in release_attempts.vals()){
+                if(Option.isSome(release_time)){                    
+                    // Mint the presence
+                    let _ = await* presence_facade.send_payement({ 
+                        to = VoteUtils.get_account(elem); 
+                        amount = Int.abs(Float.toInt(VoteUtils.get_presence(elem)));
+                    });
+                    // Mint the resonance
+                    let _ = await* resonance_facade.send_payement({ 
+                        to = VoteUtils.get_account(elem); 
+                        amount = Int.abs(Float.toInt(Incentives.compute_resonance({
+                            amount = VoteUtils.get_amount(elem);
+                            dissent = VoteUtils.get_dissent(elem);
+                            consent = VoteUtils.get_consent(elem);
+                            start = VoteUtils.get_timestamp(elem);
+                            end = time;
+                        })));
+                    });
+                };
+            };
         };
 
         public func get_votes({origin: Principal;}) : [VoteType] {
@@ -166,8 +227,22 @@ module {
             deposit_facade.get_incidents();
         };
         
-        public func get_reward_incidents() : [(Nat, Types.Incident)] {
-            reward_facade.get_incidents();
+        public func get_presence_incidents() : [(Nat, Types.Incident)] {
+            presence_facade.get_incidents();
+        };
+
+        public func get_resonance_incidents() : [(Nat, Types.Incident)] {
+            resonance_facade.get_incidents();
+        };
+
+        func to_lock(attempt: ReleaseAttempt<BallotType>, time: Time) : ExtendedLock {
+            {
+                attempt with
+                amount = switch(attempt.elem){ case(#YES_NO(b)) { b.amount; }; };
+                add_presence = func(presence: Float) {
+                    attempt.update_elem(VoteUtils.accumulate_presence(attempt.elem, presence, time));
+                };
+            };
         };
 
     };

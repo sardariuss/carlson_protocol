@@ -8,6 +8,7 @@ import { formatDateTime, timeToDate } from "../utils/conversions/date";
 import VoteChart from "./VoteChart";
 import VoteSlider from "./VoteSlider";
 import { BallotInfo } from "./types";
+import { get_no_votes, get_total_votes, get_votes, get_yes_votes } from "../utils/conversions/vote";
 
 interface VoteViewProps {
   vote: SYesNoVote;
@@ -22,22 +23,22 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, account, selected
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
 
   const { consensusChoice, consensusRatio } = useMemo(() => {
-    const total = vote.aggregate.total_yes + vote.aggregate.total_no + ballot.amount;
+    const total = get_total_votes(vote) + ballot.amount;
     if (total === 0n) {
       return { consensusChoice: undefined, consensusRatio: undefined };
     }
-    const ratio = Number(vote.aggregate.total_yes + (ballot.choice === EYesNoChoice.Yes ? ballot.amount : 0n)) / Number(total);
+    const ratio = Number(get_yes_votes(vote) + (ballot.choice === EYesNoChoice.Yes ? ballot.amount : 0n)) / Number(total);
     return (ratio >= 0.5 ? { consensusChoice: EYesNoChoice.Yes, consensusRatio: ratio } : { consensusChoice: EYesNoChoice.No, consensusRatio: 1 - ratio });
   }, [vote, ballot]);
 
   const getTotalSide = (side: EYesNoChoice) : bigint => {
-    var total_side = side === EYesNoChoice.Yes ? vote.aggregate.total_yes : vote.aggregate.total_no;
+    var total_side = get_votes(vote, side);
     total_side += (ballot.choice === side ? ballot.amount : 0n);
     return total_side;
   }
 
   const getPercentage = (side: EYesNoChoice) => {
-    const total = Number(vote.aggregate.total_yes + vote.aggregate.total_no + ballot.amount);
+    const total = Number(get_total_votes(vote) + ballot.amount);
     if (total === 0) {
       throw new Error("Total number of votes is null");
     }
@@ -45,11 +46,11 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, account, selected
   }
 
   const getResult = () => {
-    const total = vote.aggregate.total_yes + vote.aggregate.total_no;
+    const total = get_total_votes(vote);
     if (total === 0n) {
       return "";
     }
-    if (vote.aggregate.total_yes >= vote.aggregate.total_no) {
+    if (get_yes_votes(vote) >= get_no_votes(vote)) {
       return "YES " + getPercentage(EYesNoChoice.Yes).toFixed(1) + "%"
     }
     else {

@@ -15,7 +15,7 @@ shared({ caller = admin }) actor class Backend() = this {
     type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate, YesNoChoice> and {
         text: ?Text;
     };
-    type QueriedBallot = ProtocolTypes.QueriedBallot and {
+    type SQueriedBallot = ProtocolTypes.SQueriedBallot and {
         text: ?Text;
     };
     type Account = ProtocolTypes.Account;
@@ -45,9 +45,9 @@ shared({ caller = admin }) actor class Backend() = this {
         });
     };
 
-    public composite query func get_ballots(account: Account) : async [QueriedBallot] {
+    public composite query func get_ballots(account: Account) : async [SQueriedBallot] {
         let ballots = await Protocol.get_ballots({ owner = account.owner; subaccount = account.subaccount; });
-        Array.map(ballots, func(ballot: ProtocolTypes.QueriedBallot) : QueriedBallot {
+        Array.map(ballots, func(ballot: ProtocolTypes.SQueriedBallot) : SQueriedBallot {
             { ballot with text = Map.get<Nat, Text>(_texts, Map.nhash, ballot.vote_id); };
         });
     };

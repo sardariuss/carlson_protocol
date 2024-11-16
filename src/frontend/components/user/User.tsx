@@ -1,12 +1,13 @@
 import { toEnum } from "../../utils/conversions/yesnochoice";
 import { formatDuration } from "../../utils/conversions/duration";
 import { dateToTime } from "../../utils/conversions/date";
+import { get_last } from "../../utils/history";
 import { backendActor } from "../../actors/BackendActor";
 
 import { Principal } from "@dfinity/principal";
 import { useParams } from "react-router-dom";
 import { useEffect } from "react";
-
+import LockChart from "../LockChart";
 
 const User = () => {
   
@@ -36,15 +37,16 @@ const User = () => {
           totalLocked? <div> Total locked: { totalLocked.toString() } sat </div> : <></>
         }
       </div>
+      { ballots && <LockChart ballots={ballots} /> }
       <ul>
         {
           ballots?.map((ballot, index) => (
-            <li key={index} className="flex flex-col space-x-1">
+            <li key={index} className="flex flex-col space-x-1 space-y-1 border">
               <div className="text-lg">{ ballot.text }</div>
-              { ballot.ballot.YES_NO.amount.toString() } sat
-              { toEnum(ballot.ballot.YES_NO.choice) }
-              dissent: { ballot.ballot.YES_NO.dissent }
-              Time left: { formatDuration(ballot.ballot.YES_NO.timestamp + ballot.ballot.YES_NO.duration_ns - dateToTime(new Date())) }
+              <div>{ ballot.ballot.YES_NO.amount.toString() } sat</div>
+              <div>{ toEnum(ballot.ballot.YES_NO.choice) }</div>
+              <div>dissent: { ballot.ballot.YES_NO.dissent }</div>
+              <div>Time left: { formatDuration(ballot.ballot.YES_NO.timestamp + get_last(ballot.ballot.YES_NO.duration_ns).data - dateToTime(new Date())) }</div>
             </li>
           ))
         }
