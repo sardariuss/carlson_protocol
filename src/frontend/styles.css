@@ -91,4 +91,13 @@ p {
       text-white font-medium text-center text-xs whitespace-nowrap
       inline-flex py-2.5 px-3
   }
+  .button-discrete{
+    @apply
+      rounded
+      bg-gray-600 dark:bg-gray-600
+      focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-800 
+      hover:enabled:bg-gray-700 disabled:bg-gray-500 dark:disabled:bg-gray-700
+      text-white font-medium text-center text-xs whitespace-nowrap
+      inline-flex py-0.5 px-1
+  }
 }

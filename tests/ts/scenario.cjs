@@ -5,6 +5,7 @@ const { getActor } = require("./actor.cjs");
 const { toNs } = require("./duration.cjs");
 const { Ed25519KeyIdentity } = require("@dfinity/identity");
 const { Principal } = require('@dfinity/principal');
+const seedrandom = require('seedrandom');
 
 const VOTES_TO_OPEN = [
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
@@ -31,7 +32,8 @@ const VOTES_TO_OPEN = [
 
 const NUM_USERS = 10;
 const USER_BALANCE = 100_000_000n;
-const AVERAGE_BALLOT_AMOUNT = 100_000n;
+const MEAN_BALLOT_AMOUNT = 20_000;
+const STDDEV_BALLOT_AMOUNT = 5_000;
 const SCENARIO_DURATION = { 'DAYS': 18n };
 const SCENARIO_TICK_DURATION = { 'DAYS': 6n };
 
@@ -39,6 +41,19 @@ const CKBTC_FEE = 10n;
 
 const sleep = (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+const gaussianRandom = (mean, stdDev) => {
+    // Box-Muller transform
+    let u = 1 - Math.random(); // [0,1) -> (0,1]
+    let v = Math.random();
+    let z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    return Math.abs(z * stdDev + mean); // Scale and shift to match mean and standard deviation
+}
+
+const generateDeterministicRandom = (voteId) => {
+    const rng = seedrandom(voteId.toString()); // Seed with voteId
+    return rng(); // Returns a number between 0 and 1
 }
 
 const getRandomUserActor = (userActors) => {
@@ -162,13 +177,16 @@ async function callCanisterMethod() {
                 // 35% chance that this user vote by calling protocolActor.put_ballot
                 if (Math.random() < 0.35) {
                     await sleep(500);
-                    // 50% chance that this user votes YES, 50% chance that this user votes NO
+
+                    // Generate a deterministic probability for YES based on vote_id
+                    const yesProbability = generateDeterministicRandom(Number(vote.vote_id));
+                    
                     putBallotPromises.push(
                         actors.protocol.put_ballot({
                             vote_id: vote.vote_id,
                             from_subaccount: [],
-                            amount: AVERAGE_BALLOT_AMOUNT,
-                            choice_type: { 'YES_NO': Math.random() < 0.5 ? { 'YES' : null } : { 'NO' : null } }
+                            amount: BigInt(Math.floor(gaussianRandom(MEAN_BALLOT_AMOUNT, STDDEV_BALLOT_AMOUNT))),
+                            choice_type: { 'YES_NO': Math.random() < yesProbability ? { 'YES': null } : { 'NO': null } }
                         }).then((result) => {
                             if (!result) {
                                 console.error('Put ballot result is null');

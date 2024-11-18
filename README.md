@@ -42,6 +42,7 @@ This incentivize user to vote "against the crowd", so that if they are right at 
 ### Backend
  - Verify how decay is used, especially in computing the dissent and consent
  - Do not allow an anonymous principal to open a vote
+ - There is a bug in the dissent calculation: adding 50% yes to a 100% no votes shall have a dissent > 0.5
 
 ### Frontend
 

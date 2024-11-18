@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
-import { protocolActor } from "../actors/ProtocolActor";
-import { SBallot } from "@/declarations/protocol/protocol.did";
-import { EYesNoChoice, toEnum } from "../utils/conversions/yesnochoice";
+import { useMemo, useState }                 from "react";
+import { protocolActor }                     from "../../actors/ProtocolActor";
+import { SBallot }                           from "@/declarations/protocol/protocol.did";
+import { EYesNoChoice, toEnum }              from "../../utils/conversions/yesnochoice";
 import { AreaBumpSerie, ResponsiveAreaBump } from "@nivo/bump";
-import { formatBalanceE8s } from "../utils/conversions/token";
-import { format } from "date-fns";
-import { SYesNoVote } from "@/declarations/backend/backend.did";
-import { BallotInfo } from "./types";
-import { DurationUnit, toNs } from "../utils/conversions/duration";
-import { CHART_BACKGROUND_COLOR } from "../constants";
+import { formatBalanceE8s }                  from "../../utils/conversions/token";
+import { SYesNoVote }                        from "@/declarations/backend/backend.did";
+import { BallotInfo }                        from "../types";
+import { DurationUnit }                from "../../utils/conversions/duration";
+import { CHART_BACKGROUND_COLOR }            from "../../constants";
+import { CHART_CONFIGURATIONS, computeInterval } from ".";
+import IntervalPicker from "./IntervalPicker";
 
 interface CumulateBetweenDatesArgs {
   ballots: [bigint, SBallot][] | undefined;
@@ -106,12 +107,7 @@ const marginTop = (levels: number[], maxY: number) => {
   return margin / 2;
 }
 
-const CHART_CONFIGURATIONS = new Map<DurationUnit, { interval: bigint, sample: bigint, tick: bigint, format: (date: Date) => string }>([
-  [DurationUnit.DAY,   { interval: toNs(1, DurationUnit.DAY),   sample: toNs(1, DurationUnit.HOUR), tick: toNs(2, DurationUnit.HOUR),  format: (date: Date) => format(date,                                     "HH:mm")} ],
-  [DurationUnit.WEEK,  { interval: toNs(1, DurationUnit.WEEK),  sample: toNs(6, DurationUnit.HOUR), tick: toNs(12, DurationUnit.HOUR), format: (date: Date) => format(date, date.getHours() === 0 ? "dd MMM" : "HH:mm" )} ],
-  [DurationUnit.MONTH, { interval: toNs(1, DurationUnit.MONTH), sample: toNs(1, DurationUnit.DAY),  tick: toNs(2, DurationUnit.DAY),   format: (date: Date) => format(date,                                    "dd MMM")} ],
-  [DurationUnit.YEAR,  { interval: toNs(1, DurationUnit.YEAR),  sample: toNs(15, DurationUnit.DAY), tick: toNs(1, DurationUnit.MONTH), format: (date: Date) => format(date,                                   "MMM 'yy")} ],
-]);
+
 
 type ChartData = AreaBumpSerie<{x: number; y: number;}, {id: string; data: {x: number; y: number;}[]}>[];
 
@@ -120,12 +116,11 @@ type ChartProperties = { chartData: ChartData, max: number, priceLevels: number[
 interface VoteChartrops {
   vote: SYesNoVote;
   ballot: BallotInfo;
-  range?: DurationUnit;
 }
 
-const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, range = DurationUnit.WEEK }) => {
+const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
 
-  const { interval, sample, tick, format: dateFormat } = CHART_CONFIGURATIONS.get(range)!;
+  const [duration, setDuration] = useState<DurationUnit>(DurationUnit.WEEK);
 
   const { data: currentTime } = protocolActor.useQueryCall({
     functionName: "get_time",
@@ -151,24 +146,23 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, range = DurationUnit
         return;
       }
 
+      let { sample } = CHART_CONFIGURATIONS.get(duration)!;
+
       // Calculate end and start dates
-      var endDate = currentTime;
-      endDate -= endDate % sample;
-      endDate += sample;
-      const startDate = endDate - interval;
+      let { start_ns, end_ns, ticks_ms } = computeInterval(currentTime, duration);
 
       // Compute cumulative data for YES and NO
       const yesCumul = cumulateBetweenDates({
         ballots: vote.ballot_register.map.filter(([_, ballot]) => toEnum(ballot.choice) === EYesNoChoice.Yes),
-        startDate,
-        endDate,
+        startDate: start_ns,
+        endDate: end_ns,
         sampleInterval: sample,
         computeDecay: (time: bigint) => computeDecay([{ time }]),
       });
       const noCumul = cumulateBetweenDates({
         ballots: vote.ballot_register.map.filter(([_, ballot]) => toEnum(ballot.choice) === EYesNoChoice.No),
-        startDate,
-        endDate,
+        startDate: start_ns,
+        endDate: end_ns,
         sampleInterval: sample,
         computeDecay: (time: bigint) => computeDecay([{ time }]),
       });
@@ -185,14 +179,10 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, range = DurationUnit
 
         // Compute max value and price levels
         var max = 0;
-        var ticks: number[] = [];
         yesData.entries().forEach(([_, data], index) => {
           const total = data.y + noData[index].y;
           if (total > max) {
             max = total;
-          }
-          if ((data.x % Number(tick / 1_000_000n)) === 0) {
-            ticks.push(data.x);
           }
         });
 
@@ -200,13 +190,13 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, range = DurationUnit
           chartData,
           max,
           priceLevels: computePriceLevels(0, max),
-          dateTicks: ticks,
+          dateTicks: ticks_ms,
         });
       });
     };
 
     computeVoteData(vote, currentTime);
-  }, [vote, currentTime]);
+  }, [vote, currentTime, duration]);
 
   const { chartData, max, priceLevels, dateTicks } = useMemo<ChartProperties>(() => {
     return {
@@ -225,72 +215,75 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, range = DurationUnit
   }, [voteData, ballot]);
 
   return (
-    <div style={{ position: 'relative' }} className="h-[320px] w-[50rem]">
-      <div style={{ position: 'absolute', top: MARGIN, right: 59, bottom: MARGIN, left: 59 }} className="flex flex-col border-x z-10">
-        <ul className="flex flex-col w-full" key={vote.vote_id}>
-          {
-            priceLevels.slice().reverse().map((price, index) => (
-              <li key={index}>
-                {
-                  (index < (priceLevels.length - 1)) ? 
-                  <div className={`flex flex-col w-full`} style={{ height: `${getHeightLine(priceLevels)}px` }}>
-                    <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
-                      <div className="text-xs text-gray-500" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatBalanceE8s(BigInt(price), "") }</div>
-                      <div className="flex w-full h-[0.5px] bg-gray-300 opacity-50" style={{ position: 'absolute', bottom: 0 }}/>
-                    </div>
-                  </div> : <></>
-                }
-              </li>
-            ))
-          }
-        </ul>
+    <div className="flex flex-col items-center space-y-2">
+      <div style={{ position: 'relative' }} className="h-[320px] w-[50rem]">
+        <div style={{ position: 'absolute', top: MARGIN, right: 59, bottom: MARGIN, left: 59 }} className="flex flex-col border-x z-10">
+          <ul className="flex flex-col w-full" key={vote.vote_id}>
+            {
+              priceLevels.slice().reverse().map((price, index) => (
+                <li key={index}>
+                  {
+                    (index < (priceLevels.length - 1)) ? 
+                    <div className={`flex flex-col w-full`} style={{ height: `${getHeightLine(priceLevels)}px` }}>
+                      <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
+                        <div className="text-xs text-gray-500" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatBalanceE8s(BigInt(price), "") }</div>
+                        <div className="flex w-full h-[0.5px] bg-gray-300 opacity-50" style={{ position: 'absolute', bottom: 0 }}/>
+                      </div>
+                    </div> : <></>
+                  }
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+        <ResponsiveAreaBump
+          isInteractive={false}
+          animate={false}
+          enableGridX={false}
+          startLabel={false}
+          endLabel={true}
+          align= "end"
+          data={chartData}
+          margin={{ top: MARGIN + marginTop(priceLevels, max), right: 60, bottom: MARGIN, left: 0 }}
+          spacing={0}
+          colors={["rgb(34 197 94)", "rgb(239 68 68)"]} // Green for YES, Red for NO
+          blendMode="multiply"
+          borderColor={{
+              from: 'color',
+              modifiers: [['darker', 0.7]]
+          }}
+          axisTop={null}
+          axisBottom={{
+            tickSize: 5,
+            tickPadding: 5,
+            tickRotation: 0,
+            tickValues: dateTicks,
+            legend: '',
+            legendPosition: 'middle',
+            legendOffset: 64,
+            renderTick: ({ x, y, value }) => (
+              <g transform={`translate(${x},${y})`}>
+                <text
+                  x={0}
+                  y={16}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  style={{
+                    fontSize: '12px',
+                    fill: 'gray',
+                  }}
+                >
+                  { CHART_CONFIGURATIONS.get(duration)!.format(new Date(value)) }
+                </text>
+              </g>
+            ),
+          }}
+          theme={{
+            background: CHART_BACKGROUND_COLOR,
+          }}
+        />
       </div>
-      <ResponsiveAreaBump
-        isInteractive={false}
-        animate={false}
-        enableGridX={false}
-        startLabel={false}
-        endLabel={true}
-        align= "end"
-        data={chartData}
-        margin={{ top: MARGIN + marginTop(priceLevels, max), right: 60, bottom: MARGIN, left: 0 }}
-        spacing={0}
-        colors={["rgb(34 197 94)", "rgb(239 68 68)"]} // Green for YES, Red for NO
-        blendMode="multiply"
-        borderColor={{
-            from: 'color',
-            modifiers: [['darker', 0.7]]
-        }}
-        axisTop={null}
-        axisBottom={{
-          tickSize: 5,
-          tickPadding: 5,
-          tickRotation: 0,
-          tickValues: dateTicks,
-          legend: '',
-          legendPosition: 'middle',
-          legendOffset: 64,
-          renderTick: ({ x, y, value }) => (
-            <g transform={`translate(${x},${y})`}>
-              <text
-                x={0}
-                y={16}
-                textAnchor="middle"
-                dominantBaseline="central"
-                style={{
-                  fontSize: '12px',
-                  fill: 'gray',
-                }}
-              >
-                { dateFormat(new Date(value)) }
-              </text>
-            </g>
-          ),
-        }}
-        theme={{
-          background: CHART_BACKGROUND_COLOR,
-        }}
-      />
+      <IntervalPicker duration={duration} setDuration={setDuration} />
     </div>
   );
 }

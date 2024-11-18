@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import PutBallotPreview from "./PutBallotPreview";
 import { formatDateTime, timeToDate } from "../utils/conversions/date";
-import VoteChart from "./VoteChart";
+import VoteChart from "./charts/VoteChart";
 import VoteSlider from "./VoteSlider";
 import { BallotInfo } from "./types";
 import { get_no_votes, get_total_votes, get_votes, get_yes_votes } from "../utils/conversions/vote";

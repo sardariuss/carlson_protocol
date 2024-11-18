@@ -1,14 +1,15 @@
 
 export enum DurationUnit {
-  NS,
-  SECOND,
-  MINUTE,
-  HOUR,
-  DAY,
-  WEEK,
-  MONTH,
-  YEAR,
-};
+  NS = '1ns',
+  SECOND = '1s',
+  MINUTE = '1m',
+  HOUR = '1h',
+  DAY = '1D',
+  WEEK = '7D',
+  MONTH = '1M',
+  YEAR = '1Y',
+}
+
 
 export const toNs = (duration: number, unit: DurationUnit): bigint => {
   switch (unit) {
