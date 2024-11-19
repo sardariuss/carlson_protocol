@@ -33,9 +33,9 @@ const VOTES_TO_OPEN = [
 const NUM_USERS = 10;
 const USER_BALANCE = 100_000_000n;
 const MEAN_BALLOT_AMOUNT = 20_000;
-const STDDEV_BALLOT_AMOUNT = 5_000;
+const NUM_VOTES = 10;
 const SCENARIO_DURATION = { 'DAYS': 18n };
-const SCENARIO_TICK_DURATION = { 'DAYS': 6n };
+const SCENARIO_TICK_DURATION = { 'DAYS': 2n };
 
 const CKBTC_FEE = 10n;
 
@@ -43,13 +43,9 @@ const sleep = (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const gaussianRandom = (mean, stdDev) => {
-    // Box-Muller transform
-    let u = 1 - Math.random(); // [0,1) -> (0,1]
-    let v = Math.random();
-    let z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-    return Math.abs(z * stdDev + mean); // Scale and shift to match mean and standard deviation
-}
+const exponentialRandom = (mean) => {
+    return -mean * Math.log(Math.random());
+};
 
 const generateDeterministicRandom = (voteId) => {
     const rng = seedrandom(voteId.toString()); // Seed with voteId
@@ -60,10 +56,6 @@ const getRandomUserActor = (userActors) => {
     let randomUser = Math.floor(Math.random() * NUM_USERS);
     let randomUserPrincipal = Array.from(userActors.keys())[randomUser];
     return userActors.get(randomUserPrincipal);
-}
-
-const getRandomVote = () => {
-    return VOTES_TO_OPEN[Math.floor(Math.random() * VOTES_TO_OPEN.length)];
 }
   
 // Example function to call a canister method
@@ -151,6 +143,13 @@ async function callCanisterMethod() {
     }
     await Promise.all(approvePromises);
 
+    // A random user opens up a new vote
+    for (let i = 0; i < NUM_VOTES; i++) {
+        getRandomUserActor(userActors).backend.new_vote(VOTES_TO_OPEN[i]).then((result) => {
+            console.log('New vote added');
+        });
+    }
+
     // Scenario loop
 
     var tick = 0n;
@@ -158,11 +157,6 @@ async function callCanisterMethod() {
     while(tick * toNs(SCENARIO_TICK_DURATION) < toNs(SCENARIO_DURATION)) {
 
         console.log("Scenario tick: ", tick);
-
-        // A random user opens up a new vote
-        getRandomUserActor(userActors).backend.new_vote(getRandomVote()).then((result) => {
-            console.log('New vote added');
-        });
 
         // Retrieve all votes
         let votes = await backendSimActor.get_votes();
@@ -174,9 +168,9 @@ async function callCanisterMethod() {
 
             for (let vote of votes) {
 
-                // 35% chance that this user vote by calling protocolActor.put_ballot
-                if (Math.random() < 0.35) {
-                    await sleep(500);
+                // 20% chance that this user vote by calling protocolActor.put_ballot
+                if (Math.random() < 0.20) {
+                    await sleep(250);
 
                     // Generate a deterministic probability for YES based on vote_id
                     const yesProbability = generateDeterministicRandom(Number(vote.vote_id));
@@ -185,7 +179,7 @@ async function callCanisterMethod() {
                         actors.protocol.put_ballot({
                             vote_id: vote.vote_id,
                             from_subaccount: [],
-                            amount: BigInt(Math.floor(gaussianRandom(MEAN_BALLOT_AMOUNT, STDDEV_BALLOT_AMOUNT))),
+                            amount: BigInt(Math.floor(exponentialRandom(MEAN_BALLOT_AMOUNT))),
                             choice_type: { 'YES_NO': Math.random() < yesProbability ? { 'YES': null } : { 'NO': null } }
                         }).then((result) => {
                             if (!result) {

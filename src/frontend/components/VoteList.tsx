@@ -20,9 +20,6 @@ function VoteList() {
 
   const { call: fetchVotes, data: votes } = backendActor.useQueryCall({
     functionName: 'get_votes',
-    onSuccess: (data) => {
-      console.log(data)
-    }
   });
 
   return (
