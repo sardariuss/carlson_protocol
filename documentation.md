@@ -1,8 +1,8 @@
 ---
+icon: sunglasses
 description: >-
   The Carlson Protocol is a decentralized system designed to gauge and represent
   consensus on factual topics through collective input.
-icon: sunglasses
 ---
 
 # Documentation
@@ -49,7 +49,11 @@ $$
 
 ⏳ **Flexible lock duration**: The duration depends on the vote’s popularity _around_ the time the ballot is placed such that the more tokens locked, the longer the lock duration. Notice that this also applies for tokens that are locked after yours so the duration of your lock will increase if the popularity of the vote increases after your vote.
 
-📈 **Time dilation curve**: A time dilation curve maps the amount of locked tokens to a specific duration, ensuring durations remain within a reasonable range (e.g., between one month and a few years) for locks ranging from 100 satoshis to thousands of Bitcoins.
+<figure><img src=".gitbook/assets/image.png" alt=""><figcaption><p>the lock duration depends on the popularity of the vote around the time you're voting</p></figcaption></figure>
+
+📈 **Time dilation curve**: A time dilation curve maps the amount of locked tokens to a specific duration, ensuring durations remain within a reasonable range (e.g., between one month and a few years) for locks ranging from 1 satoshi to thousands of Bitcoins.
+
+See [https://www.desmos.com/calculator/luki2idinn](https://www.desmos.com/calculator/luki2idinn)
 
 ### Game Theory
 
