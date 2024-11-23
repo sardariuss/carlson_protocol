@@ -13,11 +13,6 @@ function VoteList() {
 
   const [selected, setSelected] = useState<bigint | null>(null);
 
-  const account : Account | undefined = identity === null ? undefined : {
-    owner: identity?.getPrincipal(),
-    subaccount: []
-  };
-
   const { call: fetchVotes, data: votes } = backendActor.useQueryCall({
     functionName: 'get_votes',
   });
@@ -31,7 +26,7 @@ function VoteList() {
         {
           votes && votes.map((vote: SYesNoVote, index) => (
             <li key={index}>
-              <VoteView selected={selected} setSelected={setSelected} vote={vote} fetchVotes={fetchVotes} account={account}/>
+              <VoteView selected={selected} setSelected={setSelected} vote={vote} fetchVotes={fetchVotes}/>
             </li>
           ))
         }

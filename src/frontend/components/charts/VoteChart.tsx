@@ -1,91 +1,72 @@
-import { useMemo, useState }                 from "react";
-import { protocolActor }                     from "../../actors/ProtocolActor";
-import { SBallot }                           from "@/declarations/protocol/protocol.did";
-import { EYesNoChoice, toEnum }              from "../../utils/conversions/yesnochoice";
-import { AreaBumpSerie, ResponsiveAreaBump } from "@nivo/bump";
-import { formatBalanceE8s }                  from "../../utils/conversions/token";
-import { SYesNoVote }                        from "@/declarations/backend/backend.did";
-import { BallotInfo }                        from "../types";
-import { DurationUnit }                from "../../utils/conversions/duration";
-import { CHART_BACKGROUND_COLOR }            from "../../constants";
+import { useMemo, useState }                     from "react";
+import { protocolActor }                         from "../../actors/ProtocolActor";
+import {  SHistory_2 }                           from "@/declarations/protocol/protocol.did";
+import { EYesNoChoice }                          from "../../utils/conversions/yesnochoice";
+import { AreaBumpSerie, ResponsiveAreaBump }     from "@nivo/bump";
+import { formatBalanceE8s }                      from "../../utils/conversions/token";
+import { SYesNoVote }                            from "@/declarations/backend/backend.did";
+import { BallotInfo }                            from "../types";
+import { DurationUnit }                          from "../../utils/conversions/duration";
+import { CHART_BACKGROUND_COLOR }                from "../../constants";
 import { CHART_CONFIGURATIONS, computeInterval } from ".";
-import IntervalPicker from "./IntervalPicker";
+import IntervalPicker                            from "./IntervalPicker";
 
-interface CumulateBetweenDatesArgs {
-  ballots: [bigint, SBallot][] | undefined;
-  startDate: bigint;
-  endDate: bigint;
-  sampleInterval: bigint;
-  computeDecay: (time: bigint) => Promise<number | undefined>;
+interface ComputeChartPropsArgs {
+  currentTime: bigint;
+  duration: DurationUnit;
+  aggregates: SHistory_2;
 }
 
-// TODO: optimize because O(n^2)
-// The last date shall always be the current time
-// The first date shall depend on the interval passed as argument (e.g. 1 day, 1 week, 1 month, 1 year, all)
-// First step shall be cumulating all the votes until the first date
-// Second step 
-const cumulateBetweenDates = async({ ballots, startDate, endDate, sampleInterval, computeDecay }: CumulateBetweenDatesArgs) : Promise<{ x: number; y: number; }[]>=> {
-  // Compute all the dates between the first and the last date
-  var current = startDate;
+type ChartData = AreaBumpSerie<{x: number; y: number;}, {id: string; data: {x: number; y: number;}[]}>[];
+type ChartProperties = { chartData: ChartData, max: number, priceLevels: number[], dateTicks: number[] };
 
-  var promises : Promise<{ date: bigint, decay: Number }>[] = [];
-    
-  while (current < endDate + sampleInterval) {
-    promises.push(Promise.resolve({ date: current, decay: 1 }));
-    // TODO: uncomment when computeDecay is fixed
-//      promises.push(computeDecay([{ time: current }]).then((decay) => {
-//          if (decay === undefined) {
-//              throw new Error("Decay is undefined");
-//          }
-//          return { date: current, decay: decay };
-//      }));
-    current += sampleInterval;
-  }
+const computeChartProps = ({ currentTime, duration, aggregates } : ComputeChartPropsArgs) : ChartProperties => {
 
-  // Wait for all the dates to be computed
-  const dates = await Promise.all(promises);
+  let chartData : ChartData = [
+    { id: EYesNoChoice.Yes, data: [] },
+    { id: EYesNoChoice.No, data: [] },
+  ];
 
-  // Make sure the dates are sorted in ascending order
-  ballots?.sort(([_, a], [__, b]) => Number(a.timestamp - b.timestamp));
+  const { dates, ticks } = computeInterval(currentTime, duration);
 
-  // Start accumulating the votes
-  var accumulated = 0;
-  var ballotIndex = 0;
-  const currentDecay = await computeDecay(endDate).then((decay) => {
-    if (decay === undefined) {
-        throw new Error("Decay is undefined");
-    }
-    return decay;
-  });
-  const numberBallots = ballots?.length ?? 0;
-
-  var data = [];
-
-  for (const { date, decay } of dates) {
-
-    // Continue accumulating the votes until the date is reached
-    while (ballotIndex < numberBallots) {
-      const ballot = ballots?.[ballotIndex][1];
-      if (ballot !== undefined && ballot.timestamp <= date) {
-        accumulated += Number(ballot.amount) // TODO: multiply by decay
-        ballotIndex++;
-      } else {
-        break;
-      }
-    }
-
-    // Add the accumulated votes to the data
-    data.push({ x: Number(date / 1_000_000n), y: accumulated }); // TODO: divide by current decay
-  }
+  let yesAggregate = 0n;
+  let noAggregate = 0n;
+  let max = 0n;
+  let nextAggregateIndex = 0;
   
-  return data;
+  dates.forEach(({ date }) => {
+    // Update aggregates while the next timestamp is within range
+    while (
+      nextAggregateIndex < aggregates.entries.length &&
+      date >= Number(aggregates.entries[nextAggregateIndex].timestamp / 1_000_000n)
+    ) {
+      const { data } = aggregates.entries[nextAggregateIndex++];
+      yesAggregate = data.total_yes;
+      noAggregate = data.total_no;
+  
+      // Update max total
+      const total = data.total_yes + data.total_no;
+      if (total > max) max = total;
+    }
+  
+    // Push the current data points to chartData
+    chartData[0].data.push({ x: date, y: Number(yesAggregate) });
+    chartData[1].data.push({ x: date, y: Number(noAggregate) });
+  });
+
+  return {
+    chartData,
+    max: Number(max),
+    priceLevels: computePriceLevels(0, Number(max)),
+    dateTicks: ticks
+  }
 }
 
 const computePriceLevels = (min: number, max: number) : number[] => {
   const range = max - min;
-  var interval = 10 ** Math.floor(Math.log10(range));
-  var levels = [];
-  var current = Math.floor(min / interval) * interval;
+  let interval = 10 ** Math.floor(Math.log10(range));
+  let levels = [];
+  let current = Math.floor(min / interval) * interval;
   while (current < max + interval) {
     levels.push(current);
     current += interval;
@@ -100,18 +81,15 @@ const getHeightLine = (levels: number[]) => {
 const MARGIN = 50;
 
 const marginTop = (levels: number[], maxY: number) => {
+  if (levels.length === 0) {
+    return 0;
+  }
   const lastLine = levels[levels.length - 1];
   const ratio = lastLine / maxY;
   const height = 320 - 2 * MARGIN;
   const margin = (height * ratio - height);
   return margin / 2;
 }
-
-
-
-type ChartData = AreaBumpSerie<{x: number; y: number;}, {id: string; data: {x: number; y: number;}[]}>[];
-
-type ChartProperties = { chartData: ChartData, max: number, priceLevels: number[], dateTicks: number[] };
 
 interface VoteChartrops {
   vote: SYesNoVote;
@@ -128,75 +106,17 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
 
   const { call: computeDecay } = protocolActor.useQueryCall({
     functionName: "compute_decay",
-  });
-
-  const [voteData, setVoteData] = useState<ChartProperties>({
-    chartData: [],
-    max: 0,
-    priceLevels: [],
-    dateTicks: []
+    // TODO: Hack to prevent illegitimate error 'Wrong number of message arguments'
+    args: [{time: 0n }],
   });
      
-  useMemo(() => {
-    
-    const computeVoteData = async (vote: SYesNoVote, currentTime: bigint | undefined) => {
-
-      if (!currentTime) {
-        setVoteData({ chartData: [], max: 0, priceLevels: [], dateTicks: [] });
-        return;
-      }
-
-      let { sample } = CHART_CONFIGURATIONS.get(duration)!;
-
-      // Calculate end and start dates
-      let { start_ns, end_ns, ticks_ms } = computeInterval(currentTime, duration);
-
-      // Compute cumulative data for YES and NO
-      const yesCumul = cumulateBetweenDates({
-        ballots: vote.ballot_register.map.filter(([_, ballot]) => toEnum(ballot.choice) === EYesNoChoice.Yes),
-        startDate: start_ns,
-        endDate: end_ns,
-        sampleInterval: sample,
-        computeDecay: (time: bigint) => computeDecay([{ time }]),
-      });
-      const noCumul = cumulateBetweenDates({
-        ballots: vote.ballot_register.map.filter(([_, ballot]) => toEnum(ballot.choice) === EYesNoChoice.No),
-        startDate: start_ns,
-        endDate: end_ns,
-        sampleInterval: sample,
-        computeDecay: (time: bigint) => computeDecay([{ time }]),
-      });
-
-      Promise.all([yesCumul, noCumul]).then(([yesData, noData]) => {
-        // Prepare chart data
-        const chartData = [];
-        if (yesData.length > 0) {
-          chartData.push({ id: EYesNoChoice.Yes, data: yesData });
-        }
-        if (noData.length > 0) {
-          chartData.push({ id: EYesNoChoice.No, data: noData });
-        }
-
-        // Compute max value and price levels
-        var max = 0;
-        yesData.entries().forEach(([_, data], index) => {
-          const total = data.y + noData[index].y;
-          if (total > max) {
-            max = total;
-          }
-        });
-
-        setVoteData({
-          chartData,
-          max,
-          priceLevels: computePriceLevels(0, max),
-          dateTicks: ticks_ms,
-        });
-      });
-    };
-
-    computeVoteData(vote, currentTime);
-  }, [vote, currentTime, duration]);
+  const voteData = useMemo<ChartProperties>(() => {
+    if (!currentTime) {
+      return ({ chartData: [], max: 0, priceLevels: [], dateTicks: [] });
+    }
+    return computeChartProps({ currentTime, duration, aggregates: vote.aggregate_history });
+  }, 
+  [vote, currentTime, duration]);
 
   const { chartData, max, priceLevels, dateTicks } = useMemo<ChartProperties>(() => {
     return {

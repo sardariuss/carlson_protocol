@@ -13,7 +13,7 @@ import { formatBalanceE8s } from '../utils/conversions/token';
 import { BITCOIN_TOKEN_SYMBOL, PRESENCE_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL } from '../constants';
 
 const accountToString = (account: Account | undefined) : string =>  {
-  var str = "";
+  let str = "";
   if (account !== undefined) {
     str = account.owner.toString();
     let subaccount = fromNullable(account.subaccount);

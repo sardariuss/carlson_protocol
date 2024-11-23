@@ -10,6 +10,7 @@ module {
         compute_duration_ns: { hotness: Float; } -> Nat;
     };
 
+    // https://www.desmos.com/calculator/9beo92hvwn
     // The power scaler function is responsible for deducting the timeout date of the given elements
     // from their hotness. It especially aims at preventing absurd durations (e.g. 10 seconds or 100 years).
     // It is defined as a power function of the hotness so that the duration is doubled for each 

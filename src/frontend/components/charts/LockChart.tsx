@@ -1,11 +1,11 @@
 import { useMemo, useEffect, useRef, useState } from 'react';
-import { ResponsiveLine } from '@nivo/line';
+import { Datum, ResponsiveLine, Serie } from '@nivo/line';
 import { CHART_BACKGROUND_COLOR } from '../../constants';
 import { SQueriedBallot } from '@/declarations/protocol/protocol.did';
 import { get_first, get_last } from '../../utils/history';
 import IntervalPicker from './IntervalPicker';
 import { DurationUnit, toNs } from '../../utils/conversions/duration';
-import { CHART_CONFIGURATIONS, computeTicksMs } from '.';
+import { CHART_CONFIGURATIONS, computeTicksMs, isNotFiniteNorNaN } from '.';
 
 interface LockChartProps {
   ballots: SQueriedBallot[];
@@ -17,59 +17,97 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
   const [duration, setDuration] = useState<DurationUnit>(DurationUnit.WEEK);
 
-  const data = ballots.map((ballot, index) => {
-    const { YES_NO: { timestamp, duration_ns } } = ballot.ballot;
+  const { data, dateRange, processedSegments } = useMemo(() => {
+  
+    const colors = ['#FF6347', '#1E90FF']; // Colors for segments
+    let minDate = Infinity;
+    let maxDate = -Infinity;
 
+    const data : Serie[] = [];
+    type Segment = {
+      id: string | number;
+      start: { x: Date; y: number};
+      end: { x: Date; y: number};
+      color: string;
+    };
+    const segments : Segment[] = [];
 
-    const data = [
-      {
-        x: new Date(Number(timestamp / 1_000_000n)),
-        y: index,
-      },
-      {
-        x: new Date(Number((timestamp + get_first(duration_ns).data) / 1_000_000n)),
-        y: index,
-      },
-      {
-        x: new Date(Number((timestamp + get_last(duration_ns).data) / 1_000_000n)),
-        y: index,
-      },
-    ];
+    ballots.forEach((ballot, index) => {
+      const { YES_NO: { timestamp, duration_ns } } = ballot.ballot;
 
+      // Compute timestamps
+      const baseTimestamp = Number(timestamp / 1_000_000n);
+      const firstOffset = Number(get_first(duration_ns).data / 1_000_000n);
+      const lastOffset = Number(get_last(duration_ns).data / 1_000_000n);
+
+      // Update min and max directly
+      if (baseTimestamp < minDate) minDate = baseTimestamp;
+      if (baseTimestamp + lastOffset > maxDate) maxDate = baseTimestamp + lastOffset;
+
+      // Generate chart data points for this ballot
+      const points = [
+        { x: new Date(baseTimestamp), y: index },
+        { x: new Date(baseTimestamp + firstOffset), y: index },
+        { x: new Date(baseTimestamp + lastOffset), y: index },
+      ];
+
+      data.push({
+        id: index.toString(), // Use index as id
+        data: points,
+      });
+
+      // Generate segments for this ballot
+      for (let i = 0; i < points.length - 1; i++) {
+        segments.push({
+          id: index.toString(),
+          start: points[i],
+          end: points[i + 1],
+          color: colors[i % colors.length], // Alternate colors
+        });
+      }
+    });
+
+    const nsDiff = (maxDate - minDate) * 1_000_000; // Nanoseconds difference
 
     return {
-      id: index.toString(), // Watchout, we use the index as the id
       data,
+      processedSegments: segments,
+      dateRange: {
+        minDate,
+        maxDate,
+        nsDiff,
+      },
     };
-  });
+  }, [ballots]);
 
+  // Precompute width and ticks for all durations in CHART_CONFIGURATIONS
+  const chartConfigurationsMap = useMemo(() => {
+    const map = new Map<DurationUnit, { chartWidth: number; ticks: number[] }>();
 
-  // Function to calculate the number of days between two timestamps
-  const getDaysDifference = (startTime: number, endTime: number): number => {
-    const start = new Date(startTime);  // Converts startTime to a Date object
-    const end = new Date(endTime);      // Converts endTime to a Date object
-    const timeDiff = end.getTime() - start.getTime();  // Difference in milliseconds
-    return timeDiff / (1000 * 3600 * 24); // Convert milliseconds to days
-  };
+    for (const [duration, config] of CHART_CONFIGURATIONS.entries()) {
+      if (isNotFiniteNorNaN(dateRange.minDate) || isNotFiniteNorNaN(dateRange.maxDate)) {
+        map.set(duration, { chartWidth: 0, ticks: [] });
+      } else {
+        const chartWidth = Math.max(
+          1,
+          dateRange.nsDiff / Number(toNs(1, duration))
+        ) * 800; // Adjusted width
 
-  // Get the range of the data in terms of time (from first to last date)
-  const dateRange = useMemo(() => {
-    const allDates = data.flatMap((lock) => lock.data.map((d) => d.x));
-    const minDate = Math.min(...allDates.map((date) => date.getTime()));
-    const maxDate = Math.max(...allDates.map((date) => date.getTime()));
+        const ticks = computeTicksMs(
+          BigInt(dateRange.minDate) * 1_000_000n,
+          BigInt(dateRange.maxDate) * 1_000_000n,
+          config.tick
+        );
 
-    const nsDiff = (maxDate - minDate) * 1_000_000;
-    return { minDate, maxDate, nsDiff };
-  }, [data]);
+        map.set(duration, { chartWidth, ticks });
+      }
+    }
 
-  // Calculate the chart width based on the data range
-  const chartWidth = Math.max(1, (dateRange.nsDiff / Number(toNs(1, duration)))) * 800; // 800px per month
+    return map;
+  }, [dateRange]);
 
-  const ticks = computeTicksMs(
-    BigInt(dateRange.minDate) * 1_000_000n,
-    BigInt(dateRange.maxDate) * 1_000_000n,
-    CHART_CONFIGURATIONS.get(duration)!.tick
-  );
+  // Extract the width and ticks for the current duration
+  const { chartWidth, ticks } = chartConfigurationsMap.get(duration) || { width: 0, ticks: [] };
 
   // Set up the chart container ref
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
@@ -93,24 +131,6 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
       chartContainerRef.current.scrollLeft = scrollPosition;
     }
   }, [dateRange, chartWidth]);
-
-  // Preprocess data to generate segments with separate colors
-  const processedSegments = useMemo(() => {
-    const colors = ['#FF6347', '#1E90FF']; // Colors for segments
-    return data.flatMap((lock) => {
-      const { id, data: points } = lock;
-      const segments = [];
-      for (let i = 0; i < points.length - 1; i++) {
-        segments.push({
-          id,
-          start: points[i],
-          end: points[i + 1],
-          color: colors[i % colors.length], // Alternate colors
-        });
-      }
-      return segments;
-    });
-  }, [data]);
 
   interface CustomLayerProps {
     xScale: (value: number | string | Date) => number; // Nivo scale function
@@ -212,12 +232,11 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
             data={data}
             xScale={{
               type: 'time',
-              format: '%Y-%m-%d',
-              precision: 'day',
+              precision: 'hour', // Somehow this is important
             }}
             enableGridY={false}
             enableGridX={true}
-            xFormat="time:%Y-%m-%d"
+            gridXValues={ticks.map((tick) => new Date(tick))}
             axisBottom={{
               tickSize: 5,
               tickPadding: 5,

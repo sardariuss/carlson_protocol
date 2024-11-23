@@ -1,4 +1,3 @@
-import { Account } from "@/declarations/protocol/protocol.did";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import PutBallot from "./PutBallot";
 import { useEffect, useMemo, useState } from "react";
@@ -13,12 +12,11 @@ import { get_no_votes, get_total_votes, get_votes, get_yes_votes } from "../util
 interface VoteViewProps {
   vote: SYesNoVote;
   fetchVotes: (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>
-  account: Account | undefined;
   selected: bigint | null;
   setSelected: (selected: bigint | null) => void;
 }
 
-const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, account, selected, setSelected }) => {
+const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, selected, setSelected }) => {
 
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
 
@@ -32,7 +30,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, account, selected
   }, [vote, ballot]);
 
   const getTotalSide = (side: EYesNoChoice) : bigint => {
-    var total_side = get_votes(vote, side);
+    let total_side = get_votes(vote, side);
     total_side += (ballot.choice === side ? ballot.amount : 0n);
     return total_side;
   }
@@ -83,14 +81,13 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, account, selected
         }
       </div>
       {
-        selected === vote.vote_id && vote.vote_id !== undefined && account !== undefined && (
+        selected === vote.vote_id && vote.vote_id !== undefined && (
           <div className="flex flex-col space-y-2 items-center">
             <VoteChart vote={vote} ballot={ballot}/>
             <VoteSlider id={vote.vote_id} disabled={false} vote={vote} ballot={ballot} setBallot={setBallot} onMouseUp={() => {}} onMouseDown={() => {}}/>
             <PutBallotPreview vote_id={vote.vote_id} ballot={ballot} />
             <PutBallot 
               vote_id={vote.vote_id} 
-              account={account} 
               fetchVotes={fetchVotes} 
               ballot={ballot}
               setBallot={setBallot}

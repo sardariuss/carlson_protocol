@@ -1,14 +1,15 @@
+#!/bin/bash
 set -ex
 
 dfx canister create --all
 
-export CKBTC_PRINCIPAL=$(dfx canister id ck_btc)
-export PRESENCE_PRINCIPAL=$(dfx canister id presence_ledger)
-export RESONANCE_PRINCIPAL=$(dfx canister id resonance_ledger)
-export PROTOCOL_PRINCIPAL=$(dfx canister id protocol)
-export MINTER_PRINCIPAL=$(dfx canister id minter)
+# Fetch canister IDs dynamically
+for canister in ck_btc presence_ledger resonance_ledger protocol minter; do
+  export $(echo ${canister^^}_PRINCIPAL)=$(dfx canister id $canister)
+done
 
-dfx deploy ck_btc --argument '( opt record {
+# Parallel deployment for independent canisters
+dfx deploy ck_btc --argument '(opt record {
   icrc1 = opt record {
     name              = opt "ckBTC";
     symbol            = opt "ckBTC";
@@ -26,10 +27,8 @@ dfx deploy ck_btc --argument '( opt record {
   icrc2 = null;
   icrc3 = null;
   icrc4 = null;
-})'
-
-# TODO: review supply etc.
-dfx deploy presence_ledger --argument '( opt record {
+})' &
+dfx deploy presence_ledger --argument '(opt record {
   icrc1 = opt record {
     name              = opt "Carlson Presence Token";
     symbol            = opt "CPT";
@@ -47,9 +46,8 @@ dfx deploy presence_ledger --argument '( opt record {
   icrc2 = null;
   icrc3 = null;
   icrc4 = null;
-})'
-
-dfx deploy resonance_ledger --argument '( opt record {
+})' &
+dfx deploy resonance_ledger --argument '(opt record {
   icrc1 = opt record {
     name              = opt "Carlson Resonance Token";
     symbol            = opt "CRT";
@@ -67,23 +65,24 @@ dfx deploy resonance_ledger --argument '( opt record {
   icrc2 = null;
   icrc3 = null;
   icrc4 = null;
-})'
+})' &
+wait
 
-# TODO: check why ledgers are required as arguments
+# Deploy protocol with dependencies
 dfx deploy protocol --argument '( variant { 
   init = record {
     simulated = true;
     deposit = record {
-      ledger = principal "'${CKBTC_PRINCIPAL}'";
+      ledger = principal "'${CK_BTC_PRINCIPAL}'";
       fee = 10;
     };
     presence =  record {
-      ledger  = principal "'${PRESENCE_PRINCIPAL}'";
+      ledger  = principal "'${PRESENCE_LEDGER_PRINCIPAL}'";
       fee = 10;
       mint_per_day = 100_000_000_000;
     };
     resonance = record {
-      ledger  = principal "'${RESONANCE_PRINCIPAL}'";
+      ledger  = principal "'${RESONANCE_LEDGER_PRINCIPAL}'";
       fee = 10;
     };
     parameters = record {
@@ -93,22 +92,17 @@ dfx deploy protocol --argument '( variant {
   }
 })'
 
-dfx deploy backend
+# Deploy other canisters
+dfx deploy backend &
+dfx deploy minter &
+wait
 
-# Internet identity
+# Internet Identity
 dfx deps pull
 dfx deps init
 dfx deps deploy internet_identity
 
-# Minter
-dfx deploy minter
-
-# Initialize the protocol
+# Protocol initialization and frontend generation
 dfx canister call protocol init_facade
-
-# Frontend
-dfx generate presence_ledger
-dfx generate resonance_ledger
-dfx generate protocol
-dfx generate backend
+dfx generate
 dfx deploy frontend

@@ -1,7 +1,6 @@
 import { protocolActor } from "../actors/ProtocolActor";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { EYesNoChoice, toCandid } from "../utils/conversions/yesnochoice";
-import { Account } from "@/declarations/protocol/protocol.did";
 import { BITCOIN_TOKEN_SYMBOL, MINIMUM_BALLOT_AMOUNT } from "../constants";
 import { formatBalanceE8s, fromE8s, toE8s } from "../utils/conversions/token";
 import { useEffect, useRef, useState } from "react";
@@ -11,19 +10,17 @@ import ResetIcon from "./icons/ResetIcon";
 interface PutBallotProps {
   vote_id: bigint;
   fetchVotes: (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>;
-  account: Account;
   ballot: BallotInfo;
   setBallot: (ballot: BallotInfo) => void;
   resetVote: () => void;
 }
 
-const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, account, ballot, setBallot, resetVote }) => {
+const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setBallot, resetVote }) => {
 
   const { call: putBallot, loading } = protocolActor.useUpdateCall({
     functionName: "put_ballot",
     onSuccess: () => {
-      resetVote();
-      fetchVotes(); // TODO: This should be done in a more efficient way than querying all the votes again
+      fetchVotes().finally(resetVote);
     },
     onError: (error) => {
       console.error(error);

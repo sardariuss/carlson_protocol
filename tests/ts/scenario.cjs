@@ -33,9 +33,9 @@ const VOTES_TO_OPEN = [
 const NUM_USERS = 10;
 const USER_BALANCE = 100_000_000n;
 const MEAN_BALLOT_AMOUNT = 20_000;
-const NUM_VOTES = 10;
+const NUM_VOTES = 5;
 const SCENARIO_DURATION = { 'DAYS': 18n };
-const SCENARIO_TICK_DURATION = { 'DAYS': 2n };
+const SCENARIO_TICK_DURATION = { 'DAYS': 3n };
 
 const CKBTC_FEE = 10n;
 

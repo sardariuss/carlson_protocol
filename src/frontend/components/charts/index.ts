@@ -16,25 +16,42 @@ export const CHART_CONFIGURATIONS = new Map<DurationUnit, DurationParameters>([
 ]);
 
 export type Interval = {
-    start_ns: bigint; // ns
-    end_ns: bigint; // ns
-    ticks_ms: number[]; // ms
+    dates: { date :number; decay: number }[];
+    ticks: number[];
 }
 
 export const computeInterval = (end: bigint, e_duration: DurationUnit): Interval => {
+    
     const { duration, sample, tick } = CHART_CONFIGURATIONS.get(e_duration)!;
+    
     // Calculate end and start dates
-    var endDate = end;
+    let endDate = end;
     endDate -= endDate % sample;
     endDate += sample;
     const startDate = endDate - duration;
 
-    return { start_ns: startDate, end_ns: endDate, ticks_ms: computeTicksMs(startDate, endDate, tick) };
+    const dates = Array.from(
+      { length: Math.ceil((Number(endDate - startDate) / Number(sample))) },
+      (_, index) => ({
+        date: Number((startDate + BigInt(index) * sample) / 1_000_000n),
+        decay: 1
+      })
+    );
+
+    return { dates, ticks: computeTicksMs(startDate, endDate, tick) };
 }
 
 export const computeTicksMs = (start: bigint, end: bigint, tick_duration: bigint): number[] => {
-    return Array.from(
-        { length: Number(end - start) / Number(tick_duration) }, 
+    console.log("between: ", new Date(Number(start / 1_000_000n)), new Date(Number(end / 1_000_000n)));
+    let array = Array.from(
+        { length: Math.ceil(Number(end - start) / Number(tick_duration)) }, 
         (_, i) => Number((end - BigInt(i) * tick_duration) / 1_000_000n)
     );
+    console.log("Start: ", new Date(array[array.length - 1]));
+    console.log("End: ", new Date(array[0]));
+    return array;
 }
+
+export const isNotFiniteNorNaN = (value: number) => {
+    return !Number.isFinite(value) && !Number.isNaN(value);
+  }

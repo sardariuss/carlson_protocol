@@ -19,8 +19,8 @@ export const toNs = (duration: number, unit: DurationUnit): bigint => {
     case DurationUnit.HOUR:   return BigInt(duration) * 60n * 60n * 1_000_000_000n;
     case DurationUnit.DAY:    return BigInt(duration) * 24n * 60n * 60n * 1_000_000_000n;
     case DurationUnit.WEEK:   return BigInt(duration) * 7n * 24n * 60n * 60n * 1_000_000_000n;
-    case DurationUnit.MONTH:  return BigInt(duration) * 30n * 24n * 60n * 60n * 1_000_000_000n;
-    case DurationUnit.YEAR:   return BigInt(duration) * 365n * 24n * 60n * 60n * 1_000_000_000n;
+    case DurationUnit.MONTH:  return BigInt(duration) * BigInt(Math.round(30.4375)) * 24n * 60n * 60n * 1_000_000_000n;
+    case DurationUnit.YEAR:   return BigInt(duration) * 12n * BigInt(Math.round(30.4375)) * 24n * 60n * 60n * 1_000_000_000n;
   }
 }
 
@@ -30,8 +30,8 @@ export const formatDuration = (ns: bigint): string => {
   const HOURS_IN_NS = 60n * MINUTES_IN_NS;
   const DAYS_IN_NS = 24n * HOURS_IN_NS;
   const WEEKS_IN_NS = 7n * DAYS_IN_NS;
-  const MONTHS_IN_NS = BigInt(Math.round(30.44 * Number(DAYS_IN_NS))); // Approximate average month
-  const YEARS_IN_NS = 365n * DAYS_IN_NS;
+  const MONTHS_IN_NS = BigInt(Math.round(30.4375 * Number(DAYS_IN_NS)));
+  const YEARS_IN_NS = 12n * MONTHS_IN_NS;
 
   if (ns < MINUTES_IN_NS) {
     // Less than a minute, show in seconds

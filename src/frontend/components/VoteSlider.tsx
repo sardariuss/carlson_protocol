@@ -53,7 +53,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
   const updateInputValue = (ballot: BallotInfo) => {
     if (inputRef.current && !isActive) { // Only update if input is not focused, i.e. the stimulus comes from an external component
       const amount = ballot.amount ?? 0n;
-      var newCursor = Number(get_yes_votes(vote) + (ballot.choice === EYesNoChoice.Yes ? amount : 0n));
+      let newCursor = Number(get_yes_votes(vote) + (ballot.choice === EYesNoChoice.Yes ? amount : 0n));
       newCursor = newCursor / Number(get_total_votes(vote) + amount);
       setCursor(newCursor);
       inputRef.current.value = newCursor.toString();
