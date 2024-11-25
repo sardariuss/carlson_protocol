@@ -20,16 +20,3 @@
   -webkit-text-size-adjust: 100%;
 }
 
-.input-box {
-  height: max-content;
-  padding: 0.5rem;
-  outline: none;
-  bottom: 1rem;
-  right: 1rem;
-
-  &[contenteditable=true]:empty:not(:focus):before {
-    content: attr(data-placeholder);
-    pointer-events: none;
-    display: block; // For Firefox
-  }
-}

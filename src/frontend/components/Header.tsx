@@ -1,14 +1,18 @@
 import { Link, useNavigate }      from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@ic-reactor/react";
-import Balance from "./Balance";
+
+import "@nfid/identitykit/react/styles.css"
+
+import { IdentityKitProvider, IdentityKitTheme, ConnectWalletButton } from "@nfid/identitykit/react"
+import { NFIDW, IdentityKitAuthType } from "@nfid/identitykit"
 
 
 const Header = () => {
 
-  const navigate = useNavigate();
-
-  const { login, logout, authenticated, identity } = useAuth({});
+  //const navigate = useNavigate();
+//
+  //const { login, logout, authenticated, identity } = useAuth({});
 
   useEffect(() => {
 
@@ -62,33 +66,16 @@ const Header = () => {
   }, []);
 
   return (
-    <header className="bg-slate-100 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full justify-between space-x-2 xl:px-4 lg:px-3 md:px-2 px-2 xl:h-18 lg:h-16 md:h-14 h-14">
-      <Link to="/" className="flex flex-row items-center space-x-1">
-        <div className="flex flex-row space-x-1 items-end">
-          <span className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">TUCKIT</span>
-          <span className="text-md md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl font-neon-spark whitespace-nowrap drop-shadow shadow-blue-800 neon-effect">.defi </span>
-        </div>
-      </Link>
-      <div className="flex flex-row items-center justify-center md:space-x-4">
-      </div>
-      <div className="flex flex-row items-center justify-end md:space-x-4 space-x-2">
-        { authenticated && identity ? 
-          <div className="flex flex-row items-center justify-end">
-            <Balance/>
-            <button type="button" onClick={() => { navigate("/user/" + identity.getPrincipal()) }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
-              Profile
-            </button>
-          </div> :
-          <button type="button" onClick={() => { login() }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
-            Log in
-          </button>
-        }
-        <button id="theme-toggle" type="button" className="fill-indigo-600 hover:fill-indigo-900 dark:fill-yellow-400 dark:hover:fill-yellow-200 rounded-lg text-sm p-2.5">
-          <svg id="theme-toggle-dark-icon" className="hidden w-5 h-5" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
-          <svg id="theme-toggle-light-icon" className="hidden w-5 h-5" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fillRule="evenodd" clipRule="evenodd"></path></svg>
-        </button>
-      </div>
-    </header>
+    <IdentityKitProvider 
+      onConnectFailure={(e: Error) => {console.error(e)}}
+      onConnectSuccess={() => {console.log("Connected")}}
+      onDisconnect={() => {console.log("Disconnected")}}
+      signers={[NFIDW]}
+      theme={IdentityKitTheme.LIGHT} // LIGHT, DARK, SYSTEM (by default)
+      authType={IdentityKitAuthType.ACCOUNTS} // ACCOUNTS, DELEGATION (by default)
+    >
+      <ConnectWalletButton />
+    </IdentityKitProvider>
   );
 }
 
