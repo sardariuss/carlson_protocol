@@ -1,13 +1,15 @@
-import { toEnum } from "../../utils/conversions/yesnochoice";
+import { EYesNoChoice, toEnum } from "../../utils/conversions/yesnochoice";
 import { formatDuration } from "../../utils/conversions/duration";
 import { dateToTime } from "../../utils/conversions/date";
-import { get_last } from "../../utils/history";
+import { get_first, get_last } from "../../utils/history";
 import { backendActor } from "../../actors/BackendActor";
 
 import { Principal } from "@dfinity/principal";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import LockChart from "../charts/LockChart";
+import { BITCOIN_TOKEN_SYMBOL, DISSENT_EMOJI, BALLOT_EMOJI, LOCK_EMOJI, DURATION_EMOJI, CONSENT_EMOJI, PRESENCE_TOKEN_EMOJI, RESONANCE_TOKEN_EMOJI, PRESENCE_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL } from "../../constants";
+import { formatBalanceE8s } from "../../utils/conversions/token";
 
 const User = () => {
   
@@ -43,21 +45,52 @@ const User = () => {
       <ul>
         {
           ballots?.map((ballot, index) => (
-            <li key={index} className="flex flex-col space-x-1 space-y-1 border hover:cursor-pointer" onClick={() => setSelected(selected === index ? null : index)}>
-              <div className="flex flex-row space-x-1 justify-between">
-                <div className="text-lg">{ ballot.ballot.YES_NO.amount.toString() } sat</div>
-                <div>Time left: { formatDuration(ballot.ballot.YES_NO.timestamp + get_last(ballot.ballot.YES_NO.duration_ns).data - dateToTime(new Date())) }</div>
+            <li key={index} className="flex flex-col border p-2">
+              <div className="flex items-center space-x-2 hover:cursor-pointer" onClick={() => setSelected(selected === index ? null : index)}>
+                <span>{LOCK_EMOJI}</span>
+                <span className="text-lg font-bold">{formatBalanceE8s(ballot.ballot.YES_NO.amount, BITCOIN_TOKEN_SYMBOL)}</span>
               </div>
-              {
-                selected === index && (
-                  <div className="flex flex-col space-x-1 justify-between">
-                    <div>{ ballot.text }</div>
-                    <div>{ toEnum(ballot.ballot.YES_NO.choice) }</div>
-                    <div>dissent: { ballot.ballot.YES_NO.dissent }</div>
+              
+              {selected === index && (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 justify-items-center">
+                  {/* Row 0: Text */}
+                  <div className="col-span-2 justify-self-start">
+                    { ballot.text }
                   </div>
-                )
-              }
+                  {/* Row 1: Durations */}
+                  <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
+                    <span>{DURATION_EMOJI}</span>
+                    <div>
+                      <div><span className="italic text-gray-400 text-sm">Initial:</span> {formatDuration(ballot.ballot.YES_NO.timestamp + get_first(ballot.ballot.YES_NO.duration_ns).data - dateToTime(new Date(Number(ballot.ballot.YES_NO.timestamp)/ 1_000_000))) } </div>
+                      <div><span className="italic text-gray-400 text-sm">Current:</span> {formatDuration(ballot.ballot.YES_NO.timestamp + get_last(ballot.ballot.YES_NO.duration_ns).data - dateToTime(new Date(Number(ballot.ballot.YES_NO.timestamp)/ 1_000_000))) } </div>
+                    </div>
+                  </div>
+                  
+                  {/* Row 2: Choices */}
+                  <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
+                    <span>{BALLOT_EMOJI}</span>
+                    <div>
+                      <div><span className="italic text-gray-400 text-sm">Yours:</span> <span className={`${toEnum(ballot.ballot.YES_NO.choice) === EYesNoChoice.Yes ? " text-green-500" : " text-red-500"}`}>
+                        { toEnum(ballot.ballot.YES_NO.choice)}</span></div>
+                      <div><span className="italic text-gray-400 text-sm">Current:</span> <span className={`${toEnum(ballot.ballot.YES_NO.choice) === EYesNoChoice.Yes ? " text-green-500" : " text-red-500"}`}>
+                        { toEnum(ballot.ballot.YES_NO.choice)}</span></div>
+                    </div>
+                  </div>
+                  
+                  {/* Row 3: Tokens */}
+                  <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
+                    <span>{PRESENCE_TOKEN_EMOJI}</span>
+                    <div><span className="italic text-gray-400 text-sm">Accumulated:</span> { formatBalanceE8s(BigInt(Math.floor(get_last(ballot.ballot.YES_NO.presence).data)), PRESENCE_TOKEN_SYMBOL) }</div>
+                  </div>
+                  
+                  <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
+                    <span>{RESONANCE_TOKEN_EMOJI}</span>
+                    <div><span className="italic text-gray-400 text-sm">Predicted:</span> { formatBalanceE8s(BigInt(Math.floor(get_last(ballot.ballot.YES_NO.presence).data)), RESONANCE_TOKEN_SYMBOL) }</div>
+                  </div>
+                </div>
+              )}
             </li>
+
           ))
         }
       </ul>

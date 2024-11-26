@@ -82,6 +82,8 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
   // Precompute width and ticks for all durations in CHART_CONFIGURATIONS
   const chartConfigurationsMap = useMemo(() => {
+
+    console.log("Compute chart config map!");
     const map = new Map<DurationUnit, { chartWidth: number; ticks: number[] }>();
 
     for (const [duration, config] of CHART_CONFIGURATIONS.entries()) {
@@ -105,32 +107,43 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
     return map;
   }, [dateRange]);
+  
+  type ChartConfiguration = {
+    chartWidth: number;
+    ticks: number[];
+  };
 
-  // Extract the width and ticks for the current duration
-  const { chartWidth, ticks } = chartConfigurationsMap.get(duration) || { width: 0, ticks: [] };
+  const [config, setConfig] = useState<ChartConfiguration>({ chartWidth: 0, ticks: [] });
+
+  useEffect(() => {
+    console.log("Set config!");
+    setConfig(chartConfigurationsMap.get(duration) || { chartWidth: 0, ticks: [] });
+    console.log("Config set!");
+  },
+  [duration]);
 
   // Set up the chart container ref
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    const currentDate = new Date();
-    const currentDateTimestamp = currentDate.getTime();
-
-    // Scroll center calculation
-    const rangeStart = dateRange.minDate;
-    const rangeEnd = dateRange.maxDate;
-    const totalRange = rangeEnd - rangeStart;
-
-    // Calculate the position of the current date within the time range
-    const relativePosition = (currentDateTimestamp - rangeStart) / totalRange;
-
-    // Calculate the scroll position to center the current date
-    const scrollPosition = relativePosition * (chartWidth - 800); // Adjusted by the chart width and visible area
-
-    if (chartContainerRef.current) {
-      chartContainerRef.current.scrollLeft = scrollPosition;
-    }
-  }, [dateRange, chartWidth]);
+//  useEffect(() => {
+//    const currentDate = new Date();
+//    const currentDateTimestamp = currentDate.getTime();
+//
+//    // Scroll center calculation
+//    const rangeStart = dateRange.minDate;
+//    const rangeEnd = dateRange.maxDate;
+//    const totalRange = rangeEnd - rangeStart;
+//
+//    // Calculate the position of the current date within the time range
+//    const relativePosition = (currentDateTimestamp - rangeStart) / totalRange;
+//
+//    // Calculate the scroll position to center the current date
+//    const scrollPosition = relativePosition * (chartWidth - 800); // Adjusted by the chart width and visible area
+//
+//    if (chartContainerRef.current) {
+//      chartContainerRef.current.scrollLeft = scrollPosition;
+//    }
+//  }, [dateRange, chartWidth]);
 
   interface CustomLayerProps {
     xScale: (value: number | string | Date) => number; // Nivo scale function
@@ -224,7 +237,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
       >
         <div
           style={{
-            width: `${chartWidth}px`, // Dynamic width based on data range
+            width: `${config.chartWidth}px`, // Dynamic width based on data range
             height: '100%',
           }}
         >
@@ -234,14 +247,15 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
               type: 'time',
               precision: 'hour', // Somehow this is important
             }}
+            animate={false}
             enableGridY={false}
             enableGridX={true}
-            gridXValues={ticks.map((tick) => new Date(tick))}
+            gridXValues={config.ticks.map((tick) => new Date(tick))}
             axisBottom={{
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              tickValues: ticks,
+              tickValues: config.ticks,
               legend: '',
               legendPosition: 'middle',
               legendOffset: 64,
