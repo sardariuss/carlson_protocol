@@ -1,11 +1,14 @@
 import { useMemo, useEffect, useRef, useState } from 'react';
 import { Datum, ResponsiveLine, Serie } from '@nivo/line';
-import { CHART_BACKGROUND_COLOR } from '../../constants';
+import { BITCOIN_TOKEN_SYMBOL, CHART_BACKGROUND_COLOR, LOCK_EMOJI } from '../../constants';
 import { SQueriedBallot } from '@/declarations/protocol/protocol.did';
 import { get_first, get_last } from '../../utils/history';
 import IntervalPicker from './IntervalPicker';
 import { DurationUnit, toNs } from '../../utils/conversions/duration';
 import { CHART_CONFIGURATIONS, computeTicksMs, isNotFiniteNorNaN } from '.';
+import { formatBalanceE8s } from '../../utils/conversions/token';
+import { protocolActor } from '../../actors/ProtocolActor';
+import { formatDate, timeToDate } from '../../utils/conversions/date';
 
 interface LockChartProps {
   ballots: SQueriedBallot[];
@@ -15,11 +18,14 @@ interface LockChartProps {
 
 const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
+  const { data: currentTime } = protocolActor.useQueryCall({
+    functionName: "get_time",
+  });
+
   const [duration, setDuration] = useState<DurationUnit>(DurationUnit.WEEK);
 
   const { data, dateRange, processedSegments } = useMemo(() => {
   
-    const colors = ['#FF6347', '#1E90FF']; // Colors for segments
     let minDate = Infinity;
     let maxDate = -Infinity;
 
@@ -28,7 +34,8 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
       id: string | number;
       start: { x: Date; y: number};
       end: { x: Date; y: number};
-      color: string;
+      percentage: number;
+      label: string;
     };
     const segments : Segment[] = [];
 
@@ -37,18 +44,17 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
       // Compute timestamps
       const baseTimestamp = Number(timestamp / 1_000_000n);
-      const firstOffset = Number(get_first(duration_ns).data / 1_000_000n);
-      const lastOffset = Number(get_last(duration_ns).data / 1_000_000n);
+      const initialLockEnd = baseTimestamp + Number(get_first(duration_ns).data / 1_000_000n);
+      const actualLockEnd = baseTimestamp + Number(get_last(duration_ns).data / 1_000_000n);
 
       // Update min and max directly
       if (baseTimestamp < minDate) minDate = baseTimestamp;
-      if (baseTimestamp + lastOffset > maxDate) maxDate = baseTimestamp + lastOffset;
+      if (actualLockEnd > maxDate) maxDate = actualLockEnd;
 
       // Generate chart data points for this ballot
       const points = [
-        { x: new Date(baseTimestamp), y: index },
-        { x: new Date(baseTimestamp + firstOffset), y: index },
-        { x: new Date(baseTimestamp + lastOffset), y: index },
+        { x: new Date(baseTimestamp), y: index},
+        { x: new Date(actualLockEnd), y: index},
       ];
 
       data.push({
@@ -56,15 +62,13 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
         data: points,
       });
 
-      // Generate segments for this ballot
-      for (let i = 0; i < points.length - 1; i++) {
-        segments.push({
-          id: index.toString(),
-          start: points[i],
-          end: points[i + 1],
-          color: colors[i % colors.length], // Alternate colors
-        });
-      }
+      segments.push({
+        id: index.toString(),
+        start: points[0],
+        end: points[1],
+        percentage: ((initialLockEnd - baseTimestamp) / (actualLockEnd - baseTimestamp)) * 100,
+        label: LOCK_EMOJI + " " + formatBalanceE8s(ballot.ballot.YES_NO.amount, BITCOIN_TOKEN_SYMBOL)
+      });
     });
 
     const nsDiff = (maxDate - minDate) * 1_000_000; // Nanoseconds difference
@@ -116,9 +120,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
   const [config, setConfig] = useState<ChartConfiguration>({ chartWidth: 0, ticks: [] });
 
   useEffect(() => {
-    console.log("Set config!");
     setConfig(chartConfigurationsMap.get(duration) || { chartWidth: 0, ticks: [] });
-    console.log("Config set!");
   },
   [duration]);
 
@@ -155,7 +157,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
       <>
         {/* Render custom lines */}
         {processedSegments.map((segment, index) => {
-          const { start, end, color } = segment;
+          const { start, end } = segment;
           const x1 = xScale(start.x);
           const x2 = xScale(end.x);
           const y1 = yScale(start.y);
@@ -174,49 +176,71 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
                 x2={x2+border_width}
                 y1={y1}
                 y2={y2}
-                stroke="red" // Border color
+                stroke={"#1E40AF"} // Border color
                 strokeWidth={20 + 2 * border_width} // Slightly larger than the main line
                 strokeLinejoin="round"
                 style={{
-                  opacity: 0.5, // Optional: make the border slightly transparent
+                  opacity: id === selected ? 1.0 : 0.0
                 }}
               />
 
               {/* Main line */}
-              <line
-                key={`line-${index}`}
-                x1={x1}
-                x2={x2}
-                y1={y1}
-                y2={y2}
-                stroke={color}
-                strokeWidth={20} // Adjust thickness
-                onClick={() => select_ballot(id === selected ? null : id)}
-                cursor="pointer"
-                style={{
-                  filter: id === selected ? 'brightness(1.5)' : 'brightness(1)', // Adjust brightness
-                }}
-              />
+              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id={`lineGradient-${index}`} gradientUnits="userSpaceOnUse" x1={x1} x2={x2} y1={y1} y2={y2}>
+                    <stop offset="0%" stop-color="#1B63EB" />
+                    <stop offset={segment.percentage.toFixed(2) + "%"} stop-color="#1B63EB" />
+                    <stop offset={segment.percentage.toFixed(2) + "%"} stop-color="#1B63EB" />
+                    <stop offset="100%" stop-color="#A21CAF">
+                      <animate
+                        attributeName="stop-color"
+                        values="#A21CAF;#E11D48;#A21CAF" // bg-fuchsia-700 & bg-rose-600
+                        dur="5s" 
+                        repeatCount="indefinite" 
+                      />
+                    </stop>
+                  </linearGradient>
+                </defs>
+                <line
+                  key={`line-${index}`}
+                  x1={x1}
+                  x2={x2}
+                  y1={y1}
+                  y2={y2}
+                  stroke={`url(#lineGradient-${index})`}
+                  strokeWidth={20} // Adjust thickness
+                  onClick={() => select_ballot(id === selected ? null : id)}
+                  cursor="pointer"
+                  style={{
+                    zIndex: 0
+                  }}
+                />
+              </svg>
             </>
           );
         })}
   
         {/* Render custom lock labels */}
         {processedSegments.map((segment, index) => {
-          const { start, id } = segment;
-          const x = xScale(start.x); // Position for the label
+          const { start, end } = segment;
+          const id = Number(segment.id);
+          const x1 = xScale(start.x);
+          const x2 = xScale(end.x);
           const y = yScale(start.y);
   
           return (
             <text
               key={`label-${index}`}
-              x={x}
-              y={y} // Adjust Y position above the bar
+              x={x1 + (x2 - x1) / 2}
+              y={y}
               textAnchor="middle"
-              fontSize={12}
-              fill="black" // Label color
+              alignmentBaseline="middle"
+              fontSize={(id === selected) ? 14 : 12}
+              fill="white"
+              onClick={() => select_ballot(id === selected ? null : id)}
+              cursor="pointer"
             >
-              {id}
+              {segment.label}
             </text>
           );
         })}
@@ -230,7 +254,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
         ref={chartContainerRef}
         style={{
           width: '800px', // Visible area
-          height: `${data.length * 75}px`, // Dynamic height based on data length
+          height: `${data.length * 50}px`, // Dynamic height based on data length
           overflowX: 'auto',
           overflowY: 'hidden',
         }}
@@ -246,6 +270,11 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
             xScale={{
               type: 'time',
               precision: 'hour', // Somehow this is important
+            }}
+            yScale={{
+              type: 'linear',
+              min: -0.5,
+              max: data.length - 0.5,
             }}
             animate={false}
             enableGridY={false}
@@ -281,16 +310,24 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
             lineWidth={20}
             colors={{ scheme: 'category10' }}
             margin={{ top: 50, right: 50, bottom: 50, left: 60 }}
-            markers={[
+            markers={currentTime ? [
               {
                 axis: 'x',
-                value: new Date().getTime(), // Convert string to timestamp
+                value: timeToDate(currentTime).getTime(), // Convert string to timestamp
                 lineStyle: {
-                  stroke: '#ff0000',
+                  stroke: 'black',
                   strokeWidth: 1,
+                  zIndex: 10,
                 },
+                legend: formatDate(timeToDate(currentTime)),
+                legendOrientation: 'horizontal',
+                legendPosition: 'top',
+                textStyle: {
+                  fill: 'black',
+                  fontSize: 12,
+                }
               },
-            ]}
+            ] : []}
             theme={{
               background: CHART_BACKGROUND_COLOR,
             }}
@@ -298,9 +335,9 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
               'grid',
               'axes',
               'lines',
+              customLayer, // Add custom layer
               'markers',
               'legends',
-              customLayer, // Add custom layer
             ]}
           />
         </div>
