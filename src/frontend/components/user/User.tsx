@@ -8,7 +8,7 @@ import { Principal } from "@dfinity/principal";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import LockChart from "../charts/LockChart";
-import { BITCOIN_TOKEN_SYMBOL, BALLOT_EMOJI, LOCK_EMOJI, DURATION_EMOJI, PRESENCE_TOKEN_EMOJI, RESONANCE_TOKEN_EMOJI, PRESENCE_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL } from "../../constants";
+import { BITCOIN_TOKEN_SYMBOL, BALLOT_EMOJI, LOCK_EMOJI, DURATION_EMOJI, PRESENCE_TOKEN_EMOJI, RESONANCE_TOKEN_EMOJI, PRESENCE_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL, TIMESTAMP_EMOJI } from "../../constants";
 import { formatBalanceE8s } from "../../utils/conversions/token";
 
 const User = () => {
@@ -19,12 +19,14 @@ const User = () => {
     return <div>Invalid principal</div>;
   }
 
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number>(0);
 
   const { data: ballots, call: refreshBallots } = backendActor.useQueryCall({
     functionName: "get_ballots",
     args: [{ owner: Principal.fromText(principal), subaccount: [] }],
   });
+
+  //const selectedBallot = selected ? ballots?.[selected] : null;
 
   useEffect(() => {
     refreshBallots();
@@ -35,28 +37,37 @@ const User = () => {
   // @todo: reward preview?
   
   return (
-    <div>
+    <div className="flex flex-col items-center w-full">
       <div>
         {
-          totalLocked? <div> Total locked: { totalLocked.toString() } sat </div> : <></>
+          totalLocked? <div> Total locked: { formatBalanceE8s(totalLocked, BITCOIN_TOKEN_SYMBOL) } </div> : <></>
         }
       </div>
       { ballots && <LockChart ballots={ballots} select_ballot={setSelected} selected={selected}/> }
-      <ul>
+      <ul className="">
         {
           ballots?.map((ballot, index) => (
-            <li key={index} className="flex flex-col border p-2">
-              <div className="flex flex-row items-center justify-between space-x-2 hover:cursor-pointer" onClick={() => setSelected(selected === index ? null : index)}>
-                <span className="text-lg font-bold">{LOCK_EMOJI + " " + formatBalanceE8s(ballot.ballot.YES_NO.amount, BITCOIN_TOKEN_SYMBOL)}</span>
-                <span>{ formatDate(timeToDate(ballot.ballot.YES_NO.timestamp)) }</span>
-              </div>
-              
-              {selected === index && (
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 justify-items-center">
+              selected === index && (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 justify-items-center border dark:border-gray-700 border-gray-200 p-1">
                   {/* Row 1: Text */}
                   <div className="col-span-2 justify-self-start">
                     { ballot.text }
                   </div>
+
+                  <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
+                    <span>{LOCK_EMOJI}</span>
+                    <div>
+                      <div><span className="italic text-gray-400 text-sm">Amount:</span> {formatBalanceE8s(ballot.ballot.YES_NO.amount, BITCOIN_TOKEN_SYMBOL) } </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
+                    <span>{TIMESTAMP_EMOJI}</span>
+                    <div>
+                      <div><span className="italic text-gray-400 text-sm">Date:</span> {formatDate(timeToDate(ballot.ballot.YES_NO.timestamp)) } </div>
+                    </div>
+                  </div>
+
                   {/* Row 2: Durations */}
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{DURATION_EMOJI}</span>
@@ -86,12 +97,10 @@ const User = () => {
                   {/* Row 5: Resonance */}
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{RESONANCE_TOKEN_EMOJI}</span>
-                    <div><span className="italic text-gray-400 text-sm">Predicted:</span> { formatBalanceE8s(BigInt(Math.floor(get_last(ballot.ballot.YES_NO.presence).data)), RESONANCE_TOKEN_SYMBOL) }</div>
+                    <div><span className="italic text-gray-400 text-sm">Forecasted:</span> { formatBalanceE8s(BigInt(Math.floor(get_last(ballot.ballot.YES_NO.presence).data)), RESONANCE_TOKEN_SYMBOL) }</div>
                   </div>
                 </div>
-              )}
-            </li>
-
+              )
           ))
         }
       </ul>

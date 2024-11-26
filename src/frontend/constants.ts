@@ -10,4 +10,5 @@ export const CONSENT_EMOJI = "🤝";
 export const PRESENCE_TOKEN_EMOJI = "🌌";
 export const RESONANCE_TOKEN_EMOJI = "🔮"; 
 export const LOCK_EMOJI = "🔒";
+export const TIMESTAMP_EMOJI = "📅";
 export const CHART_BACKGROUND_COLOR = "#ffffff";

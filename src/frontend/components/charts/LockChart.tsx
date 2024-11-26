@@ -12,8 +12,8 @@ import { formatDate, timeToDate } from '../../utils/conversions/date';
 
 interface LockChartProps {
   ballots: SQueriedBallot[];
-  selected: number | null;
-  select_ballot: (index: number | null) => void;
+  selected: number;
+  select_ballot: (index: number) => void;
 };
 
 const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
@@ -22,7 +22,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
     functionName: "get_time",
   });
 
-  const [duration, setDuration] = useState<DurationUnit>(DurationUnit.WEEK);
+  const [duration, setDuration] = useState<DurationUnit>(DurationUnit.YEAR);
 
   const { data, dateRange, processedSegments } = useMemo(() => {
   
@@ -209,7 +209,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
                   y2={y2}
                   stroke={`url(#lineGradient-${index})`}
                   strokeWidth={20} // Adjust thickness
-                  onClick={() => select_ballot(id === selected ? null : id)}
+                  onClick={() => select_ballot(id)}
                   cursor="pointer"
                   style={{
                     zIndex: 0
@@ -237,7 +237,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
               alignmentBaseline="middle"
               fontSize={(id === selected) ? 14 : 12}
               fill="white"
-              onClick={() => select_ballot(id === selected ? null : id)}
+              onClick={() => select_ballot(id)}
               cursor="pointer"
             >
               {segment.label}
