@@ -33,8 +33,8 @@ module {
     public type YesNoAggregate    = Types.Current.YesNoAggregate;
     public type Decayed           = Types.Current.Decayed;
     public type YesNoChoice       = Types.Current.YesNoChoice;
-    public type History<T>        = Types.Current.History<T>;
-    public type HistoryEntry<T>   = Types.Current.HistoryEntry<T>;
+    public type Timeline<T>        = Types.Current.Timeline<T>;
+    public type TimedData<T>      = Types.Current.TimedData<T>;
     public type Vote<A, B>        = Types.Current.Vote<A, B>;
     public type BallotInfo<B>     = Types.Current.BallotInfo<B>;
     public type DepositInfo       = Types.Current.DepositInfo;
@@ -86,8 +86,9 @@ module {
         #YES_NO: SBallot<YesNoChoice>;
     };
 
-    public type SHistory<T> = {
-        entries: [HistoryEntry<T>];
+    public type STimeline<T> = {
+        current: TimedData<T>;
+        history: [TimedData<T>];
     };
 
     public type SBallotInfo<B> = {
@@ -95,12 +96,12 @@ module {
         choice: B;
         amount: Nat;
         dissent: Float;
-        consent: SHistory<Float>;
-        presence: SHistory<Float>;
+        consent: STimeline<Float>;
+        presence: STimeline<Float>;
     };
 
     public type SDurationInfo = {
-        duration_ns: SHistory<Nat>;
+        duration_ns: STimeline<Nat>;
     };
 
     public type SBallot<B> = SBallotInfo<B> and DepositInfo and HotInfo and SDurationInfo;
@@ -109,7 +110,7 @@ module {
         vote_id: Nat;
         date: Time;
         origin: Principal;
-        aggregate_history: SHistory<A>;
+        aggregate: STimeline<A>;
         ballot_register: {
             index: Nat;
             map: [(Nat, SBallot<B>)];
@@ -134,7 +135,7 @@ module {
     };
 
     public type AggregateHistoryType = {
-        #YES_NO: [HistoryEntry<YesNoAggregate>];
+        #YES_NO: [TimedData<YesNoAggregate>];
     };
 
     public type ChoiceType = {

@@ -2,8 +2,7 @@ import BallotBuilder      "BallotBuilder";
 import Types              "../Types";
 import DepositScheduler   "../payement/DepositScheduler";
 import DurationCalculator "../duration/DurationCalculator";
-import MapUtils           "../utils/Map";
-import History            "../utils/History";
+import Timeline           "../utils/Timeline";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
@@ -66,7 +65,7 @@ module {
                 date;
                 last_mint = date;
                 origin;
-                aggregate_history = { var entries = [{ timestamp = date; data = empty_aggregate; }] };
+                aggregate = Timeline.initialize(date, empty_aggregate);
                 ballot_register = {
                     var index = 0;
                     map = Map.new<Nat, Ballot<B>>();
@@ -81,7 +80,7 @@ module {
             args: PutBallotArgs;
         }) : Ballot<B> {
 
-            let aggregate = update_aggregate({ args with aggregate = lastAggregate(vote); choice; });
+            let aggregate = update_aggregate({ args with aggregate = vote.aggregate.current.data; choice; });
             let builder = intialize_ballot({ choice; args; aggregate; });
 
             deposit_scheduler.preview_deposit({
@@ -97,7 +96,7 @@ module {
             args: PutBallotArgs;
         }) : async* Result<Nat, PutBallotError> {
 
-            let aggregate = update_aggregate({ args with aggregate = lastAggregate(vote); choice; });
+            let aggregate = update_aggregate({ args with aggregate = vote.aggregate.current.data; choice; });
             let builder = intialize_ballot({ choice; args; aggregate; });
 
             // Update the aggregate only once the deposit is done
@@ -106,12 +105,12 @@ module {
                 // TODO: should be Time.now() of the simulation instead
                 let time = ballot.timestamp;
                 // Recompute the aggregate because other ballots might have been added during the awaited deposit, hence changing the aggregate.
-                let aggregate = update_aggregate({ ballot with time; aggregate = lastAggregate(vote); });
+                let aggregate = update_aggregate({ ballot with time; aggregate = vote.aggregate.current.data; });
                 // Update the aggregate history
-                vote.aggregate_history.entries := Array.append(vote.aggregate_history.entries, [{ timestamp = time; data = aggregate; }]);
+                Timeline.add(vote.aggregate, time, aggregate);
                 // Update the ballot consents
                 for ((id, bal) in Map.entries(vote.ballot_register.map)) {
-                    History.add(bal.consent, time, compute_consent({ aggregate; choice = bal.choice; time; }));
+                    Timeline.add(bal.consent, time, compute_consent({ aggregate; choice = bal.choice; time; }));
                 };
             };
 
@@ -157,17 +156,12 @@ module {
                 choice;
                 amount;
                 dissent = compute_dissent({ aggregate; choice; amount; time; });
-                consent = History.initialize(time, compute_consent({ aggregate; choice; time; }));
-                presence = History.initialize(time, 0.0);
+                consent = Timeline.initialize(time, compute_consent({ aggregate; choice; time; }));
+                presence = Timeline.initialize(time, 0.0);
             });
             builder;
         };
 
-    };
-
-    func lastAggregate<A, B>(vote: Vote<A, B>) : A {
-        let entries = vote.aggregate_history.entries;
-        entries[Array.size(entries) - 1].data;
     };
 
 };

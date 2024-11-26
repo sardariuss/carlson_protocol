@@ -1,15 +1,13 @@
 import Types  "../Types";
-import History "../utils/History";
-import Option "mo:base/Option";
+import Timeline "../utils/Timeline";
 
 module {
 
     type VoteType             = Types.VoteType;
-    type AggregateHistoryType = Types.AggregateHistoryType;
     type Account              = Types.Account;
     type BallotType           = Types.BallotType;
-    type History<T>           = Types.History<T>;
-    type HistoryEntry<T>      = Types.HistoryEntry<T>;
+    type Timeline<T>          = Types.Timeline<T>;
+    type TimedData<T>         = Types.TimedData<T>;
     type Time                 = Int;
 
     // TODO: it would probably be clever to put the typed choice outside of the BallotInfo type
@@ -29,7 +27,7 @@ module {
 
     public func get_presence(ballot: BallotType): Float {
         switch(ballot){
-            case(#YES_NO(b)) { Option.getMapped(History.get_last(b.presence), func(entry: HistoryEntry<Float>) : Float { entry.data }, 0.0); };
+            case(#YES_NO(b)) { Timeline.get_current(b.presence); };
         };
     };
 
@@ -47,15 +45,14 @@ module {
 
     public func get_consent(ballot: BallotType): Float {
         switch(ballot){
-            case(#YES_NO(b)) { Option.getMapped(History.get_last(b.consent), func(entry: HistoryEntry<Float>) : Float { entry.data }, 0.0); };
+            case(#YES_NO(b)) { Timeline.get_current(b.consent); };
         };
     };
 
     public func accumulate_presence(ballot: BallotType, presence: Float, time: Time): BallotType {
         switch(ballot){
             case(#YES_NO(b)) { 
-                History.add(b.presence, time, Option.getMapped(
-                    History.get_last(b.presence), func(entry: HistoryEntry<Float>) : Float { entry.data }, 0.0) + presence);
+                Timeline.add(b.presence, time, Timeline.get_current(b.consent) + presence);
                 #YES_NO(b); 
             };
         };

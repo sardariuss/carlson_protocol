@@ -51,8 +51,6 @@ module {
             yes_no_controller;
         });
 
-        let total_locked_timeline = Timeline.Timeline<Nat>(deposit.total_locked_history);
-
         let presence_dispenser = PresenceDispenser.PresenceDispenser({ parameters = presence.parameters });
 
         Controller.Controller({
@@ -63,7 +61,6 @@ module {
             presence_facade;
             resonance_facade;
             presence_dispenser;
-            total_locked_timeline;
             decay_model;
         });
     };

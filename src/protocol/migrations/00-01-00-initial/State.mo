@@ -1,6 +1,7 @@
 import Types          "Types";
 import MigrationTypes "../Types";
 import Duration       "../../duration/Duration";
+import Timeline       "../../utils/Timeline";
 
 import Map            "mo:map/Map";
 import Set            "mo:map/Set";
@@ -36,12 +37,12 @@ module {
                 votes = Map.new<Nat, Types.VoteType>();
                 by_origin = Map.new<Principal, Set.Set<Nat>>();
                 user_ballots = Map.new<Account, Set.Set<(Nat, Nat)>>();
+                total_locked = Timeline.initialize(now, 0);
             };
             deposit = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(deposit.ledger));
                 fee = deposit.fee;
                 incidents = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
-                total_locked_history = { var entries = []; };
             };
             presence = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(presence.ledger));

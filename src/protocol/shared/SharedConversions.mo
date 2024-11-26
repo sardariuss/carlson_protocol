@@ -13,8 +13,8 @@ module {
     type SVote<A, B> = Types.SVote<A, B>;
     type Ballot<B> = Types.Ballot<B>;
     type SBallot<B> = Types.SBallot<B>;
-    type History<T> = Types.History<T>;
-    type SHistory<T> = Types.SHistory<T>;
+    type Timeline<T> = Types.Timeline<T>;
+    type STimeline<T> = Types.STimeline<T>;
     type SQueriedBallot = Types.SQueriedBallot;
     type QueriedBallot = Types.QueriedBallot;
 
@@ -43,7 +43,7 @@ module {
         });
         {
             vote with 
-            aggregate_history = shareHistory(vote.aggregate_history);
+            aggregate = shareTimeline(vote.aggregate);
             ballot_register = {
                 index = vote.ballot_register.index;
                 map = Map.toArray(ballots);
@@ -58,9 +58,9 @@ module {
             choice = ballot.choice;
             amount = ballot.amount;
             dissent = ballot.dissent;
-            consent = { entries = ballot.consent.entries; };
-            presence = { entries = ballot.presence.entries; };
-            duration_ns = { entries = ballot.duration_ns.entries; };
+            consent = { current = ballot.consent.current; history = ballot.consent.history; };
+            presence = { current = ballot.presence.current; history = ballot.presence.history; };
+            duration_ns = { current = ballot.duration_ns.current; history = ballot.duration_ns.history; };
             tx_id = ballot.tx_id;
             from = ballot.from;
             deposit_state = ballot.deposit_state;
@@ -69,8 +69,8 @@ module {
         };
     };
 
-    func shareHistory<T>(history: History<T>) : SHistory<T> {
-        { entries = history.entries; };
+    func shareTimeline<T>(history: Timeline<T>) : STimeline<T> {
+        { current = history.current; history = history.history; };
     };
 
 };

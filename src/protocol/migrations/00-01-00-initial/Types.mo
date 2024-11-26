@@ -152,11 +152,12 @@ module {
 
     type Time = Int;
 
-    public type History<T> = {
-        var entries: [HistoryEntry<T>];
+    public type Timeline<T> = {
+        var current: TimedData<T>;
+        var history: [TimedData<T>];
     };
 
-    public type HistoryEntry<T> = {
+    public type TimedData<T> = {
         timestamp: Time;
         data: T;
     };
@@ -166,6 +167,7 @@ module {
         votes: Map<Nat, VoteType>;
         by_origin: Map<Principal, Set<Nat>>;
         user_ballots: Map<Account, Set<(Nat, Nat)>>;
+        total_locked: Timeline<Nat>;
     };
 
     public type VoteType = {
@@ -192,7 +194,7 @@ module {
         vote_id: Nat;
         date: Time;
         origin: Principal;
-        aggregate_history: History<A>;
+        aggregate: Timeline<A>;
         ballot_register: {
             var index: Nat;
             map: Map<Nat, Ballot<B>>;
@@ -205,8 +207,8 @@ module {
         choice: B;
         amount: Nat;
         dissent: Float;
-        consent: History<Float>;
-        presence: History<Float>;
+        consent: Timeline<Float>;
+        presence: Timeline<Float>;
     };
 
     public type DepositInfo = {
@@ -235,7 +237,7 @@ module {
     };
 
     public type DurationInfo = {
-        duration_ns: History<Nat>;
+        duration_ns: Timeline<Nat>;
     };
 
     public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and DurationInfo;
@@ -320,7 +322,6 @@ module {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
             incidents: IncidentRegister;
-            total_locked_history: History<Nat>;
         };
         presence: {
             ledger: ICRC1 and ICRC2;

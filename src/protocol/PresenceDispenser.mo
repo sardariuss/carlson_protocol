@@ -11,7 +11,7 @@ import Result "mo:base/Result";
 module {
 
   type Time = Int;
-  type History<T> = Types.History<T>;
+  type Timeline<T> = Types.Timeline<T>;
   type Order = Order.Order;
   type Result<Ok, Err> = Result.Result<Ok, Err>;
 
@@ -45,8 +45,8 @@ module {
     public func dispense({
       locks: [ExtendedLock];
       time_dispense: Time;
-      total_locked_timeline: Timeline.Timeline<Nat>;
-    }) : Result<(), Text> {
+      total_locked: Timeline<Nat>;
+    }){
 
       // Map locks contains all the locks with their index as key
       let map_locks = Map.new<Nat, Lock>();
@@ -75,7 +75,7 @@ module {
       });
 
       // If there is an unlock, there has to be at least one entry in the timeline.
-      var total_locked = total_locked_timeline.unwrap_last_entry().data;
+      var total_amount = Timeline.get_current(total_locked);
 
       // Dispense the locks
       for ({ key; time; } in released.vals()) {
@@ -86,30 +86,25 @@ module {
         };
 
         // Dispense the locks up to the time of release which is the time of release of the lock here
-        dispense_locks(total_locked, map_locks, time);
+        dispense_locks(total_amount, map_locks, time);
 
         // Subtract the amount from the total locked;
-        total_locked -= amount;
+        total_amount -= amount;
 
         // Update the timeline accordingly
-        switch(total_locked_timeline.add_entry({ timestamp = time; data = total_locked; })) {
-          case(#err(err)) { return #err(err); };
-          case(#ok(_)) {};
-        };
+        Timeline.add(total_locked, time, total_amount);
 
         // Remove the lock from the map
         Map.delete(map_locks, Map.nhash, key);
       };
 
-      dispense_locks(total_locked, map_locks, time_dispense);
-
-      #ok;
+      dispense_locks(total_amount, map_locks, time_dispense);
     };
 
-    public func dispense_locks(total_locked: Nat, map_locks: Map.Map<Nat, Lock>, time: Time) {
+    public func dispense_locks(total_amount: Nat, map_locks: Map.Map<Nat, Lock>, time: Time) {
 
       for ({ amount; add_presence; } in Map.vals(map_locks)) {
-        add_presence(Float.fromInt(amount) / Float.fromInt(total_locked) * parameters.presence_per_ns * Float.fromInt(time - parameters.time_last_dispense));
+        add_presence(Float.fromInt(amount) / Float.fromInt(total_amount) * parameters.presence_per_ns * Float.fromInt(time - parameters.time_last_dispense));
       };
 
       parameters.time_last_dispense := time;

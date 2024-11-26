@@ -1,11 +1,11 @@
 import Types              "Types";
 import VoteTypeController "votes/VoteTypeController";
+import Incentives         "votes/Incentives";
+import BallotUtils        "votes/BallotUtils";
 import PayementFacade     "payement/PayementFacade";
 import PresenceDispenser  "PresenceDispenser";
 import MapUtils           "utils/Map";
 import Decay              "duration/Decay";
-import Incentives         "votes/Incentives";
-import VoteUtils          "votes/VoteUtils";
 import Timeline           "utils/Timeline";
 import Clock              "utils/Clock";
 
@@ -35,7 +35,7 @@ module {
     type BallotId = Types.BallotId;
     type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
     type ExtendedLock = PresenceDispenser.ExtendedLock;
-    type HistoryEntry<T> = Timeline.HistoryEntry<T>;
+    type TimedData<T> = Timeline.TimedData<T>;
 
     type WeightParams = {
         ballot: BallotType;
@@ -64,7 +64,6 @@ module {
         presence_facade: PayementFacade.PayementFacade;
         resonance_facade: PayementFacade.PayementFacade;
         presence_dispenser: PresenceDispenser.PresenceDispenser;
-        total_locked_timeline: Timeline.Timeline<Nat>;
         decay_model: Decay.DecayModel;
     }){
 
@@ -130,10 +129,9 @@ module {
                     // Update the user_ballots map
                     MapUtils.putInnerSet(vote_register.user_ballots, MapUtils.acchash, from, MapUtils.nnhash, (vote_id, ballot_id));
                     // Update the locked amount history
-                    let total_locked = Option.getMapped(total_locked_timeline.get_last_entry(), func(entry: HistoryEntry<Nat>) : Nat = entry.data, 0);
                     // TODO: Should the timeline be flexible enough to allow adding entries in the past?
                     // TODO: should get clock.get_time() instead
-                    ignore total_locked_timeline.add_entry({ timestamp = time; data = total_locked + amount; });
+                    Timeline.add(vote_register.total_locked, time, Timeline.get_current(vote_register.total_locked) + amount);
                     // WATCHOUT: Need to disburse the presence until now, because the presence dispenser is not clever enough
                     // to take into account the start date of the lock
                     let _ = await* run(?time);
@@ -170,7 +168,7 @@ module {
                     time;
                     on_release_attempt = func(attempt: ReleaseAttempt<BallotType>) {
                         // TODO: fix this giga hack here to avoid considering the ballot that has just been added
-                        if (VoteUtils.get_timestamp(attempt.elem) == time) {
+                        if (BallotUtils.get_timestamp(attempt.elem) == time) {
                             Debug.print("Do not consider the ballot that has been just added!");
                         } else {
                             release_attempts.add(attempt);
@@ -179,7 +177,7 @@ module {
                 });
             };
 
-            ignore presence_dispenser.dispense({
+            presence_dispenser.dispense({
                 locks = Buffer.toArray(Buffer.map<ReleaseAttempt<BallotType>, ExtendedLock>(
                     release_attempts,
                     func(attempt: ReleaseAttempt<BallotType>) : ExtendedLock {
@@ -187,7 +185,7 @@ module {
                     }
                 ));
                 time_dispense = time;
-                total_locked_timeline;
+                total_locked = vote_register.total_locked;
             });
 
             // TODO: parallelize awaits*
@@ -195,17 +193,17 @@ module {
                 if(Option.isSome(release_time)){                    
                     // Mint the presence
                     let _ = await* presence_facade.send_payement({ 
-                        to = VoteUtils.get_account(elem); 
-                        amount = Int.abs(Float.toInt(VoteUtils.get_presence(elem)));
+                        to = BallotUtils.get_account(elem); 
+                        amount = Int.abs(Float.toInt(BallotUtils.get_presence(elem)));
                     });
                     // Mint the resonance
                     let _ = await* resonance_facade.send_payement({ 
-                        to = VoteUtils.get_account(elem); 
+                        to = BallotUtils.get_account(elem); 
                         amount = Int.abs(Float.toInt(Incentives.compute_resonance({
-                            amount = VoteUtils.get_amount(elem);
-                            dissent = VoteUtils.get_dissent(elem);
-                            consent = VoteUtils.get_consent(elem);
-                            start = VoteUtils.get_timestamp(elem);
+                            amount = BallotUtils.get_amount(elem);
+                            dissent = BallotUtils.get_dissent(elem);
+                            consent = BallotUtils.get_consent(elem);
+                            start = BallotUtils.get_timestamp(elem);
                             end = time;
                         })));
                     });
@@ -259,7 +257,7 @@ module {
                 attempt with
                 amount = switch(attempt.elem){ case(#YES_NO(b)) { b.amount; }; };
                 add_presence = func(presence: Float) {
-                    attempt.update_elem(VoteUtils.accumulate_presence(attempt.elem, presence, time));
+                    attempt.update_elem(BallotUtils.accumulate_presence(attempt.elem, presence, time));
                 };
             };
         };

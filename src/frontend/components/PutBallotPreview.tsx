@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { formatDuration } from "../utils/conversions/duration";
 import { DISSENT_EMOJI, DURATION_EMOJI } from "../constants";
 import { BallotInfo } from "./types";
-import { get_last } from "../utils/history";
+import { get_current } from "../utils/timeline";
 
 interface PutBallotPreviewProps {
   vote_id: bigint;
@@ -40,7 +40,7 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
       {
         preview && 'ok' in preview && 
           <div className="flex flex-row w-full items-center space-x-4 justify-center">
-            <span> { DURATION_EMOJI + " ≥ " + formatDuration(get_last(preview.ok.YES_NO.duration_ns).data)} </span>
+            <span> { DURATION_EMOJI + " ≥ " + formatDuration(get_current(preview.ok.YES_NO.duration_ns).data)} </span>
             <span> { DISSENT_EMOJI + " " + formatDissent(preview.ok.YES_NO.dissent) } </span>
         </div>
       }

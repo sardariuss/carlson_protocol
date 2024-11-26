@@ -2,13 +2,13 @@ import { useMemo, useEffect, useRef, useState } from 'react';
 import { Datum, ResponsiveLine, Serie } from '@nivo/line';
 import { BITCOIN_TOKEN_SYMBOL, CHART_BACKGROUND_COLOR, LOCK_EMOJI } from '../../constants';
 import { SQueriedBallot } from '@/declarations/protocol/protocol.did';
-import { get_first, get_last } from '../../utils/history';
 import IntervalPicker from './IntervalPicker';
 import { DurationUnit, toNs } from '../../utils/conversions/duration';
 import { CHART_CONFIGURATIONS, computeTicksMs, isNotFiniteNorNaN } from '.';
 import { formatBalanceE8s } from '../../utils/conversions/token';
 import { protocolActor } from '../../actors/ProtocolActor';
 import { formatDate, timeToDate } from '../../utils/conversions/date';
+import { get_current, get_first } from '../../utils/timeline';
 
 interface LockChartProps {
   ballots: SQueriedBallot[];
@@ -45,7 +45,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
       // Compute timestamps
       const baseTimestamp = Number(timestamp / 1_000_000n);
       const initialLockEnd = baseTimestamp + Number(get_first(duration_ns).data / 1_000_000n);
-      const actualLockEnd = baseTimestamp + Number(get_last(duration_ns).data / 1_000_000n);
+      const actualLockEnd = baseTimestamp + Number(get_current(duration_ns).data / 1_000_000n);
 
       // Update min and max directly
       if (baseTimestamp < minDate) minDate = baseTimestamp;

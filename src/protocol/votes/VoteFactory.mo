@@ -8,12 +8,11 @@ import PayementFacade     "../payement/PayementFacade";
 import DepositScheduler   "../payement/DepositScheduler";
 import LockScheduler      "../locks/LockScheduler";
 import HotMap             "../locks/HotMap";
-import History            "../utils/History";
+import Timeline            "../utils/Timeline";
 
 import Map                "mo:map/Map";
 
 import Float              "mo:base/Float";
-import Debug              "mo:base/Debug";
 
 module {
 
@@ -26,7 +25,7 @@ module {
     type YesNoChoice = Types.YesNoChoice;
     type RefundState = Types.RefundState;
     type Duration = Types.Duration;
-    type HistoryEntry<T> = Types.HistoryEntry<T>;
+    type TimedData<T> = Types.TimedData<T>;
 
     type HotElem = HotMap.HotElem;
     type Deposit = DepositScheduler.Deposit;
@@ -81,8 +80,8 @@ module {
                 let update = { v with hotness; };
                 // Update the duration of the lock if the lock is still active
                 // TODO: this logic shall be handled elsewhere, it feels like a hack
-                if (v.timestamp + History.unwrap_last(v.duration_ns).data > time){
-                    History.add(update.duration_ns, time, duration_calculator.compute_duration_ns({hotness}));
+                if (v.timestamp + Timeline.get_current(v.duration_ns) > time){
+                    Timeline.add(update.duration_ns, time, duration_calculator.compute_duration_ns({hotness}));
                 };
                 update;
             };
@@ -92,9 +91,7 @@ module {
         let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
             hot_map;
             lock_info = func (b: YesNoBallot): Lock {
-                //let last_duration_ns = Option.getMapped(History.get_last(b.duration_ns), func(entry: HistoryEntry<Nat>) : Nat { entry.data }, 0);
-                //{ timestamp = b.timestamp; duration_ns = last_duration_ns; };
-                { timestamp = b.timestamp; duration_ns = History.unwrap_last(b.duration_ns).data; } 
+                { timestamp = b.timestamp; duration_ns = Timeline.get_current(b.duration_ns); } 
             };
         });
 

@@ -1,6 +1,6 @@
 import { useMemo, useState }                     from "react";
 import { protocolActor }                         from "../../actors/ProtocolActor";
-import {  SHistory_2 }                           from "@/declarations/protocol/protocol.did";
+import { STimeline_2 }                           from "@/declarations/protocol/protocol.did";
 import { EYesNoChoice }                          from "../../utils/conversions/yesnochoice";
 import { AreaBumpSerie, ResponsiveAreaBump }     from "@nivo/bump";
 import { formatBalanceE8s }                      from "../../utils/conversions/token";
@@ -14,13 +14,13 @@ import IntervalPicker                            from "./IntervalPicker";
 interface ComputeChartPropsArgs {
   currentTime: bigint;
   duration: DurationUnit;
-  aggregates: SHistory_2;
+  aggregate: STimeline_2;
 }
 
 type ChartData = AreaBumpSerie<{x: number; y: number;}, {id: string; data: {x: number; y: number;}[]}>[];
 type ChartProperties = { chartData: ChartData, max: number, priceLevels: number[], dateTicks: number[] };
 
-const computeChartProps = ({ currentTime, duration, aggregates } : ComputeChartPropsArgs) : ChartProperties => {
+const computeChartProps = ({ currentTime, duration, aggregate } : ComputeChartPropsArgs) : ChartProperties => {
 
   let chartData : ChartData = [
     { id: EYesNoChoice.Yes, data: [] },
@@ -33,14 +33,16 @@ const computeChartProps = ({ currentTime, duration, aggregates } : ComputeChartP
   let noAggregate = 0n;
   let max = 0n;
   let nextAggregateIndex = 0;
+
+  let aggregate_history = [...aggregate.history, aggregate.current];
   
   dates.forEach(({ date }) => {
-    // Update aggregates while the next timestamp is within range
+    // Update aggregate while the next timestamp is within range
     while (
-      nextAggregateIndex < aggregates.entries.length &&
-      date >= Number(aggregates.entries[nextAggregateIndex].timestamp / 1_000_000n)
+      nextAggregateIndex < aggregate_history.length &&
+      date >= Number(aggregate_history[nextAggregateIndex].timestamp / 1_000_000n)
     ) {
-      const { data } = aggregates.entries[nextAggregateIndex++];
+      const { data } = aggregate_history[nextAggregateIndex++];
       yesAggregate = data.total_yes;
       noAggregate = data.total_no;
   
@@ -114,7 +116,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
     if (!currentTime) {
       return ({ chartData: [], max: 0, priceLevels: [], dateTicks: [] });
     }
-    return computeChartProps({ currentTime, duration, aggregates: vote.aggregate_history });
+    return computeChartProps({ currentTime, duration, aggregate: vote.aggregate });
   }, 
   [vote, currentTime, duration]);
 
