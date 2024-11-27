@@ -87,7 +87,6 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
   // Precompute width and ticks for all durations in CHART_CONFIGURATIONS
   const chartConfigurationsMap = useMemo(() => {
 
-    console.log("Compute chart config map!");
     const map = new Map<DurationUnit, { chartWidth: number; ticks: number[] }>();
 
     for (const [duration, config] of CHART_CONFIGURATIONS.entries()) {

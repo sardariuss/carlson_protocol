@@ -7,7 +7,7 @@ import { formatDateTime, timeToDate } from "../utils/conversions/date";
 import VoteChart from "./charts/VoteChart";
 import VoteSlider from "./VoteSlider";
 import { BallotInfo } from "./types";
-import { get_no_votes, get_total_votes, get_votes, get_yes_votes } from "../utils/conversions/vote";
+import { get_total_votes, get_votes, get_yes_votes } from "../utils/conversions/vote";
 
 interface VoteViewProps {
   vote: SYesNoVote;
@@ -41,19 +41,6 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, selected, setSele
       throw new Error("Total number of votes is null");
     }
     return Number(getTotalSide(side)) / total * 100;
-  }
-
-  const getResult = () => {
-    const total = get_total_votes(vote);
-    if (total === 0n) {
-      return "";
-    }
-    if (get_yes_votes(vote) >= get_no_votes(vote)) {
-      return "YES " + getPercentage(EYesNoChoice.Yes).toFixed(1) + "%"
-    }
-    else {
-      return "NO " + getPercentage(EYesNoChoice.No).toFixed(1) + "%"
-    }
   }
 
   const resetVote = () => {

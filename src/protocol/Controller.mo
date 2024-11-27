@@ -232,8 +232,8 @@ module {
             vote_type_controller.find_ballot({ vote_type; ballot_id; });
         };
 
-        public func compute_decay(time: Time) : Float {
-            decay_model.compute_decay(time);
+        public func current_decay() : Float {
+            decay_model.compute_decay(clock.get_time());
         };
 
         public func get_deposit_incidents() : [(Nat, Types.Incident)] {

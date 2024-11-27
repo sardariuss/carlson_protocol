@@ -62,8 +62,8 @@ module {
             Option.map<BallotType, SBallotType>(controller.find_ballot({vote_id; ballot_id;}), SharedConversions.shareBallotType);
         };
 
-        public func compute_decay(time: Time) : Float {
-            controller.compute_decay(time);
+        public func current_decay() : Float {
+            controller.current_decay();
         };
 
         public func get_deposit_incidents() : [(Nat, Types.Incident)] {

@@ -79,8 +79,8 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().find_ballot(args);
     };
 
-    public query func compute_decay({ time: Time.Time }) : async Float {
-        getFacade().compute_decay(time);
+    public query func current_decay() : async Float {
+        getFacade().current_decay();
     };
 
     // Get the failed refunds for the given principal

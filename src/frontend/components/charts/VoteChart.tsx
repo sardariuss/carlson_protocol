@@ -1,10 +1,12 @@
 import { useMemo, useState }                     from "react";
 import { protocolActor }                         from "../../actors/ProtocolActor";
 import { STimeline_2 }                           from "@/declarations/protocol/protocol.did";
+import { SYesNoVote }                            from "@/declarations/backend/backend.did";
 import { EYesNoChoice }                          from "../../utils/conversions/yesnochoice";
 import { AreaBumpSerie, ResponsiveAreaBump }     from "@nivo/bump";
+
 import { formatBalanceE8s }                      from "../../utils/conversions/token";
-import { SYesNoVote }                            from "@/declarations/backend/backend.did";
+
 import { BallotInfo }                            from "../types";
 import { DurationUnit }                          from "../../utils/conversions/duration";
 import { CHART_BACKGROUND_COLOR }                from "../../constants";
@@ -13,6 +15,7 @@ import IntervalPicker                            from "./IntervalPicker";
 
 interface ComputeChartPropsArgs {
   currentTime: bigint;
+  currentDecay: number;
   duration: DurationUnit;
   aggregate: STimeline_2;
 }
@@ -20,7 +23,7 @@ interface ComputeChartPropsArgs {
 type ChartData = AreaBumpSerie<{x: number; y: number;}, {id: string; data: {x: number; y: number;}[]}>[];
 type ChartProperties = { chartData: ChartData, max: number, priceLevels: number[], dateTicks: number[] };
 
-const computeChartProps = ({ currentTime, duration, aggregate } : ComputeChartPropsArgs) : ChartProperties => {
+const computeChartProps = ({ currentTime, currentDecay, duration, aggregate } : ComputeChartPropsArgs) : ChartProperties => {
 
   let chartData : ChartData = [
     { id: EYesNoChoice.Yes, data: [] },
@@ -29,9 +32,9 @@ const computeChartProps = ({ currentTime, duration, aggregate } : ComputeChartPr
 
   const { dates, ticks } = computeInterval(currentTime, duration);
 
-  let yesAggregate = 0n;
-  let noAggregate = 0n;
-  let max = 0n;
+  let yesAggregate = 0;
+  let noAggregate = 0;
+  let max = 0;
   let nextAggregateIndex = 0;
 
   let aggregate_history = [...aggregate.history, aggregate.current];
@@ -43,23 +46,23 @@ const computeChartProps = ({ currentTime, duration, aggregate } : ComputeChartPr
       date >= Number(aggregate_history[nextAggregateIndex].timestamp / 1_000_000n)
     ) {
       const { data } = aggregate_history[nextAggregateIndex++];
-      yesAggregate = data.total_yes;
-      noAggregate = data.total_no;
+      yesAggregate = data.current_yes.DECAYED / currentDecay;
+      noAggregate = data.current_no.DECAYED / currentDecay;
   
       // Update max total
-      const total = data.total_yes + data.total_no;
+      const total = yesAggregate + noAggregate;
       if (total > max) max = total;
     }
   
     // Push the current data points to chartData
-    chartData[0].data.push({ x: date, y: Number(yesAggregate) });
-    chartData[1].data.push({ x: date, y: Number(noAggregate) });
+    chartData[0].data.push({ x: date, y: yesAggregate });
+    chartData[1].data.push({ x: date, y: noAggregate });
   });
 
   return {
     chartData,
-    max: Number(max),
-    priceLevels: computePriceLevels(0, Number(max)),
+    max: max,
+    priceLevels: computePriceLevels(0, max),
     dateTicks: ticks
   }
 }
@@ -106,19 +109,17 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
     functionName: "get_time",
   });
 
-  const { call: computeDecay } = protocolActor.useQueryCall({
-    functionName: "compute_decay",
-    // TODO: Hack to prevent illegitimate error 'Wrong number of message arguments'
-    args: [{time: 0n }],
+  const { data: currentDecay } = protocolActor.useQueryCall({
+    functionName: "current_decay",
   });
      
   const voteData = useMemo<ChartProperties>(() => {
-    if (!currentTime) {
+    if (!currentTime || !currentDecay) {
       return ({ chartData: [], max: 0, priceLevels: [], dateTicks: [] });
     }
-    return computeChartProps({ currentTime, duration, aggregate: vote.aggregate });
+    return computeChartProps({ currentTime, currentDecay, duration, aggregate: vote.aggregate });
   }, 
-  [vote, currentTime, duration]);
+  [vote, currentTime, currentDecay, duration]);
 
   const { chartData, max, priceLevels, dateTicks } = useMemo<ChartProperties>(() => {
     return {
