@@ -80,8 +80,7 @@ module {
             args: PutBallotArgs;
         }) : Ballot<B> {
 
-            let aggregate = update_aggregate({ args with aggregate = vote.aggregate.current.data; choice; });
-            let builder = intialize_ballot({ choice; args; aggregate; });
+            let builder = intialize_ballot({ choice; args; aggregate = vote.aggregate.current.data; });
 
             deposit_scheduler.preview_deposit({
                 register = vote.ballot_register;
@@ -96,8 +95,7 @@ module {
             args: PutBallotArgs;
         }) : async* Result<Nat, PutBallotError> {
 
-            let aggregate = update_aggregate({ args with aggregate = vote.aggregate.current.data; choice; });
-            let builder = intialize_ballot({ choice; args; aggregate; });
+            let builder = intialize_ballot({ choice; args; aggregate = vote.aggregate.current.data; });
 
             // Update the aggregate only once the deposit is done
             let callback = func(ballot: Ballot<B>) {

@@ -33,6 +33,15 @@ module {
 
     type Time = Int;
 
+    // https://www.desmos.com/calculator/8iww2wlp2t
+    // TODO: these should be protocol parameters
+    // Shall be greater than 0
+    let INITIAL_DISSENT_ADDEND = 100.0;
+    // Shall be between 0 and 1, the closer to 1 the steepest (the less the majority is rewarded)
+    let DISSENT_STEEPNESS = 0.55;
+    // Shall be between 0 and 0.25, the closer to 0 the steepest (the more the majority is rewarded)
+    let CONSENT_STEEPNESS = 0.1;
+
     public func build_yes_no({
         deposit_facade: PayementFacade.PayementFacade;
         decay_model: Decay.DecayModel;
@@ -57,7 +66,9 @@ module {
         };
 
         func compute_dissent({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
-            Incentives.compute_dissent({ 
+            Incentives.compute_dissent({
+                initial_addend = INITIAL_DISSENT_ADDEND;
+                steepness = DISSENT_STEEPNESS;
                 choice;
                 amount = Float.fromInt(amount);
                 total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
@@ -67,6 +78,7 @@ module {
 
         func compute_consent({aggregate: YesNoAggregate; choice: YesNoChoice; time: Time;}) : Float {
             Incentives.compute_consent({ 
+                steepness = CONSENT_STEEPNESS;
                 choice;
                 total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
                 total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
