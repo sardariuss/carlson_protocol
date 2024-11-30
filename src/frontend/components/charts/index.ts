@@ -27,24 +27,25 @@ export const computeInterval = (end: bigint, e_duration: DurationUnit): Interval
     // Calculate end and start dates
     let endDate = end;
     endDate -= endDate % sample;
-    endDate += sample;
-    const startDate = endDate - duration;
+    const numSamples = Math.ceil(Number(duration) / Number(sample));
+    const startDate = endDate - sample * BigInt(numSamples);
 
-    const dates = Array.from(
-      { length: Math.ceil((Number(endDate - startDate) / Number(sample))) },
+    const dates = [...Array.from(
+      { length: numSamples},
       (_, index) => ({
         date: Number((startDate + BigInt(index) * sample) / 1_000_000n),
         decay: 1
       })
-    );
+    ), { date: Number(end / 1_000_000n), decay: 1 }];
 
-    return { dates, ticks: computeTicksMs(startDate, endDate, tick) };
+    return { dates, ticks: computeTicksMs(duration, startDate, tick) };
 }
 
-export const computeTicksMs = (start: bigint, end: bigint, tick_duration: bigint): number[] => {
+export const computeTicksMs = (duration: bigint, start: bigint, tick_duration: bigint): number[] => {
+    const numTicks = Math.ceil(Number(duration) / Number(tick_duration));
     return Array.from(
-        { length: Math.ceil(Number(end - start) / Number(tick_duration)) }, 
-        (_, i) => Number((end - BigInt(i) * tick_duration) / 1_000_000n)
+        { length: numTicks },
+        (_, i) => Number((start + BigInt(i) * tick_duration) / 1_000_000n)
     );
 }
 

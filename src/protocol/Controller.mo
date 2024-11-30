@@ -96,7 +96,7 @@ module {
             #ok(vote);
         };
 
-        public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
+        public func preview_ballot(args: PreviewBallotArgs) : PreviewBallotResult {
 
             let { vote_id; choice_type; caller; from_subaccount; amount; } = args;
 

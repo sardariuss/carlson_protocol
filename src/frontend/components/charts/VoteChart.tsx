@@ -32,12 +32,16 @@ const computeChartProps = ({ currentTime, currentDecay, duration, aggregate } : 
 
   const { dates, ticks } = computeInterval(currentTime, duration);
 
+  console.log("Current time: ", currentTime)
+
   let yesAggregate = 0;
   let noAggregate = 0;
   let max = 0;
   let nextAggregateIndex = 0;
 
   let aggregate_history = [...aggregate.history, aggregate.current];
+  console.log("Last tick: ", new Date(dates[dates.length - 1].date))
+  console.log(aggregate_history)
   
   dates.forEach(({ date }) => {
     // Update aggregate while the next timestamp is within range

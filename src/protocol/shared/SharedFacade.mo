@@ -19,6 +19,7 @@ module {
     type VoteBallotId = Types.VoteBallotId;
     type NewVoteArgs = Types.NewVoteArgs;
     type PutBallotArgs = Types.PutBallotArgs;
+    type PreviewBallotArgs = Types.PreviewBallotArgs;
     type Account = Types.Account;
     type QueriedBallot = Types.QueriedBallot;
     type SQueriedBallot = Types.SQueriedBallot;
@@ -35,7 +36,7 @@ module {
             Result.mapOk<VoteType, SVoteType, NewVoteError>(controller.new_vote(args), SharedConversions.shareVoteType);
         };
 
-        public func preview_ballot(args: PutBallotArgs and { caller: Principal; }) : SPreviewBallotResult {
+        public func preview_ballot(args: PreviewBallotArgs and { caller: Principal; }) : SPreviewBallotResult {
             Result.mapOk<BallotType, SBallotType, VoteNotFoundError>(controller.preview_ballot(args), SharedConversions.shareBallotType);
         };
 

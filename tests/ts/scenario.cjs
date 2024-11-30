@@ -5,6 +5,8 @@ const { getActor } = require("./actor.cjs");
 const { toNs } = require("./duration.cjs");
 const { Ed25519KeyIdentity } = require("@dfinity/identity");
 const { Principal } = require('@dfinity/principal');
+// v4 from UUID
+const { v4: uuidv4 } = require('uuid');
 const seedrandom = require('seedrandom');
 
 const VOTES_TO_OPEN = [
@@ -48,7 +50,7 @@ const exponentialRandom = (mean) => {
 };
 
 const generateDeterministicRandom = (voteId) => {
-    const rng = seedrandom(voteId.toString()); // Seed with voteId
+    const rng = seedrandom(voteId);
     return rng(); // Returns a number between 0 and 1
 }
 
@@ -145,7 +147,7 @@ async function callCanisterMethod() {
 
     // A random user opens up a new vote
     for (let i = 0; i < NUM_VOTES; i++) {
-        getRandomUserActor(userActors).backend.new_vote(VOTES_TO_OPEN[i]).then((result) => {
+        getRandomUserActor(userActors).backend.new_vote({ text: VOTES_TO_OPEN[i], vote_id: uuidv4() }).then((_) => {
             console.log('New vote added');
         });
     }
@@ -172,12 +174,15 @@ async function callCanisterMethod() {
                 if (Math.random() < 0.20) {
                     await sleep(250);
 
+                    const vote_id = vote.vote_id;
+
                     // Generate a deterministic probability for YES based on vote_id
-                    const yesProbability = generateDeterministicRandom(Number(vote.vote_id));
+                    const yesProbability = generateDeterministicRandom(vote_id);
                     
                     putBallotPromises.push(
                         actors.protocol.put_ballot({
-                            vote_id: vote.vote_id,
+                            vote_id,
+                            ballot_id: uuidv4(),
                             from_subaccount: [],
                             amount: BigInt(Math.floor(exponentialRandom(MEAN_BALLOT_AMOUNT))),
                             choice_type: { 'YES_NO': Math.random() < yesProbability ? { 'YES': null } : { 'NO': null } }

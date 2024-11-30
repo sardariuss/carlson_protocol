@@ -66,12 +66,15 @@ module {
         vote_id: UUID;
     };
 
-    public type PutBallotArgs = {
+    public type PreviewBallotArgs = {
         vote_id: UUID;
-        ballot_id: UUID;
         choice_type: ChoiceType;
         from_subaccount: ?Blob;
         amount: Nat;
+    };
+
+    public type PutBallotArgs = PreviewBallotArgs and {
+        ballot_id: UUID;
     };
 
     public type FindBallotArgs = {

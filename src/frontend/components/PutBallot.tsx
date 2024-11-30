@@ -6,9 +6,10 @@ import { formatBalanceE8s, fromE8s, toE8s } from "../utils/conversions/token";
 import { useEffect, useRef, useState } from "react";
 import { BallotInfo } from "./types";
 import ResetIcon from "./icons/ResetIcon";
+import { v4 as uuidv4 } from 'uuid';
 
 interface PutBallotProps {
-  vote_id: bigint;
+  vote_id: string;
   fetchVotes: (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>;
   ballot: BallotInfo;
   setBallot: (ballot: BallotInfo) => void;
@@ -30,6 +31,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setB
   const triggerVote = () => {
     putBallot([{
       vote_id,
+      ballot_id: uuidv4(),
       from_subaccount: [],
       amount: ballot.amount,
       choice_type: { YES_NO: toCandid(ballot.choice) },

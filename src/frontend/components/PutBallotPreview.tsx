@@ -7,7 +7,7 @@ import { BallotInfo } from "./types";
 import { get_current } from "../utils/timeline";
 
 interface PutBallotPreviewProps {
-  vote_id: bigint;
+  vote_id: string;
   ballot: BallotInfo;
 }
 

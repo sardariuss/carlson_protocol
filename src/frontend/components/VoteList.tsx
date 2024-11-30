@@ -3,15 +3,14 @@ import { SYesNoVote } from "../../declarations/backend/backend.did";
 import { backendActor } from "../actors/BackendActor";
 import { useAuth } from "@ic-reactor/react";
 import VoteView from "./VoteView";
-import { Account } from '@/declarations/protocol/protocol.did';
 import { useState } from "react";
 import NewVote from "./NewVote";
 
 function VoteList() {
 
-  const { authenticated, identity } = useAuth();
+  const { authenticated } = useAuth();
 
-  const [selected, setSelected] = useState<bigint | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
 
   const { call: fetchVotes, data: votes } = backendActor.useQueryCall({
     functionName: 'get_votes',
