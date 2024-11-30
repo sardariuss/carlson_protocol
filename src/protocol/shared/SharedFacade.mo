@@ -9,7 +9,7 @@ import Result            "mo:base/Result";
 module {
 
     type Time = Int;
-    type VoteId = Types.VoteId;
+    type UUID = Types.UUID;
     type VoteType = Types.VoteType;
     type BallotType = Types.BallotType;
     type SVoteType = Types.SVoteType;
@@ -19,6 +19,7 @@ module {
     type VoteBallotId = Types.VoteBallotId;
     type NewVoteArgs = Types.NewVoteArgs;
     type PutBallotArgs = Types.PutBallotArgs;
+    type PreviewBallotArgs = Types.PreviewBallotArgs;
     type Account = Types.Account;
     type QueriedBallot = Types.QueriedBallot;
     type SQueriedBallot = Types.SQueriedBallot;
@@ -26,14 +27,16 @@ module {
     type VoteNotFoundError = Types.VoteNotFoundError;
     type Duration = Types.Duration;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
+    type SNewVoteResult = Types.SNewVoteResult;
+    type NewVoteError = Types.NewVoteError;
 
     public class SharedFacade(controller: Controller.Controller) {
 
-        public func new_vote(args: NewVoteArgs and { origin: Principal; }) : SVoteType {
-            SharedConversions.shareVoteType(controller.new_vote(args));
+        public func new_vote(args: NewVoteArgs and { origin: Principal; }) : SNewVoteResult {
+            Result.mapOk<VoteType, SVoteType, NewVoteError>(controller.new_vote(args), SharedConversions.shareVoteType);
         };
 
-        public func preview_ballot(args: PutBallotArgs and { caller: Principal; }) : SPreviewBallotResult {
+        public func preview_ballot(args: PreviewBallotArgs and { caller: Principal; }) : SPreviewBallotResult {
             Result.mapOk<BallotType, SBallotType, VoteNotFoundError>(controller.preview_ballot(args), SharedConversions.shareBallotType);
         };
 
@@ -50,7 +53,7 @@ module {
             Array.map(vote_types, SharedConversions.shareVoteType);
         };
 
-        public func find_vote({vote_id: VoteId;}) : ?SVoteType {
+        public func find_vote({vote_id: UUID;}) : ?SVoteType {
             Option.map(controller.find_vote(vote_id), SharedConversions.shareVoteType);
         };
 
@@ -58,7 +61,7 @@ module {
             Array.map(controller.get_ballots(account), SharedConversions.shareQueriedBallot);
         };
 
-        public func find_ballot({vote_id: VoteId; ballot_id: Nat;}) : ?SBallotType {
+        public func find_ballot({ vote_id: UUID; ballot_id: UUID; }) : ?SBallotType {
             Option.map<BallotType, SBallotType>(controller.find_ballot({vote_id; ballot_id;}), SharedConversions.shareBallotType);
         };
 

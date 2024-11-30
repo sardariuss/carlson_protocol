@@ -5,6 +5,8 @@ import { backendActor } from "../actors/BackendActor";
 
 import { useState, useEffect } from "react";
 
+import { v4 as uuidv4 } from 'uuid';
+
 interface NewVoteProps {
   fetchVotes: (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>;
 }
@@ -19,7 +21,7 @@ function NewVote({ fetchVotes } : NewVoteProps) {
 
   const { call: newVote, loading } = backendActor.useUpdateCall({
     functionName: 'new_vote',
-    args: [text],
+    args: [{ text, vote_id: uuidv4() }],
     onSuccess: (data) => {
       console.log(data)
       fetchVotes();

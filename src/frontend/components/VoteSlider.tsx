@@ -17,7 +17,7 @@ const clampCursor = (cursor: number) => {
 }
 
 type Props = {
-  id: bigint;
+  id: string;
   disabled: boolean;
   vote: SYesNoVote
   ballot: BallotInfo;

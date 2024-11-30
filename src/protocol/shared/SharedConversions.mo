@@ -17,6 +17,7 @@ module {
     type STimeline<T> = Types.STimeline<T>;
     type SQueriedBallot = Types.SQueriedBallot;
     type QueriedBallot = Types.QueriedBallot;
+    type UUID = Types.UUID;
 
     public func shareVoteType(vote_type: VoteType) : SVoteType {
         switch(vote_type){
@@ -38,14 +39,13 @@ module {
     };
 
     func shareVote<A, B>(vote: Vote<A, B>) : SVote<A, B> {
-        let ballots = Map.map<Nat, Ballot<B>, SBallot<B>>(vote.ballot_register.map, Map.nhash, func(id: Nat, ballot: Ballot<B>) : SBallot<B> { 
+        let ballots = Map.map<UUID, Ballot<B>, SBallot<B>>(vote.ballot_register.map, Map.thash, func(id: UUID, ballot: Ballot<B>) : SBallot<B> { 
             shareBallot(ballot);
         });
         {
             vote with 
             aggregate = shareTimeline(vote.aggregate);
             ballot_register = {
-                index = vote.ballot_register.index;
                 map = Map.toArray(ballots);
                 locks = Set.toArray(vote.ballot_register.locks);
             }

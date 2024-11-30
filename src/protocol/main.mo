@@ -42,7 +42,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     };
 
     // Create a new vote
-    public shared({caller}) func new_vote(args: Types.NewVoteArgs) : async Types.SVoteType {
+    public shared({caller}) func new_vote(args: Types.NewVoteArgs) : async Types.SNewVoteResult {
         getFacade().new_vote({ args with origin = caller; });
     };
 
@@ -55,7 +55,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().find_vote(args);
     };
 
-    public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.SPreviewBallotResult {
+    public query({caller}) func preview_ballot(args: Types.PreviewBallotArgs) : async Types.SPreviewBallotResult {
         getFacade().preview_ballot({ args with caller; });
     };
 

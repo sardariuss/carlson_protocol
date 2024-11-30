@@ -12,8 +12,8 @@ import { get_total_votes, get_votes, get_yes_votes } from "../utils/conversions/
 interface VoteViewProps {
   vote: SYesNoVote;
   fetchVotes: (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>
-  selected: bigint | null;
-  setSelected: (selected: bigint | null) => void;
+  selected: string | null;
+  setSelected: (selected: string | null) => void;
 }
 
 const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, selected, setSelected }) => {
@@ -81,6 +81,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, selected, setSele
               resetVote={resetVote}
             />
             { /* formatDateTime(timeToDate(vote.date)) */ }
+            { vote.vote_id }
           </div>
         )
       }

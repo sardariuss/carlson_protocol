@@ -49,11 +49,13 @@ module {
     public type Duration          = Types.Current.Duration;
     public type State             = Types.Current.State;
     public type ClockParameters   = Types.Current.ClockParameters;
+    public type UUID              = Types.Current.UUID;
 
     // CANISTER ARGS
 
     public type NewVoteArgs = {
         type_enum: VoteTypeEnum;
+        vote_id: UUID;
     };
 
     public type GetVotesArgs = {
@@ -61,19 +63,23 @@ module {
     };
 
     public type FindVoteArgs = {
-        vote_id: Nat;
+        vote_id: UUID;
     };
 
-    public type PutBallotArgs = {
-        vote_id: Nat;
+    public type PreviewBallotArgs = {
+        vote_id: UUID;
         choice_type: ChoiceType;
         from_subaccount: ?Blob;
         amount: Nat;
     };
 
+    public type PutBallotArgs = PreviewBallotArgs and {
+        ballot_id: UUID;
+    };
+
     public type FindBallotArgs = {
-        vote_id: Nat;
-        ballot_id: Nat;
+        vote_id: UUID;
+        ballot_id: UUID;
     };
 
     // SHARED TYPES
@@ -107,14 +113,13 @@ module {
     public type SBallot<B> = SBallotInfo<B> and DepositInfo and HotInfo and SDurationInfo;
 
     public type SVote<A, B> = {
-        vote_id: Nat;
+        vote_id: UUID;
         date: Time;
         origin: Principal;
         aggregate: STimeline<A>;
         ballot_register: {
-            index: Nat;
-            map: [(Nat, SBallot<B>)];
-            locks: [Nat];
+            map: [(UUID, SBallot<B>)];
+            locks: [UUID];
         };
     };
 
@@ -148,25 +153,27 @@ module {
 
     public type Service = { tx_id: Nat; } -> async* Result<Nat, Text>;
 
-    public type VoteNotFoundError = { #VoteNotFound: { vote_id: Nat }; };
+    public type VoteNotFoundError = { #VoteNotFound: { vote_id: UUID; }; };
     public type TransferIncident = { #TransferIncident: { incident_id: Nat }; };
     
-    public type PutBallotError = TransferFromError or VoteNotFoundError or TransferIncident;
+    public type PutBallotError = TransferFromError or VoteNotFoundError or TransferIncident or { #BallotAlreadyExists: { ballot_id: UUID; }; };
     
-    public type PutBallotResult = Result<Nat, PutBallotError>;
+    public type PutBallotResult = Result<UUID, PutBallotError>;
     
     public type PreviewBallotResult = Result<BallotType, VoteNotFoundError>;
+    public type NewVoteResult = Result<VoteType, NewVoteError>;
+    public type NewVoteError = { #VoteAlreadyExists: { vote_id: UUID; }; };
 
-    public type VoteId = Nat;
-    public type BallotId = Nat;
     public type VoteBallotId = {
-        vote_id: VoteId;
-        ballot_id: BallotId;
+        vote_id: UUID;
+        ballot_id: UUID;
     };
 
     public type QueriedBallot = VoteBallotId and { ballot: BallotType; };
     public type SQueriedBallot = VoteBallotId and { ballot: SBallotType; };
+    public type SNewVoteResult = Result<SVoteType, NewVoteError>;
     public type SPreviewBallotResult = Result<SBallotType, VoteNotFoundError>;
+    
 
     public type ReleaseAttempt<T> = {
         elem: T;

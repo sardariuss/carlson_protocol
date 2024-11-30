@@ -152,6 +152,8 @@ module {
 
     type Time = Int;
 
+    public type UUID = Text;
+
     public type Timeline<T> = {
         var current: TimedData<T>;
         var history: [TimedData<T>];
@@ -163,10 +165,9 @@ module {
     };
 
     public type VoteRegister = {
-        var index: Nat;
-        votes: Map<Nat, VoteType>;
-        by_origin: Map<Principal, Set<Nat>>;
-        user_ballots: Map<Account, Set<(Nat, Nat)>>;
+        votes: Map<UUID, VoteType>;
+        by_origin: Map<Principal, Set<UUID>>;
+        user_ballots: Map<Account, Set<(UUID, UUID)>>;
         total_locked: Timeline<Nat>;
     };
 
@@ -191,14 +192,13 @@ module {
     };
     
     public type Vote<A, B> = {
-        vote_id: Nat;
+        vote_id: UUID;
         date: Time;
         origin: Principal;
         aggregate: Timeline<A>;
         ballot_register: {
-            var index: Nat;
-            map: Map<Nat, Ballot<B>>;
-            locks: Set<Nat>;
+            map: Map<UUID, Ballot<B>>;
+            locks: Set<UUID>;
         };
     };
 
