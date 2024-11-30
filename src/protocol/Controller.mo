@@ -48,12 +48,16 @@ module {
         type_enum: Types.VoteTypeEnum;
     };
 
-    public type PutBallotArgs = {
+    public type PreviewBallotArgs = {
         vote_id: UUID;
         choice_type: ChoiceType;
         caller: Principal;
         from_subaccount: ?Blob;
         amount: Nat;
+    };
+
+    public type PutBallotArgs = PreviewBallotArgs and {
+        ballot_id: UUID;
     };
 
     public class Controller({
@@ -108,9 +112,9 @@ module {
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
 
-            let { vote_id; choice_type; caller; from_subaccount; amount; } = args;
+            let { ballot_id; vote_id; choice_type; caller; from_subaccount; amount; } = args;
 
-            let vote_type = switch(Map.get(vote_register.votes, Map.thash, args.vote_id)){
+            let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
                 case(?v) { v };
                 case(null) { return #err(#VoteNotFound({vote_id}));  };
             };
@@ -119,7 +123,7 @@ module {
 
             let time = clock.get_time();
 
-            let put_args = { vote_type; choice_type; args = { from; time; amount; } };
+            let put_args = { vote_type; choice_type; args = { ballot_id; from; time; amount; } };
 
             let result = await* vote_type_controller.put_ballot(put_args);
 
@@ -127,7 +131,7 @@ module {
                 case(#err(_)) {};
                 case(#ok(ballot_id)) {
                     // Update the user_ballots map
-                    MapUtils.putInnerSet(vote_register.user_ballots, MapUtils.acchash, from, MapUtils.tnhash, (vote_id, ballot_id));
+                    MapUtils.putInnerSet(vote_register.user_ballots, MapUtils.acchash, from, MapUtils.tthash, (vote_id, ballot_id));
                     // Update the locked amount history
                     // TODO: Should the timeline be flexible enough to allow adding entries in the past?
                     // TODO: should get clock.get_time() instead
@@ -144,7 +148,7 @@ module {
         public func get_ballots(account: Account) : [QueriedBallot] {
             switch(Map.get(vote_register.user_ballots, MapUtils.acchash, account)){
                 case(?ballots) { 
-                    Set.toArrayMap(ballots, func((vote_id, ballot_id): (UUID, Nat)) : ?QueriedBallot =
+                    Set.toArrayMap(ballots, func((vote_id, ballot_id): (UUID, UUID)) : ?QueriedBallot =
                         Option.map(find_ballot({vote_id; ballot_id;}), func(ballot: BallotType) : QueriedBallot = 
                             { vote_id; ballot_id; ballot; }
                         )
@@ -222,7 +226,7 @@ module {
             Map.get(vote_register.votes, Map.thash, vote_id);
         };
 
-        public func find_ballot({vote_id: UUID; ballot_id: Nat;}) : ?BallotType {
+        public func find_ballot({vote_id: UUID; ballot_id: UUID;}) : ?BallotType {
             
             let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
                 case(?v) { v; };

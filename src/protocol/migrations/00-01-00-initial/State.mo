@@ -36,7 +36,7 @@ module {
             vote_register = { 
                 votes = Map.new<UUID, Types.VoteType>();
                 by_origin = Map.new<Principal, Set.Set<UUID>>();
-                user_ballots = Map.new<Account, Set.Set<(UUID, Nat)>>();
+                user_ballots = Map.new<Account, Set.Set<(UUID, UUID)>>();
                 total_locked = Timeline.initialize(now, 0);
             };
             deposit = {

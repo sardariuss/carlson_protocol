@@ -27,6 +27,7 @@ module {
     type Ballot<B> = Types.Ballot<B>;
 
     public type PutBallotArgs = VoteController.PutBallotArgs;
+    public type PreviewBallotArgs = VoteController.PreviewBallotArgs;
 
     public class VoteTypeController({
         yes_no_controller: VoteController.VoteController<YesNoAggregate, YesNoChoice>;
@@ -38,13 +39,13 @@ module {
             };
         };
 
-        public func preview_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PutBallotArgs; }) : BallotType {
+        public func preview_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PreviewBallotArgs; }) : BallotType {
             switch(vote_type, choice_type){
                 case(#YES_NO(vote), #YES_NO(choice)) { #YES_NO(yes_no_controller.preview_ballot({ vote; args; choice; })); };
             };
         };
 
-        public func put_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PutBallotArgs; }) : async* Result<Nat, PutBallotError> {
+        public func put_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PutBallotArgs; }) : async* Result<UUID, PutBallotError> {
             switch(vote_type, choice_type){
                 case(#YES_NO(vote), #YES_NO(choice)) { await* yes_no_controller.put_ballot({ vote; args; choice; }); };
             };
@@ -68,7 +69,7 @@ module {
             };
         };
 
-        public func find_ballot({ vote_type: VoteType; ballot_id: Nat; }) : ?Types.BallotType {
+        public func find_ballot({ vote_type: VoteType; ballot_id: UUID; }) : ?Types.BallotType {
             switch(vote_type){
                 case(#YES_NO(vote)) { 
                     Option.map(yes_no_controller.find_ballot({ vote; ballot_id; }), func(b: YesNoBallot) : Types.BallotType { #YES_NO(b); }); 

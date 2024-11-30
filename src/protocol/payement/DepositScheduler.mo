@@ -17,9 +17,10 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
     type Time = Int;
-    type AddDepositResult = PayementFacade.PayServiceResult;
+    type AddDepositResult = Result<(), PayementFacade.PayServiceError>;
     type RefundState = Types.RefundState;
     type DepositInfo = Types.DepositInfo;
+    type UUID = Types.UUID;
 
     type IDepositInfoBuilder<T> = LockScheduler.ILockInfoBuilder<T> and {
         add_deposit: (DepositInfo) -> ();
@@ -34,10 +35,14 @@ module {
         timestamp: Time;
     };
 
-    public type AddDepositArgs = {
+    public type PreviewDepositArgs = {
         from: Account;
         time: Time;
         amount: Nat;
+    };
+
+    public type AddDepositArgs = PreviewDepositArgs and {
+        id: UUID;
     };
 
     type DepositState = Types.DepositState;
@@ -53,7 +58,7 @@ module {
         public func preview_deposit({
             register: LockScheduler.LockRegister<T>;
             builder: IDepositInfoBuilder<T>;
-            args: AddDepositArgs;
+            args: PreviewDepositArgs;
         }) : T {
             let { from; time; amount; } = args;
 
@@ -70,21 +75,24 @@ module {
             args: AddDepositArgs;
         }) : async* AddDepositResult {
 
-            let { from; time; amount; } = args;
+            let { id; from; time; amount; } = args;
 
             // Define the service to be called once the payement is done
             func service({tx_id: Nat}) : async* Result<Nat, Text> {
                 // Set the deposit information inside the element itself
                 builder.add_deposit({ tx_id; from; deposit_state = #DEPOSITED; });
                 // Add the lock for that deposit in the scheduler
-                switch(lock_scheduler.add_lock({ register; builder; amount; timestamp = time; })){
-                    case(#ok((id, deposit))) { callback(deposit); #ok(id); };
+                switch(lock_scheduler.add_lock({ key = id; register; builder; amount; timestamp = time; })){
+                    case(#ok(deposit)) { callback(deposit); #ok(tx_id); };
                     case(#err(err)){ #err(err); };
                 };
             };
 
             // Perform the deposit
-            await* deposit_facade.pay_service({ args and { service; } });
+            switch(await* deposit_facade.pay_service({ args and { service; } })){
+                case(#ok(_)) { #ok; };
+                case(#err(err)){ #err(err); };
+            };
         };
 
         public func attempt_release({
@@ -119,7 +127,7 @@ module {
                                 case(#err({incident_id})) { #FAILED{incident_id}; };
                             };
                             // @todo: this does not seem to work
-                            Map.set(register.map, Map.nhash, id, tag_refunded(attempt.elem, { transfer; since; }));
+                            Map.set(register.map, Map.thash, id, tag_refunded(attempt.elem, { transfer; since; }));
                         };
 
                         // Trigger the refund but do not wait for it to complete

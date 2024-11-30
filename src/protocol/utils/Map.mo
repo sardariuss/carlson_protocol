@@ -22,8 +22,8 @@ module {
         func(a, b) = a.0 == b.0 and a.1 == b.1,
     );
 
-    public let tnhash: HashUtils<(Text, Nat)> = (
-        func(key) = (Map.thash.0((key.0)) ^ (Map.nhash.0((key.1)) << 1)) & 0x3fffffff,
+    public let tthash: HashUtils<(Text, Text)> = (
+        func(key) = (Map.thash.0((key.0)) ^ (Map.thash.0((key.1)) << 1)) & 0x3fffffff,
         func(a, b) = a.0 == b.0 and a.1 == b.1,
     );
 

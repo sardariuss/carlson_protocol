@@ -17,12 +17,10 @@ module {
 
     type Time = Int;
 
-    type PutBallotError = Types.PutBallotError;
+    type PutBallotResult = Types.PutBallotResult;
     type Account = Types.Account;
     type Iter<T> = Iter.Iter<T>;
-    type Result<Ok, Err> = Result.Result<Ok, Err>;
     type IDurationCalculator = DurationCalculator.IDurationCalculator;
-    type BallotId = Types.BallotId;
     type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
     type UUID = Types.UUID;
 
@@ -36,13 +34,17 @@ module {
     public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
     public type ComputeConsent<A, B> = ({aggregate: A; choice: B; time: Time}) -> Float;
 
-    public type PutBallotArgs = {
+    public type PreviewBallotArgs = {
         from: {
             owner: Principal;
             subaccount: ?Blob;
         };
         time: Time;
         amount: Nat;
+    };
+
+    public type PutBallotArgs = PreviewBallotArgs and {
+        ballot_id: UUID;
     };
    
     public class VoteController<A, B>({
@@ -66,9 +68,8 @@ module {
                 origin;
                 aggregate = Timeline.initialize(date, empty_aggregate);
                 ballot_register = {
-                    var index = 0;
-                    map = Map.new<Nat, Ballot<B>>();
-                    locks = Set.new<Nat>();
+                    map = Map.new<UUID, Ballot<B>>();
+                    locks = Set.new<UUID>();
                 };
             };
         };
@@ -76,7 +77,7 @@ module {
         public func preview_ballot({
             vote: Vote<A, B>;
             choice: B;
-            args: PutBallotArgs;
+            args: PreviewBallotArgs;
         }) : Ballot<B> {
 
             let builder = intialize_ballot({ choice; args; aggregate = vote.aggregate.current.data; });
@@ -92,7 +93,13 @@ module {
             vote: Vote<A, B>;
             choice: B;
             args: PutBallotArgs;
-        }) : async* Result<Nat, PutBallotError> {
+        }) : async* PutBallotResult {
+
+            let { ballot_id; } = args;
+
+            if (Map.has(vote.ballot_register.map, Map.thash, ballot_id)) {
+                return #err(#BallotAlreadyExists({ ballot_id }));
+            };
 
             let builder = intialize_ballot({ choice; args; aggregate = vote.aggregate.current.data; });
 
@@ -112,12 +119,13 @@ module {
             };
 
             // Perform the deposit
-            await* deposit_scheduler.add_deposit({
+            let deposit = await* deposit_scheduler.add_deposit({
                 register = vote.ballot_register;
                 builder;
                 callback;
-                args;
+                args = { args with id = ballot_id; };
             });
+            Result.mapOk(deposit, func(_: ()) : UUID { ballot_id; });
         };
 
         public func try_release({
@@ -135,15 +143,15 @@ module {
 
         public func find_ballot({
             vote: Vote<A, B>;
-            ballot_id: Nat;
+            ballot_id: UUID;
         }) : ?Ballot<B> {
-            Map.get(vote.ballot_register.map, Map.nhash, ballot_id);
+            Map.get(vote.ballot_register.map, Map.thash, ballot_id);
         };
 
         func intialize_ballot({
             aggregate: A;
             choice: B;
-            args: PutBallotArgs;
+            args: PreviewBallotArgs;
         }) : BallotBuilder.BallotBuilder<B> {
             let { time; amount; } = args;
 

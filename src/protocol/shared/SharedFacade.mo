@@ -60,7 +60,7 @@ module {
             Array.map(controller.get_ballots(account), SharedConversions.shareQueriedBallot);
         };
 
-        public func find_ballot({vote_id: UUID; ballot_id: Nat;}) : ?SBallotType {
+        public func find_ballot({ vote_id: UUID; ballot_id: UUID; }) : ?SBallotType {
             Option.map<BallotType, SBallotType>(controller.find_ballot({vote_id; ballot_id;}), SharedConversions.shareBallotType);
         };
 

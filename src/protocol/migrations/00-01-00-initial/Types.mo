@@ -167,7 +167,7 @@ module {
     public type VoteRegister = {
         votes: Map<UUID, VoteType>;
         by_origin: Map<Principal, Set<UUID>>;
-        user_ballots: Map<Account, Set<(UUID, Nat)>>;
+        user_ballots: Map<Account, Set<(UUID, UUID)>>;
         total_locked: Timeline<Nat>;
     };
 
@@ -197,9 +197,8 @@ module {
         origin: Principal;
         aggregate: Timeline<A>;
         ballot_register: {
-            var index: Nat;
-            map: Map<Nat, Ballot<B>>;
-            locks: Set<Nat>;
+            map: Map<UUID, Ballot<B>>;
+            locks: Set<UUID>;
         };
     };
 

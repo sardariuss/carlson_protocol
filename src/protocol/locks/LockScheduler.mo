@@ -13,19 +13,19 @@ module {
     type Time = Int;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     public type Lock = { timestamp: Time; duration_ns: Nat; };
+    public type UUID = Types.UUID;
 
     public type ILockInfoBuilder<T> = HotMap.IHotElemBuilder<T>;
 
     public type ReleaseAttempt<V> = Types.ReleaseAttempt<V>;
 
     public type LockRegister<V> = {
-        var index: Nat;
-        map: Map.Map<Nat, V>;
-        locks: Set.Set<Nat>;
+        map: Map.Map<UUID, V>;
+        locks: Set.Set<UUID>;
     };
     
     public class LockScheduler<V>({
-        hot_map: HotMap.HotMap<Nat, V>;
+        hot_map: HotMap.HotMap<UUID, V>;
         lock_info: V -> Lock;
     }){
 
@@ -41,19 +41,18 @@ module {
         public func add_lock({
             register: LockRegister<V>;
             builder: ILockInfoBuilder<V>;
+            key: UUID;
             amount: Nat;
             timestamp: Time;
-        }) : Result<(Nat, V), Text> {         
+        }) : Result<V, Text> {         
             
-            let key = register.index;
             let result = hot_map.add_new({ map = register.map; key; builder; args = { amount; timestamp; } });
 
             switch(result){
                 case(#err(err)){ #err(err); };
                 case(#ok(elem)){
-                    Set.add(register.locks, Map.nhash, key);
-                    register.index := register.index + 1;
-                    #ok((key, elem));
+                    Set.add(register.locks, Map.thash, key);
+                    #ok(elem);
                 };
             };
         };
@@ -61,14 +60,14 @@ module {
         public func attempt_release({
             register: LockRegister<V>;
             time: Time;
-        }) : Buffer.Buffer<(Nat, ReleaseAttempt<V>)>{
+        }) : Buffer.Buffer<(UUID, ReleaseAttempt<V>)>{
 
-            let buffer = Buffer.Buffer<(Nat, ReleaseAttempt<V>)>(0);
+            let buffer = Buffer.Buffer<(UUID, ReleaseAttempt<V>)>(0);
 
             for ((key, elem) in Map.entries(register.map)) {
                 
                 // Check if the element is still locked.
-                if (Set.has(register.locks, Map.nhash, key)) {
+                if (Set.has(register.locks, Map.thash, key)) {
 
                     let { timestamp; duration_ns; } = lock_info(elem);
                     var release_time : ?Time = null;
@@ -76,12 +75,12 @@ module {
 
                     // If the lock duration has passed, remove the lock.
                     if (unlock_date <= time) {
-                        Set.delete(register.locks, Map.nhash, key);
+                        Set.delete(register.locks, Map.thash, key);
                         release_time := ?unlock_date;
                     };
 
                     // Add current element and release status.
-                    buffer.add((key, { elem; release_time; update_elem = func(v: V) { Map.set(register.map, Map.nhash, key, v); } }));
+                    buffer.add((key, { elem; release_time; update_elem = func(v: V) { Map.set(register.map, Map.thash, key, v); } }));
                 };
             };
 

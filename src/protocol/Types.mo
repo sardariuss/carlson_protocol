@@ -68,6 +68,7 @@ module {
 
     public type PutBallotArgs = {
         vote_id: UUID;
+        ballot_id: UUID;
         choice_type: ChoiceType;
         from_subaccount: ?Blob;
         amount: Nat;
@@ -75,7 +76,7 @@ module {
 
     public type FindBallotArgs = {
         vote_id: UUID;
-        ballot_id: Nat;
+        ballot_id: UUID;
     };
 
     // SHARED TYPES
@@ -114,9 +115,8 @@ module {
         origin: Principal;
         aggregate: STimeline<A>;
         ballot_register: {
-            index: Nat;
-            map: [(Nat, SBallot<B>)];
-            locks: [Nat];
+            map: [(UUID, SBallot<B>)];
+            locks: [UUID];
         };
     };
 
@@ -153,18 +153,17 @@ module {
     public type VoteNotFoundError = { #VoteNotFound: { vote_id: UUID; }; };
     public type TransferIncident = { #TransferIncident: { incident_id: Nat }; };
     
-    public type PutBallotError = TransferFromError or VoteNotFoundError or TransferIncident;
+    public type PutBallotError = TransferFromError or VoteNotFoundError or TransferIncident or { #BallotAlreadyExists: { ballot_id: UUID; }; };
     
-    public type PutBallotResult = Result<Nat, PutBallotError>;
+    public type PutBallotResult = Result<UUID, PutBallotError>;
     
     public type PreviewBallotResult = Result<BallotType, VoteNotFoundError>;
     public type NewVoteResult = Result<VoteType, NewVoteError>;
     public type NewVoteError = { #VoteAlreadyExists: { vote_id: UUID; }; };
 
-    public type BallotId = Nat;
     public type VoteBallotId = {
         vote_id: UUID;
-        ballot_id: BallotId;
+        ballot_id: UUID;
     };
 
     public type QueriedBallot = VoteBallotId and { ballot: BallotType; };

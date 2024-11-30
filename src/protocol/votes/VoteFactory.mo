@@ -26,6 +26,7 @@ module {
     type RefundState = Types.RefundState;
     type Duration = Types.Duration;
     type TimedData<T> = Types.TimedData<T>;
+    type UUID = Types.UUID;
 
     type HotElem = HotMap.HotElem;
     type Deposit = DepositScheduler.Deposit;
@@ -85,7 +86,7 @@ module {
             });
         };
 
-        let hot_map = HotMap.HotMap<Nat, YesNoBallot>({
+        let hot_map = HotMap.HotMap<UUID, YesNoBallot>({
             decay_model;
             get_elem = func (b: YesNoBallot): HotElem { b; };
             update_hotness = func ({v: YesNoBallot; hotness: Float; time: Time}): YesNoBallot {
@@ -97,7 +98,7 @@ module {
                 };
                 update;
             };
-            key_hash = Map.nhash;
+            key_hash = Map.thash;
         });
 
         let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
