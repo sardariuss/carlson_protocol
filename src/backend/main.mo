@@ -3,6 +3,7 @@ import ProtocolTypes "../protocol/Types";
 import Map           "mo:map/Map";
 import Array         "mo:base/Array";
 import Principal     "mo:base/Principal";
+import Result        "mo:base/Result";
 
 import Protocol      "canister:protocol";
 
@@ -19,19 +20,25 @@ shared({ caller = admin }) actor class Backend() = this {
         text: ?Text;
     };
     type Account = ProtocolTypes.Account;
+    type UUID = ProtocolTypes.UUID;
 
-    stable let _texts = Map.new<Nat, Text>();
+    type SNewVoteResult = Result.Result<SYesNoVote, SNewVoteError>;
+    type SNewVoteError = ProtocolTypes.NewVoteError or { #AnonymousCaller; };
 
-    public shared({ caller }) func new_vote(text: Text) : async ?SYesNoVote {
+    stable let _texts = Map.new<UUID, Text>();
+
+    public shared({ caller }) func new_vote({text: Text; vote_id: UUID}) : async SNewVoteResult {
         if (Principal.isAnonymous(caller)){
-            return null;
+            return #err(#AnonymousCaller);
         };
-        switch(await Protocol.new_vote({ type_enum = #YES_NO })){
-            case(#YES_NO(vote)) {
-                Map.set(_texts, Map.nhash, vote.vote_id, text); 
-                ?{ vote with text = ?text; };
+        Result.mapOk(await Protocol.new_vote({ type_enum = #YES_NO; vote_id; }), func(vote_type: SVoteType) : SYesNoVote {
+            switch(vote_type) {
+                case(#YES_NO(vote)) {
+                    Map.set(_texts, Map.thash, vote.vote_id, text);
+                    { vote with text = ?text; };
+                };
             };
-        };
+        });
     };
 
     public composite query func get_votes() : async [SYesNoVote] {
@@ -39,7 +46,7 @@ shared({ caller = admin }) actor class Backend() = this {
         Array.map(votes, func(vote_type: SVoteType) : SYesNoVote {
             switch(vote_type){
                 case(#YES_NO(vote)) { 
-                    { vote with text = Map.get<Nat, Text>(_texts, Map.nhash, vote.vote_id); };
+                    { vote with text = Map.get<UUID, Text>(_texts, Map.thash, vote.vote_id); };
                 };
             };
         });
@@ -48,7 +55,7 @@ shared({ caller = admin }) actor class Backend() = this {
     public composite query func get_ballots(account: Account) : async [SQueriedBallot] {
         let ballots = await Protocol.get_ballots({ owner = account.owner; subaccount = account.subaccount; });
         Array.map(ballots, func(ballot: ProtocolTypes.SQueriedBallot) : SQueriedBallot {
-            { ballot with text = Map.get<Nat, Text>(_texts, Map.nhash, ballot.vote_id); };
+            { ballot with text = Map.get<UUID, Text>(_texts, Map.thash, ballot.vote_id); };
         });
     };
 

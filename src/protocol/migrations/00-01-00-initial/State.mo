@@ -21,6 +21,7 @@ module {
   type InitArgs      = Types.InitArgs;
   type UpgradeArgs   = Types.UpgradeArgs;
   type DowngradeArgs = Types.DowngradeArgs;
+  type UUID          = Types.UUID;
 
     public func init(args: InitArgs) : State {
 
@@ -33,10 +34,9 @@ module {
                 mutable = simulated;
             };
             vote_register = { 
-                var index = 0; 
-                votes = Map.new<Nat, Types.VoteType>();
-                by_origin = Map.new<Principal, Set.Set<Nat>>();
-                user_ballots = Map.new<Account, Set.Set<(Nat, Nat)>>();
+                votes = Map.new<UUID, Types.VoteType>();
+                by_origin = Map.new<Principal, Set.Set<UUID>>();
+                user_ballots = Map.new<Account, Set.Set<(UUID, Nat)>>();
                 total_locked = Timeline.initialize(now, 0);
             };
             deposit = {

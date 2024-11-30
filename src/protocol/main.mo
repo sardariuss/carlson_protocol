@@ -42,7 +42,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     };
 
     // Create a new vote
-    public shared({caller}) func new_vote(args: Types.NewVoteArgs) : async Types.SVoteType {
+    public shared({caller}) func new_vote(args: Types.NewVoteArgs) : async Types.SNewVoteResult {
         getFacade().new_vote({ args with origin = caller; });
     };
 

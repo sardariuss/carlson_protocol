@@ -16,8 +16,7 @@ module {
     type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
     type Time = Int;
     type YesNoVote = Types.Vote<YesNoAggregate, YesNoChoice>;
-
-    public type VoteId = Nat;
+    type UUID = Types.UUID;
 
     type Account = Types.Account;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
@@ -33,7 +32,7 @@ module {
         yes_no_controller: VoteController.VoteController<YesNoAggregate, YesNoChoice>;
     }){
 
-        public func new_vote({ vote_id: Nat; vote_type_enum: VoteTypeEnum; date: Time; origin: Principal; }) : VoteType {
+        public func new_vote({ vote_id: UUID; vote_type_enum: VoteTypeEnum; date: Time; origin: Principal; }) : VoteType {
             switch(vote_type_enum){
                 case(#YES_NO) { #YES_NO(yes_no_controller.new_vote({vote_id; date; origin;})); }
             };

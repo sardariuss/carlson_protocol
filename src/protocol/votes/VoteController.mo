@@ -11,7 +11,6 @@ import Iter               "mo:base/Iter";
 import Result             "mo:base/Result";
 import Int                "mo:base/Int";
 import Float              "mo:base/Float";
-import Array              "mo:base/Array";
 import Time               "mo:base/Time";
 
 module {
@@ -23,9 +22,9 @@ module {
     type Iter<T> = Iter.Iter<T>;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type IDurationCalculator = DurationCalculator.IDurationCalculator;
-    type VoteId = Types.VoteId;
     type BallotId = Types.BallotId;
     type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
+    type UUID = Types.UUID;
 
     type Vote<A, B> = Types.Vote<A, B>;
 
@@ -56,7 +55,7 @@ module {
     }){
 
         public func new_vote({
-            vote_id: Nat;
+            vote_id: UUID;
             date: Time;
             origin: Principal;
         }) : Vote<A, B> {
