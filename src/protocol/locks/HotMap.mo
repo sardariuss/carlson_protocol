@@ -39,6 +39,8 @@ module {
         get_elem: V -> HotElem;
         update_hotness: UpdateHotness<V>;
         key_hash: Map.HashUtils<K>;
+        on_elem_added: ({key: K; value: V}) -> ();
+        on_hot_changed: ({key: K; old_value: V; new_value: V;}) -> ();
     }){
 
         // Creates a new elem with the given amount and timestamp
@@ -67,26 +69,29 @@ module {
                 };
             };
 
-            let elem = set_hot({ map; builder; args; });
+            let value = set_hot({ map; builder; args; });
 
             // Iterate over the previous elems
-            for ((id, prv) in Map.entries(map)) {
+            for ((key, v) in Map.entries(map)) {
 
-                let prev_elem = get_elem(prv);
+                let prev_elem = get_elem(v);
 
                 // Compute the weight between the two elems
-                let weight = prev_elem.decay / get_elem(elem).decay;
+                let weight = prev_elem.decay / get_elem(value).decay;
 
                 // Add to the hotness of the new elem
                 let hotness = prev_elem.hotness + Float.fromInt(amount) * weight;
                 
                 // Update the hotness of the previous elem
-                Map.set(map, key_hash, id, update_hotness({ v = prv; hotness; time = timestamp; })); 
+                let new_value = update_hotness({ v; hotness; time = timestamp; });
+                Map.set(map, key_hash, key, new_value);
+                on_hot_changed({key; old_value = v; new_value;});
             };
 
             // Add the new elem
-            Map.set(map, key_hash, key, elem);
-            #ok(elem);
+            Map.set(map, key_hash, key, value);
+            on_elem_added({key; value;});
+            #ok(value);
         };
 
         // Creates a new elem with the given amount and timestamp
@@ -141,13 +146,13 @@ module {
             // Iterate over the previous elems
             for ((id, prv) in Map.entries(map)) {
 
-                let prev_elem = get_elem(prv);
+                let old_value = get_elem(prv);
 
                 // Compute the weight between the two elems
-                let weight = prev_elem.decay / decay;
+                let weight = old_value.decay / decay;
 
                 // Add to the hotness of the new elem
-                hotness += Float.fromInt(prev_elem.amount) * weight;
+                hotness += Float.fromInt(old_value.amount) * weight;
             };
 
             builder.add_hot({ hotness; decay; }, timestamp);

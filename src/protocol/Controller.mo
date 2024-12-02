@@ -8,6 +8,7 @@ import MapUtils           "utils/Map";
 import Decay              "duration/Decay";
 import Timeline           "utils/Timeline";
 import Clock              "utils/Clock";
+import LockScheduler2     "LockScheduler2";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
@@ -63,6 +64,7 @@ module {
     public class Controller({
         clock: Clock.Clock;
         vote_register: VoteRegister;
+        lock_scheduler: LockScheduler2.LockScheduler2;
         vote_type_controller: VoteTypeController.VoteTypeController;
         deposit_facade: PayementFacade.PayementFacade;
         presence_facade: PayementFacade.PayementFacade;
@@ -163,56 +165,59 @@ module {
             let time = Option.get(opt_time, clock.get_time());
             Debug.print("Running controller at time: " # debug_show(time));
 
-            let release_attempts = Buffer.Buffer<ReleaseAttempt<BallotType>>(0);
+            lock_scheduler.try_unlock(time);
 
-            // TODO: parallelize awaits*
-            for ((vote_id, vote_type) in Map.entries(vote_register.votes)){
-                await* vote_type_controller.try_release({ 
-                    vote_type; 
-                    time;
-                    on_release_attempt = func(attempt: ReleaseAttempt<BallotType>) {
-                        // TODO: fix this giga hack here to avoid considering the ballot that has just been added
-                        if (BallotUtils.get_timestamp(attempt.elem) == time) {
-                            Debug.print("Do not consider the ballot that has been just added!");
-                        } else {
-                            release_attempts.add(attempt);
-                        };
-                    };
-                });
-            };
-
-            presence_dispenser.dispense({
-                locks = Buffer.toArray(Buffer.map<ReleaseAttempt<BallotType>, ExtendedLock>(
-                    release_attempts,
-                    func(attempt: ReleaseAttempt<BallotType>) : ExtendedLock {
-                        to_lock(attempt, time);
-                    }
-                ));
-                time_dispense = time;
-                total_locked = vote_register.total_locked;
-            });
-
-            // TODO: parallelize awaits*
-            for ({ elem; release_time; } in release_attempts.vals()){
-                if(Option.isSome(release_time)){                    
-                    // Mint the presence
-                    let _ = await* presence_facade.send_payement({ 
-                        to = BallotUtils.get_account(elem); 
-                        amount = Int.abs(Float.toInt(BallotUtils.get_presence(elem)));
-                    });
-                    // Mint the resonance
-                    let _ = await* resonance_facade.send_payement({ 
-                        to = BallotUtils.get_account(elem); 
-                        amount = Int.abs(Float.toInt(Incentives.compute_resonance({
-                            amount = BallotUtils.get_amount(elem);
-                            dissent = BallotUtils.get_dissent(elem);
-                            consent = BallotUtils.get_consent(elem);
-                            start = BallotUtils.get_timestamp(elem);
-                            end = time;
-                        })));
-                    });
-                };
-            };
+// @todo
+//            let release_attempts = Buffer.Buffer<ReleaseAttempt<BallotType>>(0);
+//
+//            // TODO: parallelize awaits*
+//            for ((vote_id, vote_type) in Map.entries(vote_register.votes)){
+//                await* vote_type_controller.try_release({ 
+//                    vote_type; 
+//                    time;
+//                    on_release_attempt = func(attempt: ReleaseAttempt<BallotType>) {
+//                        // TODO: fix this giga hack here to avoid considering the ballot that has just been added
+//                        if (BallotUtils.get_timestamp(attempt.elem) == time) {
+//                            Debug.print("Do not consider the ballot that has been just added!");
+//                        } else {
+//                            release_attempts.add(attempt);
+//                        };
+//                    };
+//                });
+//            };
+//
+//            presence_dispenser.dispense({
+//                locks = Buffer.toArray(Buffer.map<ReleaseAttempt<BallotType>, ExtendedLock>(
+//                    release_attempts,
+//                    func(attempt: ReleaseAttempt<BallotType>) : ExtendedLock {
+//                        to_lock(attempt, time);
+//                    }
+//                ));
+//                time_dispense = time;
+//                total_locked = vote_register.total_locked;
+//            });
+//
+//            // TODO: parallelize awaits*
+//            for ({ elem; release_time; } in release_attempts.vals()){
+//                if(Option.isSome(release_time)){                    
+//                    // Mint the presence
+//                    let _ = await* presence_facade.send_payement({ 
+//                        to = BallotUtils.get_account(elem); 
+//                        amount = Int.abs(Float.toInt(BallotUtils.get_presence(elem)));
+//                    });
+//                    // Mint the resonance
+//                    let _ = await* resonance_facade.send_payement({ 
+//                        to = BallotUtils.get_account(elem); 
+//                        amount = Int.abs(Float.toInt(Incentives.compute_resonance({
+//                            amount = BallotUtils.get_amount(elem);
+//                            dissent = BallotUtils.get_dissent(elem);
+//                            consent = BallotUtils.get_consent(elem);
+//                            start = BallotUtils.get_timestamp(elem);
+//                            end = time;
+//                        })));
+//                    });
+//                };
+//            };
         };
 
         public func get_votes({origin: Principal;}) : [VoteType] {

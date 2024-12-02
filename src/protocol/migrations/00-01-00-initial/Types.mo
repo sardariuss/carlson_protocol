@@ -2,6 +2,7 @@ import Error "mo:base/Error";
 
 import Map   "mo:map/Map";
 import Set   "mo:map/Set";
+import BTree "mo:stableheapbtreemap/BTree";
 
 // please do not import any types from your project outside migrations folder here
 // it can lead to bugs when you change those types later, because migration types should not be changed
@@ -11,6 +12,7 @@ module {
 
     type Map<K, V> = Map.Map<K, V>;
     type Set<K> = Set.Set<K>;
+    type BTree<K, V> = BTree.BTree<K, V>;
 
     // From ICRC1    
 
@@ -283,6 +285,11 @@ module {
         mutable: Bool;
     };
 
+    public type Lock = {
+        unlock_time: Time;
+        ref: UUID;
+    };
+
     public type Args = {
         #init: InitArgs;
         #upgrade: UpgradeArgs;
@@ -318,6 +325,7 @@ module {
     public type State = {
         clock_parameters: ClockParameters;
         vote_register: VoteRegister;
+        locks: BTree<Lock, ()>;
         deposit: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;

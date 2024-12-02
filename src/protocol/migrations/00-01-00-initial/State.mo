@@ -5,6 +5,7 @@ import Timeline       "../../utils/Timeline";
 
 import Map            "mo:map/Map";
 import Set            "mo:map/Set";
+import BTree          "mo:stableheapbtreemap/BTree";
 
 import Principal      "mo:base/Principal";
 import Time           "mo:base/Time";
@@ -13,15 +14,18 @@ import Float          "mo:base/Float";
 
 module {
 
-  type Time          = Int;
-  type State         = MigrationTypes.State;
-  type Account       = Types.Account;
-  type ICRC1         = Types.ICRC1;
-  type ICRC2         = Types.ICRC2;
-  type InitArgs      = Types.InitArgs;
-  type UpgradeArgs   = Types.UpgradeArgs;
-  type DowngradeArgs = Types.DowngradeArgs;
-  type UUID          = Types.UUID;
+    type Time          = Int;
+    type State         = MigrationTypes.State;
+    type Account       = Types.Account;
+    type ICRC1         = Types.ICRC1;
+    type ICRC2         = Types.ICRC2;
+    type InitArgs      = Types.InitArgs;
+    type UpgradeArgs   = Types.UpgradeArgs;
+    type DowngradeArgs = Types.DowngradeArgs;
+    type UUID          = Types.UUID;
+    type Lock          = Types.Lock;
+
+    let BTREE_ORDER = 8;
 
     public func init(args: InitArgs) : State {
 
@@ -39,6 +43,7 @@ module {
                 user_ballots = Map.new<Account, Set.Set<(UUID, UUID)>>();
                 total_locked = Timeline.initialize(now, 0);
             };
+            locks = BTree.init<Lock, ()>(?BTREE_ORDER);
             deposit = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(deposit.ledger));
                 fee = deposit.fee;

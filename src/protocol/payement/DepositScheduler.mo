@@ -1,6 +1,7 @@
 import Types            "../Types";
 import LockScheduler    "../locks/LockScheduler";
 import PayementFacade   "PayementFacade";
+import HotMap           "../locks/HotMap";
 
 import Map              "mo:map/Map";
 
@@ -50,9 +51,7 @@ module {
     // @todo: why pass register in every function?
     public class DepositScheduler<T>({
         deposit_facade: PayementFacade.PayementFacade;
-        lock_scheduler: LockScheduler.LockScheduler<T>;
-        tag_refunded: (T, RefundState) -> T;
-        get_deposit: (T) -> Deposit;
+        hot_map: HotMap.HotMap<UUID, T>;
     }){
 
         public func preview_deposit({
@@ -62,10 +61,10 @@ module {
         }) : T {
             let { from; time; amount; } = args;
 
-            // @todo
+            // @todo: transaction ID is 0
             builder.add_deposit({ tx_id = 0; from; deposit_state = #DEPOSITED; });
-            
-            lock_scheduler.preview_lock({ register; builder; amount; timestamp = time; });
+
+            hot_map.set_hot({ map = register.map; builder; args = { amount; timestamp = time; } });
         };
 
         public func add_deposit({
@@ -82,8 +81,8 @@ module {
                 // Set the deposit information inside the element itself
                 builder.add_deposit({ tx_id; from; deposit_state = #DEPOSITED; });
                 // Add the lock for that deposit in the scheduler
-                switch(lock_scheduler.add_lock({ key = id; register; builder; amount; timestamp = time; })){
-                    case(#ok(deposit)) { callback(deposit); #ok(tx_id); };
+                switch(hot_map.add_new({ map = register.map; key = id; builder; args = { amount; timestamp = time; } })){
+                    case(#ok(elem)) { callback(elem); #ok(tx_id); };
                     case(#err(err)){ #err(err); };
                 };
             };
@@ -95,49 +94,50 @@ module {
             };
         };
 
-        public func attempt_release({
-            register: LockScheduler.LockRegister<T>;
-            time: Time;
-            on_release_attempt: (ReleaseAttempt<T>) -> ();
-        }) : async* () {
-
-            let release_attempts = lock_scheduler.attempt_release({ register; time; });
-
-            for((id, attempt) in release_attempts.vals()) {
-
-                on_release_attempt(attempt);
-
-                // If the attempt was successful, refund the deposit
-                switch(attempt.release_time){
-                    case(?since){
-
-                        let deposit = get_deposit(attempt.elem);
-
-                        let refund_fct = func() : async() {
-
-                            // Perform the refund
-                            let refund_result = await* deposit_facade.send_payement({
-                                amount = deposit.amount;
-                                to = deposit.from;
-                            });
-
-                            // Update the deposit state
-                            let transfer = switch(refund_result){
-                                case(#ok(tx_id)) { #SUCCESS({tx_id;}); };
-                                case(#err({incident_id})) { #FAILED{incident_id}; };
-                            };
-                            // @todo: this does not seem to work
-                            Map.set(register.map, Map.thash, id, tag_refunded(attempt.elem, { transfer; since; }));
-                        };
-
-                        // Trigger the refund but do not wait for it to complete
-                        ignore refund_fct();
-                    };
-                    case(null) {};
-                };
-
-            };
-        };
+// @todo
+//        public func attempt_release({
+//            register: LockScheduler.LockRegister<T>;
+//            time: Time;
+//            on_release_attempt: (ReleaseAttempt<T>) -> ();
+//        }) : async* () {
+//
+//            let release_attempts = lock_scheduler.attempt_release({ register; time; });
+//
+//            for((id, attempt) in release_attempts.vals()) {
+//
+//                on_release_attempt(attempt);
+//
+//                // If the attempt was successful, refund the deposit
+//                switch(attempt.release_time){
+//                    case(?since){
+//
+//                        let deposit = get_deposit(attempt.elem);
+//
+//                        let refund_fct = func() : async() {
+//
+//                            // Perform the refund
+//                            let refund_result = await* deposit_facade.send_payement({
+//                                amount = deposit.amount;
+//                                to = deposit.from;
+//                            });
+//
+//                            // Update the deposit state
+//                            let transfer = switch(refund_result){
+//                                case(#ok(tx_id)) { #SUCCESS({tx_id;}); };
+//                                case(#err({incident_id})) { #FAILED{incident_id}; };
+//                            };
+//                            // @todo: this does not seem to work
+//                            Map.set(register.map, Map.thash, id, tag_refunded(attempt.elem, { transfer; since; }));
+//                        };
+//
+//                        // Trigger the refund but do not wait for it to complete
+//                        ignore refund_fct();
+//                    };
+//                    case(null) {};
+//                };
+//
+//            };
+//        };
 
     };
 }

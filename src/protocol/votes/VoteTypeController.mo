@@ -51,24 +51,6 @@ module {
             };
         };
 
-        public func try_release({
-            vote_type: VoteType;
-            on_release_attempt: ReleaseAttempt<BallotType> -> ();
-            time: Time;
-        }) : async* () {
-            switch(vote_type){
-                case(#YES_NO(vote)) { 
-                    await* yes_no_controller.try_release({ 
-                        vote; 
-                        time; 
-                        on_release_attempt = func(release_attempt: ReleaseAttempt<YesNoBallot>) {
-                            on_release_attempt(wrap_attempt(release_attempt));
-                        };
-                    }); 
-                };
-            };
-        };
-
         public func find_ballot({ vote_type: VoteType; ballot_id: UUID; }) : ?Types.BallotType {
             switch(vote_type){
                 case(#YES_NO(vote)) { 

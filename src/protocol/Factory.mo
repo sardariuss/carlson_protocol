@@ -6,11 +6,12 @@ import VoteFactory        "votes/VoteFactory";
 import VoteTypeController "votes/VoteTypeController";
 import PayementFacade     "payement/PayementFacade";
 import PresenceDispenser  "PresenceDispenser";
-import Timeline           "utils/Timeline";
+import LockScheduler2     "LockScheduler2";
 import Clock              "utils/Clock";
+import HotMap             "locks/HotMap";
+import Timeline           "utils/Timeline";
 
-import ICRC1              "mo:icrc1-mo/ICRC1/service";
-import ICRC2              "mo:icrc2-mo/ICRC2/service";
+import Map                "mo:map/Map";
 
 module {
 
@@ -19,6 +20,11 @@ module {
     type Time = Int;
     type IncidentRegister = Types.IncidentRegister;
     type State = Types.State;
+    type Lock = Types.Lock;
+    type UUID = Types.UUID;
+    type YesNoChoice = Types.YesNoChoice;
+    type YesNoBallot = Types.Ballot<YesNoChoice>;
+    type HotElem = HotMap.HotElem;
 
     type BuildArguments = State and {
         provider: Principal;
@@ -26,10 +32,16 @@ module {
 
     public func build(args: BuildArguments) : Controller.Controller {
 
-        let { clock_parameters; vote_register; deposit; presence; resonance; parameters; provider; } = args;
+        let { clock_parameters; vote_register; locks; deposit; presence; resonance; parameters; provider; } = args;
         let { nominal_lock_duration; decay; } = parameters;
 
         let clock = Clock.Clock(clock_parameters);
+        
+        let lock_scheduler = LockScheduler2.LockScheduler2({
+            locks;
+            on_lock_added = func(_ : Lock) {};
+            on_lock_removed = func(_ : Lock) {};
+        });
 
         let deposit_facade = PayementFacade.PayementFacade({ deposit with provider; });
         let presence_facade = PayementFacade.PayementFacade({ presence with provider; });
@@ -41,10 +53,42 @@ module {
             nominal_duration = nominal_lock_duration;
         });
 
+        // TODO: this should not assume it is a yes/no ballot, but work on every type of ballot
+        let hot_map = HotMap.HotMap<UUID, YesNoBallot>({
+            decay_model;
+            get_elem = func (b: YesNoBallot): HotElem { b; };
+            update_hotness = func ({v: YesNoBallot; hotness: Float; time: Time}): YesNoBallot {
+                let update = { v with hotness; };
+                // Update the duration of the lock if the lock is still active
+                // TODO: this logic shall be handled elsewhere, it feels like a hack
+                if (v.timestamp + Timeline.get_current(v.duration_ns) > time){
+                    Timeline.add(update.duration_ns, time, duration_calculator.compute_duration_ns({hotness}));
+                };
+                update;
+            };
+            key_hash = Map.thash;
+            on_elem_added = func({key: UUID; value: YesNoBallot}){ 
+                lock_scheduler.add({
+                    ref = key;
+                    unlock_time = value.timestamp + Timeline.get_current(value.duration_ns); 
+                }); 
+            };
+            // TODO: could use get history instead
+            on_hot_changed = func({key: UUID; old_value: YesNoBallot; new_value: YesNoBallot}){
+                lock_scheduler.update({ 
+                    ref = key; 
+                    old_time = old_value.timestamp + Timeline.get_current(old_value.duration_ns);
+                    new_time = new_value.timestamp + Timeline.get_current(new_value.duration_ns);
+                });
+            };
+        });
+
+        // @todo: need to plug the hotmap observers
         let yes_no_controller = VoteFactory.build_yes_no({
             deposit_facade;
             decay_model;
             duration_calculator;
+            hot_map;
         });
 
         let vote_type_controller = VoteTypeController.VoteTypeController({
@@ -56,6 +100,7 @@ module {
         Controller.Controller({
             clock;
             vote_register;
+            lock_scheduler;
             vote_type_controller;
             deposit_facade;
             presence_facade;

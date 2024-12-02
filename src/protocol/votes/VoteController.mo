@@ -128,19 +128,6 @@ module {
             Result.mapOk(deposit, func(_: ()) : UUID { ballot_id; });
         };
 
-        public func try_release({
-            vote: Vote<A, B>;
-            time: Time;
-            on_release_attempt: ReleaseAttempt<Ballot<B>> -> ();
-        }) : async* () {
-
-            await* deposit_scheduler.attempt_release({
-                register = vote.ballot_register;
-                time;
-                on_release_attempt;
-            });
-        };
-
         public func find_ballot({
             vote: Vote<A, B>;
             ballot_id: UUID;

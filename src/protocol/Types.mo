@@ -50,6 +50,7 @@ module {
     public type State             = Types.Current.State;
     public type ClockParameters   = Types.Current.ClockParameters;
     public type UUID              = Types.Current.UUID;
+    public type Lock              = Types.Current.Lock;
 
     // CANISTER ARGS
 
