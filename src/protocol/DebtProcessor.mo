@@ -23,19 +23,32 @@ module {
     type Set<K> = Set.Set<K>;
     type Map<K, V> = Map.Map<K, V>;
 
+    public func init_debt_info(time: Time, account: Account) : DebtInfo {
+        {
+            amount = Timeline.initialize<Float>(time, 0.0);
+            account;
+            var owed = 0.0;
+            var pending = 0;
+            var transfers = [];
+        };
+    };
+
     public class DebtProcessor({
         payement: PayementFacade.PayementFacade;
         debts: Map<UUID, DebtInfo>;
         owed: Set<UUID>;
     }){
 
-        public func add_debt({ id: UUID; amount: Float; time: Time; }) {
-            let info = switch(Map.get(debts, Map.thash, id)){
-                case(null) { return; };
+        public func add_debt({ id: UUID; account: Account; amount: Float; time: Time; }) {
+            let info : DebtInfo = switch(Map.get(debts, Map.thash, id)){
+                case(null) { 
+                    init_debt_info(time, account);
+                };
                 case(?v) { v; };
             };
             Timeline.add(info.amount, time, Timeline.get_current(info.amount) + amount);
             info.owed += amount;
+            Map.set(debts, Map.thash, id, info);
             tag_to_transfer(id, info);
         };
 

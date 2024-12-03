@@ -11,6 +11,7 @@ import Clock              "utils/Clock";
 import HotMap             "locks/HotMap";
 import Timeline           "utils/Timeline";
 import DebtProcessor      "DebtProcessor";
+import PresenceDispenser2 "PresenceDispenser2";
 
 import Map                "mo:map/Map";
 
@@ -38,12 +39,6 @@ module {
         let { nominal_lock_duration; decay; } = parameters;
 
         let clock = Clock.Clock(clock_parameters);
-        
-        let lock_scheduler = LockScheduler2.LockScheduler2({
-            locks;
-            on_lock_added = func(_ : Lock) {};
-            on_lock_removed = func(_ : Lock) {};
-        });
 
         let deposit_facade = PayementFacade.PayementFacade({ deposit with provider; });
         let presence_facade = PayementFacade.PayementFacade({ presence with provider; });
@@ -52,6 +47,19 @@ module {
         let presence_debt = DebtProcessor.DebtProcessor({
             presence with 
             payement = presence_facade;
+        });
+
+        let presence_dispenser2 = PresenceDispenser2.PresenceDispenser2({
+            locks;
+            ballots = Map.new<UUID, YesNoBallot>(); // @TODO!
+            parameters = presence.parameters;
+            debt_processor = presence_debt;
+        });
+        
+        let lock_scheduler = LockScheduler2.LockScheduler2({
+            locks;
+            on_lock_added = func(_ : Lock) {};
+            on_lock_removed = func(_ : Lock) {};
         });
 
         let decay_model = Decay.DecayModel(decay);
