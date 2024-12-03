@@ -248,27 +248,9 @@ module {
         public func get_deposit_incidents() : [(Nat, Types.Incident)] {
             deposit_facade.get_incidents();
         };
-        
-        public func get_presence_incidents() : [(Nat, Types.Incident)] {
-            presence_facade.get_incidents();
-        };
-
-        public func get_resonance_incidents() : [(Nat, Types.Incident)] {
-            resonance_facade.get_incidents();
-        };
 
         public func get_clock() : Clock.Clock {
             clock;
-        };
-
-        func to_lock(attempt: ReleaseAttempt<BallotType>, time: Time) : ExtendedLock {
-            {
-                attempt with
-                amount = switch(attempt.elem){ case(#YES_NO(b)) { b.amount; }; };
-                add_presence = func(presence: Float) {
-                    attempt.update_elem(BallotUtils.accumulate_presence(attempt.elem, presence, time));
-                };
-            };
         };
 
     };

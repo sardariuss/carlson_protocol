@@ -41,7 +41,7 @@ module {
 
     public type TxIndex = Nat;
 
-    public type TransferError = TimeError or {
+    public type Icrc1TransferError = TimeError or {
         #BadFee : { expected_fee : Balance };
         #BadBurn : { min_burn_amount : Balance };
         #InsufficientFunds : { balance : Balance };
@@ -50,12 +50,12 @@ module {
         #GenericError : { error_code : Nat; message : Text };
     };
     
-    public type TransferResult = {
+    public type Icrc1TransferResult = {
         #Ok : TxIndex;
-        #Err : TransferError;
+        #Err : Icrc1TransferError;
     };
 
-    public type TransferArgs = {
+    public type Icrc1TransferArgs = {
         from_subaccount : ?Subaccount;
         to : Account;
         amount : Balance;
@@ -78,7 +78,7 @@ module {
         icrc1_supported_standards : shared query () -> async [SupportedStandard];
         icrc1_symbol : shared query () -> async Text;
         icrc1_total_supply : shared query () -> async Nat;
-        icrc1_transfer : shared TransferArgs -> async TransferResult;
+        icrc1_transfer : shared Icrc1TransferArgs -> async Icrc1TransferResult;
     };
 
     // From ICRC2
@@ -204,13 +204,20 @@ module {
         };
     };
 
+    public type DebtInfo = {
+        amount: Timeline<Float>;
+        account: Account;
+        var owed: Float;
+        var pending: Nat;
+        var transfers: [Transfer];
+    };
+
     public type BallotInfo<B> = {
         timestamp: Time;
         choice: B;
         amount: Nat;
         dissent: Float;
         consent: Timeline<Float>;
-        presence: Timeline<Float>;
     };
 
     public type DepositInfo = {
@@ -248,9 +255,19 @@ module {
         #ServiceTrapped: ServiceError;
         #ServiceFailed: ServiceError;
         #TransferFailed: {
-            args: TransferArgs;
-            error: TransferError or { #Trapped : { error_code: Error.ErrorCode; }};
+            args: Icrc1TransferArgs;
+            error: Icrc1TransferError or { #Trapped : { error_code: Error.ErrorCode; }};
         };
+    };
+
+    public type Transfer = {
+        args: Icrc1TransferArgs;
+        result: TransferResult;
+    };
+
+    public type TransferResult = {
+        #ok: TxIndex;
+        #err: Icrc1TransferError or { #Trapped : { error_code: Error.ErrorCode; }};
     };
 
     public type ServiceError = {
@@ -335,6 +352,8 @@ module {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
             incidents: IncidentRegister;
+            debts: Map<UUID, DebtInfo>;
+            owed: Set<UUID>;
             parameters: PresenseParameters;
         };
         resonance: {

@@ -72,14 +72,6 @@ module {
         public func get_deposit_incidents() : [(Nat, Types.Incident)] {
             controller.get_deposit_incidents();
         };
-        
-        public func get_presence_incidents() : [(Nat, Types.Incident)] {
-            controller.get_presence_incidents();
-        };
-
-        public func get_resonance_incidents() : [(Nat, Types.Incident)] {
-            controller.get_resonance_incidents();
-        };
 
         public func add_offset(duration: Duration) : Result<(), Text> {
             controller.get_clock().add_offset(duration);

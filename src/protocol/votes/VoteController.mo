@@ -149,7 +149,6 @@ module {
                 amount;
                 dissent = compute_dissent({ aggregate; choice; amount; time; });
                 consent = Timeline.initialize(time, compute_consent({ aggregate; choice; time; }));
-                presence = Timeline.initialize(time, 0.0);
             });
             builder;
         };

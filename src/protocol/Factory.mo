@@ -10,6 +10,7 @@ import LockScheduler2     "LockScheduler2";
 import Clock              "utils/Clock";
 import HotMap             "locks/HotMap";
 import Timeline           "utils/Timeline";
+import DebtProcessor      "DebtProcessor";
 
 import Map                "mo:map/Map";
 
@@ -18,13 +19,14 @@ module {
     type VoteRegister = Types.VoteRegister;
     type Duration = Types.Duration;
     type Time = Int;
-    type IncidentRegister = Types.IncidentRegister;
     type State = Types.State;
     type Lock = Types.Lock;
     type UUID = Types.UUID;
     type YesNoChoice = Types.YesNoChoice;
     type YesNoBallot = Types.Ballot<YesNoChoice>;
     type HotElem = HotMap.HotElem;
+    type FullDebtInfo = Types.FullDebtInfo;
+    type DebtInfo = Types.DebtInfo;
 
     type BuildArguments = State and {
         provider: Principal;
@@ -46,6 +48,11 @@ module {
         let deposit_facade = PayementFacade.PayementFacade({ deposit with provider; });
         let presence_facade = PayementFacade.PayementFacade({ presence with provider; });
         let resonance_facade = PayementFacade.PayementFacade({ resonance with provider; });
+
+        let presence_debt = DebtProcessor.DebtProcessor({
+            presence with 
+            payement = presence_facade;
+        });
 
         let decay_model = Decay.DecayModel(decay);
 

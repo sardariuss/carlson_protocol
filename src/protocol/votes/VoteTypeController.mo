@@ -59,18 +59,6 @@ module {
             };
         };
 
-        func wrap_attempt(release_attempt: ReleaseAttempt<YesNoBallot>) : ReleaseAttempt<BallotType> {
-            { 
-                release_attempt with
-                elem = #YES_NO(release_attempt.elem); 
-                update_elem = func(b: BallotType) { 
-                    switch(b){
-                        case(#YES_NO(b)) { release_attempt.update_elem(b); };
-                    };
-                };
-            };
-        };
-
     };
 
 };

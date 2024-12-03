@@ -88,15 +88,6 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_deposit_incidents();
     };
 
-    // Get the failed rewards for the given principal
-    public query func get_presence_incidents() : async [(Nat, Types.Incident)] {
-        getFacade().get_presence_incidents();
-    };
-
-    public query func get_resonance_incidents() : async [(Nat, Types.Incident)] {
-        getFacade().get_resonance_incidents();
-    };
-
     public shared func add_offset(duration: Types.Duration) : async Result.Result<(), Text> {
         getFacade().add_offset(duration);
     };

@@ -17,9 +17,6 @@ module {
     public type Timestamp         = Types.Current.Timestamp;
     public type TimeError         = Types.Current.TimeError;
     public type TxIndex           = Types.Current.TxIndex;
-    public type TransferError     = Types.Current.TransferError;
-    public type TransferResult    = Types.Current.TransferResult;
-    public type TransferArgs      = Types.Current.TransferArgs;
     public type ICRC1             = Types.Current.ICRC1;
     public type ApproveArgs       = Types.Current.ApproveArgs;
     public type ApproveError      = Types.Current.ApproveError;
@@ -51,6 +48,9 @@ module {
     public type ClockParameters   = Types.Current.ClockParameters;
     public type UUID              = Types.Current.UUID;
     public type Lock              = Types.Current.Lock;
+    public type DebtInfo        = Types.Current.DebtInfo;
+    public type Transfer          = Types.Current.Transfer;
+    public type TransferResult    = Types.Current.TransferResult;
 
     // CANISTER ARGS
 
@@ -83,6 +83,10 @@ module {
         ballot_id: UUID;
     };
 
+    public type FullDebtInfo = DebtInfo and {
+        account: Account;
+    };
+
     // SHARED TYPES
 
     public type SVoteType = {
@@ -91,6 +95,13 @@ module {
 
     public type SBallotType = {
         #YES_NO: SBallot<YesNoChoice>;
+    };
+
+    public type SDebtInfo = {
+        amount: STimeline<Float>;
+        owed: Float;
+        pending: Nat;
+        transfers: [Transfer];
     };
 
     public type STimeline<T> = {
@@ -104,7 +115,6 @@ module {
         amount: Nat;
         dissent: Float;
         consent: STimeline<Float>;
-        presence: STimeline<Float>;
     };
 
     public type SDurationInfo = {

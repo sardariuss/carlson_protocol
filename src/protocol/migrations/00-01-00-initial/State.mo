@@ -24,6 +24,7 @@ module {
     type DowngradeArgs = Types.DowngradeArgs;
     type UUID          = Types.UUID;
     type Lock          = Types.Lock;
+    type DebtInfo      = Types.DebtInfo;
 
     let BTREE_ORDER = 8;
 
@@ -52,6 +53,8 @@ module {
             presence = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(presence.ledger));
                 fee = presence.fee;
+                debts = Map.new<UUID, DebtInfo>();
+                owed = Set.new<UUID>();
                 incidents = { var index = 0; incidents = Map.new<Nat, Types.Incident>(); };
                 parameters = {
                     presence_per_ns = Float.fromInt(presence.mint_per_day) / Float.fromInt(Duration.NS_IN_DAY);

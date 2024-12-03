@@ -22,8 +22,7 @@ module {
 
     type ErrorCode = Error.ErrorCode;
 
-    public type SendPayementError = { incident_id: Nat; };
-    public type SendPayementResult = Result<TxIndex, SendPayementError>;
+    type Transfer = Types.Transfer;
 
     public type PayServiceError = ICRC2.TransferFromError or { #TransferIncident : { incident_id: Nat; }};
     public type PayServiceResult = Result<Nat, PayServiceError>;
@@ -90,7 +89,7 @@ module {
         public func send_payement({
             amount: Nat;
             to: Account;
-        }) : async* SendPayementResult {
+        }) : async* Transfer {
 
             let args = {
                 to;
@@ -102,18 +101,16 @@ module {
             };
 
             // Perform the transfer
-            let error = try {
+            let result = try {
                 switch(await ledger.icrc1_transfer(args)){
-                    case(#Ok(tx_id)){ return #ok(tx_id); };
-                    case(#Err(error)){ error; };
+                    case(#Ok(tx_id)){ #ok(tx_id); };
+                    case(#Err(error)){ #err(error); };
                 };
             } catch(err) {
-                #Trapped{ error_code = Error.code(err); };
+                #err(#Trapped{ error_code = Error.code(err); });
             };
 
-            // Add the incident
-            let incident_id = add_incident(#TransferFailed{ args; error; });
-            #err({incident_id});
+            { args; result; };
         };
 
         func add_incident(incident: Incident) : Nat {
