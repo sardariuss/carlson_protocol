@@ -1,5 +1,6 @@
 import Types "Types";
 import DebtProcessor "DebtProcessor";
+import LockScheduler2 "LockScheduler2";
 
 import BTree "mo:stableheapbtreemap/BTree";
 import Map "mo:map/Map";
@@ -18,8 +19,7 @@ module {
     type PresenseParameters = Types.PresenseParameters;
 
     public class PresenceDispenser2({
-        locks: BTree<Lock, ()>;
-        ballots: Map<UUID, YesNoBallot>;
+        locks: BTree<Lock, YesNoBallot>;
         parameters: PresenseParameters;
         debt_processor: DebtProcessor.DebtProcessor;
     }) {
@@ -27,7 +27,7 @@ module {
         // @todo: map fold
         func get_total_locked() : Nat {
             var total : Nat = 0;
-            for ((_, ballot) in Map.entries(ballots)) {
+            for ((_, ballot) in BTree.entries(locks)) {
                 total += ballot.amount;
             };
             total;
@@ -35,47 +35,47 @@ module {
 
         var total_locked = get_total_locked();
 
-        public func handle_lock_added(lock: Lock, time: Time) {
+        public func handle_lock_added(lock: Lock, ballot: YesNoBallot) {
 
-            dispense(time, ?lock, null);
-
-            // Update the total amount locked
-            Option.iterate(Map.get(ballots, Map.thash, lock.ref), func(ballot: YesNoBallot) { total_locked += ballot.amount; });
-        };
-
-        public func handle_lock_removed(lock: Lock, time: Time) {
-
-            dispense(time, null, ?lock);
+            dispense(ballot.timestamp, ?lock, null);
 
             // Update the total amount locked
-            Option.iterate(Map.get(ballots, Map.thash, lock.ref), func(ballot: YesNoBallot) { total_locked -= ballot.amount; });
+            total_locked += ballot.amount;
         };
 
-        public func dispense(time: Time, skip_lock: ?Lock, extra_lock: ?Lock) {
+        public func handle_lock_removed(_: Lock, ballot: YesNoBallot) {
+
+            dispense(ballot.timestamp + ballot.duration_ns.current.data, null, ?ballot);
+
+            // Update the total amount locked
+            total_locked -= ballot.amount;
+        };
+
+        public func dispense(time: Time, skip_lock: ?Lock, extra_ballot: ?YesNoBallot) {
             
             let period = Float.fromInt(time - parameters.time_last_dispense);
 
             // Dispense presence over the period
-            label dispense for (({ref}, _) in BTree.entries(locks)) {
+            label dispense for (({id}, ballot) in BTree.entries(locks)) {
                 
                 // Do not consider the lock to skip
                 switch(skip_lock) {
                     case(null) {};
                     case(?lock) {
-                        if (ref == lock.ref) {
+                        if (id == lock.id) {
                             continue dispense;
                         };
                     };
                 };
                 
                 // Add to the debt
-                add_presence_debt({id = ref; period; time; });
+                add_presence_debt({id; ballot; period; time; });
             };
-            switch(extra_lock) {
+            switch(extra_ballot) {
                 case(null) {};
-                case(?lock) {
+                case(?ballot) {
                     // Add to the debt
-                    add_presence_debt({id = lock.ref; period; time; });
+                    add_presence_debt({id = ""; ballot; period; time; }); // @TODO!
                 };
             };
 
@@ -83,14 +83,12 @@ module {
             parameters.time_last_dispense := time;
         };
 
-        func add_presence_debt({ id: UUID; period: Float; time: Time; }) {
-            Option.iterate(Map.get(ballots, Map.thash, id), func(ballot: YesNoBallot) {
-                debt_processor.add_debt({
-                    id;
-                    account = ballot.from;
-                    amount = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * parameters.presence_per_ns * period;
-                    time;
-                });
+        func add_presence_debt({ id: UUID; ballot: YesNoBallot; period: Float; time: Time; }) {
+            debt_processor.add_debt({
+                id;
+                account = ballot.from;
+                amount = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * parameters.presence_per_ns * period;
+                time;
             });
         };
         

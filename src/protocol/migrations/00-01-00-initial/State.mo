@@ -25,6 +25,8 @@ module {
     type UUID          = Types.UUID;
     type Lock          = Types.Lock;
     type DebtInfo      = Types.DebtInfo;
+    type Ballot<B>     = Types.Ballot<B>;
+    type YesNoChoice   = Types.YesNoChoice;
 
     let BTREE_ORDER = 8;
 
@@ -44,7 +46,7 @@ module {
                 user_ballots = Map.new<Account, Set.Set<(UUID, UUID)>>();
                 total_locked = Timeline.initialize(now, 0);
             };
-            locks = BTree.init<Lock, ()>(?BTREE_ORDER);
+            locks = BTree.init<Lock, Ballot<YesNoChoice>>(?BTREE_ORDER);
             deposit = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(deposit.ledger));
                 fee = deposit.fee;

@@ -304,7 +304,7 @@ module {
 
     public type Lock = {
         unlock_time: Time;
-        ref: UUID;
+        id: UUID;
     };
 
     public type Args = {
@@ -342,7 +342,7 @@ module {
     public type State = {
         clock_parameters: ClockParameters;
         vote_register: VoteRegister;
-        locks: BTree<Lock, ()>;
+        locks: BTree<Lock, Ballot<YesNoChoice>>; // TODO: use the generic BallotType instead
         deposit: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;

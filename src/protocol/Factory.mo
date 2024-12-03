@@ -51,15 +51,14 @@ module {
 
         let presence_dispenser2 = PresenceDispenser2.PresenceDispenser2({
             locks;
-            ballots = Map.new<UUID, YesNoBallot>(); // @TODO!
             parameters = presence.parameters;
             debt_processor = presence_debt;
         });
         
         let lock_scheduler = LockScheduler2.LockScheduler2({
             locks;
-            on_lock_added = func(_ : Lock) {};
-            on_lock_removed = func(_ : Lock) {};
+            on_lock_added = func(lock : Lock, ballot: YesNoBallot) { presence_dispenser2.handle_lock_added(lock, ballot); };
+            on_lock_removed = func(lock : Lock, ballot: YesNoBallot) { presence_dispenser2.handle_lock_removed(lock, ballot); };
         });
 
         let decay_model = Decay.DecayModel(decay);
@@ -84,16 +83,18 @@ module {
             key_hash = Map.thash;
             on_elem_added = func({key: UUID; value: YesNoBallot}){ 
                 lock_scheduler.add({
-                    ref = key;
-                    unlock_time = value.timestamp + Timeline.get_current(value.duration_ns); 
+                    id = key;
+                    unlock_time = value.timestamp + Timeline.get_current(value.duration_ns);
+                    ballot = value;
                 }); 
             };
             // TODO: could use get history instead
             on_hot_changed = func({key: UUID; old_value: YesNoBallot; new_value: YesNoBallot}){
                 lock_scheduler.update({ 
-                    ref = key; 
+                    id = key; 
                     old_time = old_value.timestamp + Timeline.get_current(old_value.duration_ns);
                     new_time = new_value.timestamp + Timeline.get_current(new_value.duration_ns);
+                    ballot = new_value;
                 });
             };
         });
