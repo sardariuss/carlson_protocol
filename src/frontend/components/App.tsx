@@ -5,6 +5,19 @@ import { BrowserRouter, useLocation } from "react-router-dom";
 
 import Router from "../router/Router";
 
+const originalConsoleError = console.error;
+
+console.error = (...args) => {
+  // Ignore nivo warnings: https://github.com/plouc/nivo/issues/2612
+  if (typeof args[2] === 'string' && args[2].includes('The prop `legendOffsetX` is marked as required')) {
+    return;
+  }
+  if (typeof args[2] === 'string' && args[2].includes('The prop `legendOffsetY` is marked as required')) {
+    return;
+  }
+  originalConsoleError(...args);
+};
+
 interface ThemeContextProps {
   theme: string;
   setTheme: (theme: string) => void;

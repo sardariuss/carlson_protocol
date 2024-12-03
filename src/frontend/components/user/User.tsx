@@ -10,6 +10,7 @@ import LockChart from "../charts/LockChart";
 import { BITCOIN_TOKEN_SYMBOL, BALLOT_EMOJI, LOCK_EMOJI, DURATION_EMOJI, PRESENCE_TOKEN_EMOJI, RESONANCE_TOKEN_EMOJI, PRESENCE_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL, TIMESTAMP_EMOJI } from "../../constants";
 import { formatBalanceE8s } from "../../utils/conversions/token";
 import { get_current, get_first } from "../../utils/timeline";
+import DurationChart from "../charts/DurationChart";
 
 const User = () => {
   
@@ -48,7 +49,7 @@ const User = () => {
         {
           ballots?.map((ballot, index) => (
               selected === index && (
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 justify-items-center border dark:border-gray-700 border-gray-200 p-1">
+                <li key={index} className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 justify-items-center border dark:border-gray-700 border-gray-200 p-1">
                   {/* Row 1: Text */}
                   <div className="col-span-2 justify-self-start">
                     { ballot.text }
@@ -99,7 +100,31 @@ const User = () => {
                     <span>{RESONANCE_TOKEN_EMOJI}</span>
                     <div><span className="italic text-gray-400 text-sm">Forecasted:</span> { formatBalanceE8s(BigInt(Math.floor(get_current(ballot.ballot.YES_NO.presence).data)), RESONANCE_TOKEN_SYMBOL) }</div>
                   </div>
-                </div>
+
+                  <div className="col-span-2 w-full flex flex-col">
+                    <div>Duration</div>
+                    <DurationChart duration_timeline={{
+                      current: {
+                        timestamp: ballot.ballot.YES_NO.duration_ns.current.timestamp, 
+                        data: Number(ballot.ballot.YES_NO.duration_ns.current.data)
+                      }, 
+                      history:ballot.ballot.YES_NO.duration_ns.history.map((duration_ns) => {
+                        return {
+                          timestamp: duration_ns.timestamp,
+                          data: Number(duration_ns.data)
+                        };
+                      })
+                    }}/>
+                  </div>
+                  <div className="col-span-2 w-full flex flex-col">
+                    <div>Presence</div>
+                    <DurationChart duration_timeline={ballot.ballot.YES_NO.presence}/>
+                  </div>
+                  <div className="col-span-2 w-full flex flex-col">
+                    <div>Consent</div>
+                    <DurationChart duration_timeline={ballot.ballot.YES_NO.consent}/>
+                  </div>
+                </li>
               )
           ))
         }

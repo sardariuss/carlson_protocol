@@ -1,5 +1,6 @@
-import { format }                            from "date-fns";
-import { DurationUnit, toNs }                from "../../utils/conversions/duration";
+import { format }             from "date-fns";
+import { DurationUnit, toNs } from "../../utils/conversions/duration";
+import { nsToMs }             from "../../utils/conversions/date";
 
 export type DurationParameters = {
     duration: bigint; 
@@ -23,29 +24,26 @@ export type Interval = {
 export const computeInterval = (end: bigint, e_duration: DurationUnit): Interval => {
     
     const { duration, sample, tick } = CHART_CONFIGURATIONS.get(e_duration)!;
-    
-    // Calculate end and start dates
-    let endDate = end;
-    endDate -= endDate % sample;
-    const numSamples = Math.ceil(Number(duration) / Number(sample));
-    const startDate = endDate - sample * BigInt(numSamples);
-
-    const dates = [...Array.from(
-      { length: numSamples},
-      (_, index) => ({
-        date: Number((startDate + BigInt(index) * sample) / 1_000_000n),
-        decay: 1
-      })
-    ), { date: Number(end / 1_000_000n), decay: 1 }];
-
+    let dates : { date :number; decay: number }[] = [];
+    // Add the last date
+    dates.push({ date: nsToMs(end), decay: 1 }); 
+    // Compute the next dates, falling on every sample
+    let date = end - end % sample;
+    const startDate = date - duration;
+    if (date === end) date -= sample; // If the last date has already been added, skip it
+    while (date >= startDate) {
+        dates.push({ date: nsToMs(date), decay: 1 });
+        date -= sample;
+    };
+    dates.reverse();
     return { dates, ticks: computeTicksMs(duration, startDate, tick) };
 }
 
 export const computeTicksMs = (duration: bigint, start: bigint, tick_duration: bigint): number[] => {
-    const numTicks = Math.ceil(Number(duration) / Number(tick_duration));
+    const numTicks = Math.floor(Number(duration) / Number(tick_duration));
     return Array.from(
-        { length: numTicks },
-        (_, i) => Number((start + BigInt(i) * tick_duration) / 1_000_000n)
+        { length: numTicks + 1 },
+        (_, i) => nsToMs((start + BigInt(i) * tick_duration))
     );
 }
 

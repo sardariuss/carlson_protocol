@@ -1,5 +1,5 @@
-import { useMemo, useEffect, useRef, useState } from 'react';
-import { Datum, ResponsiveLine, Serie } from '@nivo/line';
+import { useMemo, useEffect, useRef, useState, Fragment } from 'react';
+import { ResponsiveLine, Serie } from '@nivo/line';
 import { BITCOIN_TOKEN_SYMBOL, CHART_BACKGROUND_COLOR, LOCK_EMOJI } from '../../constants';
 import { SQueriedBallot } from '@/declarations/protocol/protocol.did';
 import IntervalPicker from './IntervalPicker';
@@ -7,7 +7,7 @@ import { DurationUnit, toNs } from '../../utils/conversions/duration';
 import { CHART_CONFIGURATIONS, computeTicksMs, isNotFiniteNorNaN } from '.';
 import { formatBalanceE8s } from '../../utils/conversions/token';
 import { protocolActor } from '../../actors/ProtocolActor';
-import { formatDate, timeToDate } from '../../utils/conversions/date';
+import { formatDate, msToNs, nsToMs, timeToDate } from '../../utils/conversions/date';
 import { get_current, get_first } from '../../utils/timeline';
 
 interface LockChartProps {
@@ -43,9 +43,9 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
       const { YES_NO: { timestamp, duration_ns } } = ballot.ballot;
 
       // Compute timestamps
-      const baseTimestamp = Number(timestamp / 1_000_000n);
-      const initialLockEnd = baseTimestamp + Number(get_first(duration_ns).data / 1_000_000n);
-      const actualLockEnd = baseTimestamp + Number(get_current(duration_ns).data / 1_000_000n);
+      const baseTimestamp = nsToMs(timestamp);
+      const initialLockEnd = baseTimestamp + nsToMs(get_first(duration_ns).data);
+      const actualLockEnd = baseTimestamp + nsToMs(get_current(duration_ns).data);
 
       // Update min and max directly
       if (baseTimestamp < minDate) minDate = baseTimestamp;
@@ -99,8 +99,8 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
         ) * 800; // Adjusted width
 
         const ticks = computeTicksMs(
-          BigInt(dateRange.minDate) * 1_000_000n,
-          BigInt(dateRange.maxDate) * 1_000_000n,
+          msToNs(dateRange.maxDate - dateRange.minDate),
+          msToNs(dateRange.minDate),
           config.tick
         );
 
@@ -167,7 +167,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
           const border_width = 1;
   
           return (
-            <>
+            <Fragment key={`segment-${index}`}>
               {/* Border line */}
               <line
                 key={`border-${index}`}
@@ -187,10 +187,10 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
               <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <linearGradient id={`lineGradient-${index}`} gradientUnits="userSpaceOnUse" x1={x1} x2={x2} y1={y1} y2={y2}>
-                    <stop offset="0%" stop-color="#1B63EB" />
-                    <stop offset={segment.percentage.toFixed(2) + "%"} stop-color="#1B63EB" />
-                    <stop offset={segment.percentage.toFixed(2) + "%"} stop-color="#1B63EB" />
-                    <stop offset="100%" stop-color="#A21CAF">
+                    <stop offset="0%" stopColor="#1B63EB" />
+                    <stop offset={segment.percentage.toFixed(2) + "%"} stopColor="#1B63EB" />
+                    <stop offset={segment.percentage.toFixed(2) + "%"} stopColor="#1B63EB" />
+                    <stop offset="100%" stopColor="#A21CAF">
                       <animate
                         attributeName="stop-color"
                         values="#A21CAF;#E11D48;#A21CAF" // bg-fuchsia-700 & bg-rose-600
@@ -215,7 +215,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
                   }}
                 />
               </svg>
-            </>
+            </Fragment>
           );
         })}
   
@@ -307,7 +307,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
             axisLeft={null}
             enablePoints={false}
             lineWidth={20}
-            colors={{ scheme: 'category10' }}
+            colors={{ scheme: 'category10' }} // @todo: what is this ?
             margin={{ top: 50, right: 50, bottom: 50, left: 60 }}
             markers={currentTime ? [
               {
@@ -341,7 +341,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
           />
         </div>
       </div>
-      <IntervalPicker duration={duration} setDuration={setDuration} />
+      <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.MONTH, DurationUnit.YEAR]}  />
     </div>
   );
 };

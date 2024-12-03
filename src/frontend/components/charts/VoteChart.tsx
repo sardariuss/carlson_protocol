@@ -1,4 +1,4 @@
-import { useMemo, useState }                     from "react";
+import { useEffect, useMemo, useState }          from "react";
 import { protocolActor }                         from "../../actors/ProtocolActor";
 import { STimeline_2 }                           from "@/declarations/protocol/protocol.did";
 import { SYesNoVote }                            from "@/declarations/backend/backend.did";
@@ -40,8 +40,6 @@ const computeChartProps = ({ currentTime, currentDecay, duration, aggregate } : 
   let nextAggregateIndex = 0;
 
   let aggregate_history = [...aggregate.history, aggregate.current];
-  console.log("Last tick: ", new Date(dates[dates.length - 1].date))
-  console.log(aggregate_history)
   
   dates.forEach(({ date }) => {
     // Update aggregate while the next timestamp is within range
@@ -61,6 +59,10 @@ const computeChartProps = ({ currentTime, currentDecay, duration, aggregate } : 
     // Push the current data points to chartData
     chartData[0].data.push({ x: date, y: yesAggregate });
     chartData[1].data.push({ x: date, y: noAggregate });
+  });
+
+  chartData[0].data.forEach((point) => {
+    console.log("Date: ", new Date(point.x), "Yes: ", point.y);
   });
 
   return {
@@ -108,12 +110,13 @@ interface VoteChartrops {
 const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
 
   const [duration, setDuration] = useState<DurationUnit>(DurationUnit.WEEK);
+  const [refreshVoteData, setRefreshVoteData] = useState<boolean>(false);
 
-  const { data: currentTime } = protocolActor.useQueryCall({
+  const { data: currentTime, call: refreshCurrentTime } = protocolActor.useQueryCall({
     functionName: "get_time",
   });
 
-  const { data: currentDecay } = protocolActor.useQueryCall({
+  const { data: currentDecay, call: refreshCurrentDecay } = protocolActor.useQueryCall({
     functionName: "current_decay",
   });
      
@@ -123,7 +126,16 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
     }
     return computeChartProps({ currentTime, currentDecay, duration, aggregate: vote.aggregate });
   }, 
-  [vote, currentTime, currentDecay, duration]);
+  [refreshVoteData, duration]);
+
+  useEffect(() => {
+    let timeRefresh = refreshCurrentTime();
+    let decayRefresh = refreshCurrentDecay();
+    Promise.all([timeRefresh, decayRefresh]).then(() => {
+      setRefreshVoteData(!refreshVoteData);
+    });
+  }
+  , [vote]);
 
   const { chartData, max, priceLevels, dateTicks } = useMemo<ChartProperties>(() => {
     return {
@@ -187,7 +199,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
             tickValues: dateTicks,
             legend: '',
             legendPosition: 'middle',
-            legendOffset: 64,
+            legendOffset: 0,
             renderTick: ({ x, y, value }) => (
               <g transform={`translate(${x},${y})`}>
                 <text
@@ -210,7 +222,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
           }}
         />
       </div>
-      <IntervalPicker duration={duration} setDuration={setDuration} />
+      <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.WEEK, DurationUnit.MONTH, DurationUnit.YEAR]} />
     </div>
   );
 }
