@@ -46,12 +46,13 @@ module {
                 };
                 case(?v) { v; };
             };
-            Timeline.add(info.amount, time, Timeline.get_current(info.amount) + amount);
+            Timeline.add(info.amount, time, Timeline.current(info.amount) + amount);
             info.owed += amount;
             Map.set(debts, Map.thash, id, info);
             tag_to_transfer(id, info);
         };
 
+        // TODO: ideally use icrc3 to perform multiple transfers at once
         public func transfer_owed() : async* () {
             let calls = Buffer.Buffer<async* ()>(Set.size(owed));
             label infinite while(true){
@@ -72,6 +73,10 @@ module {
 
         public func get_owed() : [UUID] {
             Set.toArray(owed);
+        };
+
+        public func get_ledger() : LedgerFacade.LedgerFacade {
+            ledger;
         };
 
         func transfer(id: UUID, info: DebtInfo) : async* () {

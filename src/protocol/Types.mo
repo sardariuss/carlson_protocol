@@ -44,6 +44,7 @@ module {
     public type ClockParameters    = Types.Current.ClockParameters;
     public type UUID               = Types.Current.UUID;
     public type Lock               = Types.Current.Lock;
+    public type LockRegister       = Types.Current.LockRegister;
     public type DebtInfo           = Types.Current.DebtInfo;
     public type Transfer           = Types.Current.Transfer;
     public type TransferResult     = Types.Current.TransferResult;

@@ -4,6 +4,7 @@ import Decay              "duration/Decay";
 import DurationCalculator "duration/DurationCalculator";
 import VoteFactory        "votes/VoteFactory";
 import VoteTypeController "votes/VoteTypeController";
+import Incentives         "votes/Incentives";
 import LedgerFacade       "payement/LedgerFacade";
 import PresenceDispenser  "PresenceDispenser";
 import LockScheduler      "LockScheduler";
@@ -14,62 +15,84 @@ import DebtProcessor      "DebtProcessor";
 
 import Map                "mo:map/Map";
 
+import Float              "mo:base/Float";
+
 module {
 
-    type VoteRegister = Types.VoteRegister;
-    type Duration = Types.Duration;
     type Time = Int;
     type State = Types.State;
-    type Lock = Types.Lock;
     type UUID = Types.UUID;
-    type YesNoChoice = Types.YesNoChoice;
-    type YesNoBallot = Types.Ballot<YesNoChoice>;
+    type YesNoBallot = Types.Ballot<Types.YesNoChoice>;
     type HotElem = HotMap.HotElem;
-    type FullDebtInfo = Types.FullDebtInfo;
-    type DebtInfo = Types.DebtInfo;
 
-    type BuildArguments = State and {
-        provider: Principal;
-    };
+    public func build(args: State and { provider: Principal }) : Controller.Controller {
 
-    public func build(args: BuildArguments) : Controller.Controller {
-
-        let { clock_parameters; vote_register; locks; deposit; presence; resonance; parameters; provider; } = args;
+        let { clock_parameters; vote_register; lock_register; deposit; presence; resonance; parameters; provider; } = args;
         let { nominal_lock_duration; decay; } = parameters;
-
-        let clock = Clock.Clock(clock_parameters);
-
-        let decay_model = Decay.DecayModel(decay);
-
-        let duration_calculator = DurationCalculator.PowerScaler({
-            nominal_duration = nominal_lock_duration;
-        });
 
         let deposit_ledger = LedgerFacade.LedgerFacade({ deposit with provider; });
         let presence_ledger = LedgerFacade.LedgerFacade({ presence with provider; });
         let resonance_ledger = LedgerFacade.LedgerFacade({ resonance with provider; });
+
+        let deposit_debt = DebtProcessor.DebtProcessor({
+            deposit with 
+            ledger = deposit_ledger;
+        });
 
         let presence_debt = DebtProcessor.DebtProcessor({
             presence with 
             ledger = presence_ledger;
         });
 
+        let resonance_debt = DebtProcessor.DebtProcessor({
+            resonance with 
+            ledger = resonance_ledger;
+        });
+
         let presence_dispenser = PresenceDispenser.PresenceDispenser({
-            locks;
+            lock_register;
             parameters = presence.parameters;
             debt_processor = presence_debt;
         });
+
+        let duration_calculator = DurationCalculator.PowerScaler({
+            nominal_duration = nominal_lock_duration;
+        });
         
         let lock_scheduler = LockScheduler.LockScheduler({
-            locks;
+            lock_register;
             update_lock_duration = func(ballot: YesNoBallot, time: Time) {
                 let duration_ns = duration_calculator.compute_duration_ns(ballot.hotness);
                 Timeline.add(ballot.duration_ns, time, duration_ns);
                 ballot.release_date := ballot.timestamp + duration_ns;
             };
-            about_to_add = presence_dispenser.about_to_add;
-            about_to_remove = presence_dispenser.about_to_remove;
+            about_to_add = func (_: YesNoBallot, time: Time) {
+                presence_dispenser.dispense(time);
+            };
+            about_to_remove = func (ballot: YesNoBallot, time: Time) {
+                presence_dispenser.dispense(time);
+                deposit_debt.add_debt({ 
+                    account = ballot.from;
+                    amount = Float.fromInt(ballot.amount);
+                    id = ballot.ballot_id;
+                    time;
+                });
+                resonance_debt.add_debt({ 
+                    account = ballot.from;
+                    amount = Incentives.compute_resonance({ 
+                        amount = ballot.amount;
+                        dissent = ballot.dissent;
+                        consent = Timeline.current(ballot.consent);
+                        start = ballot.timestamp;
+                        end = time;
+                    });
+                    id = ballot.ballot_id;
+                    time;
+                });
+            };
         });
+
+        let decay_model = Decay.DecayModel(decay);
 
         // TODO: this should not assume it is a yes/no ballot, but work on every type of ballot
         let hot_map = HotMap.HotMap<UUID, YesNoBallot>({
@@ -92,12 +115,16 @@ module {
             yes_no_controller;
         });
 
+        let clock = Clock.Clock(clock_parameters);
+
         Controller.Controller({
             clock;
             vote_register;
             lock_scheduler;
             vote_type_controller;
-            deposit_ledger;
+            deposit_debt;
+            presence_debt;
+            resonance_debt;
             decay_model;
         });
     };

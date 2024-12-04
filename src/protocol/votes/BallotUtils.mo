@@ -40,7 +40,7 @@ module {
 
     public func get_consent(ballot: BallotType): Float {
         switch(ballot){
-            case(#YES_NO(b)) { Timeline.get_current(b.consent); };
+            case(#YES_NO(b)) { Timeline.current(b.consent); };
         };
     };
 

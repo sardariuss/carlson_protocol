@@ -44,12 +44,16 @@ module {
                 votes = Map.new<UUID, Types.VoteType>();
                 by_origin = Map.new<Principal, Set.Set<UUID>>();
                 user_ballots = Map.new<Account, Set.Set<(UUID, UUID)>>();
-                total_locked = Timeline.initialize(now, 0);
             };
-            locks = BTree.init<Lock, Ballot<YesNoChoice>>(?BTREE_ORDER);
+            lock_register = {
+                total_amount = Timeline.initialize(now, 0);
+                locks = BTree.init<Lock, Ballot<YesNoChoice>>(?BTREE_ORDER);
+            };
             deposit = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(deposit.ledger));
                 fee = deposit.fee;
+                debts = Map.new<UUID, DebtInfo>();
+                owed = Set.new<UUID>();
             };
             presence = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(presence.ledger));
@@ -64,6 +68,8 @@ module {
             resonance = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(resonance.ledger));
                 fee = resonance.fee;
+                debts = Map.new<UUID, DebtInfo>();
+                owed = Set.new<UUID>();
             };
             parameters = { parameters with 
                 decay = {

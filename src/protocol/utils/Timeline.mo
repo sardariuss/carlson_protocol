@@ -35,12 +35,12 @@ module {
   };
 
   // Retrieve the latest entry
-  public func get_current<T>(timeline: Timeline<T>): T {
+  public func current<T>(timeline: Timeline<T>): T {
     timeline.current.data;
   };
 
   // Retrieve the entire historical log
-  public func get_history<T>(timeline: Timeline<T>): [TimedData<T>] {
+  public func history<T>(timeline: Timeline<T>): [TimedData<T>] {
     timeline.history;
   };
 

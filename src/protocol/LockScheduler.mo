@@ -1,4 +1,6 @@
 import Types "Types";
+import Timeline "utils/Timeline";
+
 import BTree "mo:stableheapbtreemap/BTree";
 import Order "mo:base/Order";
 import Text "mo:base/Text";
@@ -13,6 +15,7 @@ module {
     type BTree<K, V> = BTree.BTree<K, V>;
     type Order = Order.Order;
     type YesNoBallot = Types.Ballot<Types.YesNoChoice>;
+    type LockRegister = Types.LockRegister;
 
     public func compare_locks(a: Lock, b: Lock) : Order {
         switch(Int.compare(a.release_date, b.release_date)){
@@ -23,7 +26,7 @@ module {
     };
 
     public class LockScheduler({
-        locks: BTree<Lock, YesNoBallot>;
+        lock_register: LockRegister;
         update_lock_duration: (YesNoBallot, Time) -> ();
         about_to_add: (YesNoBallot, Time) -> ();
         about_to_remove: (YesNoBallot, Time) -> ();
@@ -31,22 +34,30 @@ module {
 
         // add
         public func add(ballot: YesNoBallot, time: Time) {
+            
             update_lock_duration(ballot, time);
             let lock = get_lock(ballot);
+            let { locks; total_amount; } = lock_register;
+
             if (not BTree.has(locks, compare_locks, lock)){
                 about_to_add(ballot, ballot.timestamp);
                 ignore BTree.insert(locks, compare_locks, lock, ballot);
+                Timeline.add(total_amount, time, Timeline.current(total_amount) + ballot.amount);
             };
         };
 
         // update
         public func update(ballot: YesNoBallot, time: Time) {
+            
+            let { locks; total_amount; } = lock_register;
+
             // Only perform the update the lock duration if the lock is active (i.e. present in the locks BTree)
             switch(BTree.delete(locks, compare_locks, get_lock(ballot))) {
                 case(null) {};
                 case(_) {
                     update_lock_duration(ballot, time);
                     ignore BTree.insert(locks, compare_locks, get_lock(ballot), ballot);
+                    Timeline.add(total_amount, time, Timeline.current(total_amount) - ballot.amount);
                 };
             };
         };
@@ -54,12 +65,12 @@ module {
         // try_unlock
         public func try_unlock(time: Time) {
             while (true) {
-                switch(BTree.min(locks)) {
+                switch(BTree.min(lock_register.locks)) {
                     case(null) { return; };
                     case(?(lock, ballot)) {
                         if (lock.release_date > time) { return; };
                         about_to_remove(ballot, lock.release_date);
-                        ignore BTree.delete(locks, compare_locks, lock);
+                        ignore BTree.delete(lock_register.locks, compare_locks, lock);
                     };
                 };
             };

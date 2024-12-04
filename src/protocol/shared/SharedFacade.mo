@@ -44,7 +44,7 @@ module {
         };
 
         public func run() : async* () {
-            await* controller.run(null);
+            await* controller.run();
         };
 
         public func get_votes({origin: Principal;}) : [SVoteType] {

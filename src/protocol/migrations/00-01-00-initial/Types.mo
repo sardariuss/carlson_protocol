@@ -170,7 +170,6 @@ module {
         votes: Map<UUID, VoteType>;
         by_origin: Map<Principal, Set<UUID>>;
         user_ballots: Map<Account, Set<(UUID, UUID)>>;
-        total_locked: Timeline<Nat>;
     };
 
     public type VoteType = {
@@ -280,6 +279,11 @@ module {
         id: UUID;
     };
 
+    public type LockRegister = {
+        total_amount: Timeline<Nat>;
+        locks: BTree<Lock, Ballot<YesNoChoice>>; // TODO: use the generic BallotType instead
+    };
+
     public type Args = {
         #init: InitArgs;
         #upgrade: UpgradeArgs;
@@ -315,10 +319,12 @@ module {
     public type State = {
         clock_parameters: ClockParameters;
         vote_register: VoteRegister;
-        locks: BTree<Lock, Ballot<YesNoChoice>>; // TODO: use the generic BallotType instead
+        lock_register: LockRegister;
         deposit: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
+            debts: Map<UUID, DebtInfo>;
+            owed: Set<UUID>;
         };
         presence: {
             ledger: ICRC1 and ICRC2;
@@ -330,6 +336,8 @@ module {
         resonance: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
+            debts: Map<UUID, DebtInfo>;
+            owed: Set<UUID>;
         };
         parameters: {
             nominal_lock_duration: Duration;

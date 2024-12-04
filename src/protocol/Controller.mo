@@ -1,6 +1,6 @@
 import Types              "Types";
 import VoteTypeController "votes/VoteTypeController";
-import LedgerFacade       "payement/LedgerFacade";
+import DebtProcessor      "DebtProcessor";
 import MapUtils           "utils/Map";
 import Decay              "duration/Decay";
 import Timeline           "utils/Timeline";
@@ -16,6 +16,7 @@ import Option             "mo:base/Option";
 import Float              "mo:base/Float";
 import Time               "mo:base/Time";
 import Debug              "mo:base/Debug";
+import Buffer             "mo:base/Buffer";
 
 module {
 
@@ -59,7 +60,9 @@ module {
         vote_register: VoteRegister;
         lock_scheduler: LockScheduler.LockScheduler;
         vote_type_controller: VoteTypeController.VoteTypeController;
-        deposit_ledger: LedgerFacade.LedgerFacade;
+        deposit_debt: DebtProcessor.DebtProcessor;
+        presence_debt: DebtProcessor.DebtProcessor;
+        resonance_debt: DebtProcessor.DebtProcessor;
         decay_model: Decay.DecayModel;
     }){
 
@@ -118,7 +121,7 @@ module {
                 case(null) {};
             };
 
-            let transfer = await* deposit_ledger.transfer_from({
+            let transfer = await* deposit_debt.get_ledger().transfer_from({
                 from = { owner = caller; subaccount = from_subaccount; };
                 amount;
             });
@@ -141,11 +144,6 @@ module {
             // Update the user_ballots map
             MapUtils.putInnerSet(vote_register.user_ballots, MapUtils.acchash, from, MapUtils.tthash, (vote_id, ballot_id));
 
-            // Update the locked amount history
-            // TODO: Should the timeline be flexible enough to allow adding entries in the past?
-            // TODO: should get clock.get_time() instead
-            Timeline.add(vote_register.total_locked, timestamp, Timeline.get_current(vote_register.total_locked) + amount);
-
             #ok(SharedConversions.shareBallotType(ballot_type));
         };
 
@@ -162,12 +160,20 @@ module {
             };
         };
 
-        public func run(opt_time: ?Time) : async* () {
-
-            let time = Option.get(opt_time, clock.get_time());
+        public func run() : async* () {
+            let time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
-
             lock_scheduler.try_unlock(time);
+
+            let transfers = Buffer.Buffer<async* ()>(3);
+
+            transfers.add(deposit_debt.transfer_owed());
+            transfers.add(presence_debt.transfer_owed());
+            transfers.add(resonance_debt.transfer_owed());
+
+            for (call in transfers.vals()){
+                await* call;
+            };
         };
 
         public func get_votes({origin: Principal;}) : [VoteType] {
