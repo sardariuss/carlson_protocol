@@ -4,7 +4,6 @@ import Incentives         "Incentives";
 import Types              "../Types";
 import Decay              "../duration/Decay";
 import DurationCalculator "../duration/DurationCalculator";
-import PayementFacade     "../payement/PayementFacade";
 import HotMap             "../locks/HotMap";
 
 import Float              "mo:base/Float";
@@ -18,7 +17,6 @@ module {
     type YesNoAggregate = Types.YesNoAggregate;
     type YesNoBallot = Types.Ballot<YesNoChoice>;
     type YesNoChoice = Types.YesNoChoice;
-    type RefundState = Types.RefundState;
     type Duration = Types.Duration;
     type TimedData<T> = Types.TimedData<T>;
     type UUID = Types.UUID;

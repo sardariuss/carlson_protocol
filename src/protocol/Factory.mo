@@ -4,7 +4,7 @@ import Decay              "duration/Decay";
 import DurationCalculator "duration/DurationCalculator";
 import VoteFactory        "votes/VoteFactory";
 import VoteTypeController "votes/VoteTypeController";
-import PayementFacade     "payement/PayementFacade";
+import LedgerFacade       "payement/LedgerFacade";
 import PresenceDispenser  "PresenceDispenser";
 import LockScheduler      "LockScheduler";
 import Clock              "utils/Clock";
@@ -45,13 +45,13 @@ module {
             nominal_duration = nominal_lock_duration;
         });
 
-        let deposit_facade = PayementFacade.PayementFacade({ deposit with provider; });
-        let presence_facade = PayementFacade.PayementFacade({ presence with provider; });
-        let resonance_facade = PayementFacade.PayementFacade({ resonance with provider; });
+        let deposit_ledger = LedgerFacade.LedgerFacade({ deposit with provider; });
+        let presence_ledger = LedgerFacade.LedgerFacade({ presence with provider; });
+        let resonance_ledger = LedgerFacade.LedgerFacade({ resonance with provider; });
 
         let presence_debt = DebtProcessor.DebtProcessor({
             presence with 
-            payement = presence_facade;
+            ledger = presence_ledger;
         });
 
         let presence_dispenser = PresenceDispenser.PresenceDispenser({
@@ -97,7 +97,7 @@ module {
             vote_register;
             lock_scheduler;
             vote_type_controller;
-            deposit_facade;
+            deposit_ledger;
             decay_model;
         });
     };

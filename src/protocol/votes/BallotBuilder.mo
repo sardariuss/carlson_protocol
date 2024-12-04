@@ -62,7 +62,6 @@ module {
                         consent = ballot.consent;
                         tx_id = deposit.tx_id;
                         from = deposit.from;
-                        deposit_state = deposit.deposit_state;
                         var hotness = hot.hotness;
                         decay = hot.decay;
                         duration_ns = duration.duration_ns;

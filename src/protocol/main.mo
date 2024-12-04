@@ -83,11 +83,6 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().current_decay();
     };
 
-    // Get the failed refunds for the given principal
-    public query func get_deposit_incidents() : async [(Nat, Types.Incident)] {
-        getFacade().get_deposit_incidents();
-    };
-
     public shared func add_offset(duration: Types.Duration) : async Result.Result<(), Text> {
         getFacade().add_offset(duration);
     };

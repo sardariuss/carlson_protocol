@@ -63,7 +63,6 @@ module {
             duration_ns = shareTimeline(ballot.duration_ns);
             tx_id = ballot.tx_id;
             from = ballot.from;
-            deposit_state = ballot.deposit_state;
             hotness = ballot.hotness;
             decay = ballot.decay;
             release_date = ballot.release_date;

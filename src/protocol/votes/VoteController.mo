@@ -123,7 +123,7 @@ module {
                 dissent = compute_dissent({ aggregate; choice; amount; time = timestamp; });
                 consent = Timeline.initialize(timestamp, compute_consent({ aggregate; choice; time = timestamp; }));
             });
-            builder.add_deposit({ tx_id; from; deposit_state = #DEPOSITED; });
+            builder.add_deposit({ tx_id; from; });
             builder;
         };
 

@@ -35,14 +35,10 @@ module {
     public type Vote<A, B>         = Types.Current.Vote<A, B>;
     public type BallotInfo<B>      = Types.Current.BallotInfo<B>;
     public type DepositInfo        = Types.Current.DepositInfo;
-    public type DepositState       = Types.Current.DepositState;
-    public type RefundState        = Types.Current.RefundState;
     public type HotInfo            = Types.Current.HotInfo;
     public type DurationInfo       = Types.Current.DurationInfo;
     public type Ballot<B>          = Types.Current.Ballot<B>;
-    public type Incident           = Types.Current.Incident;
     public type ServiceError       = Types.Current.ServiceError;
-    public type IncidentRegister   = Types.Current.IncidentRegister;
     public type Duration           = Types.Current.Duration;
     public type State              = Types.Current.State;
     public type ClockParameters    = Types.Current.ClockParameters;
@@ -118,7 +114,6 @@ module {
     public type SDepositInfo = {
         tx_id: Nat;
         from: Account;
-        deposit_state: DepositState;
     };
 
     public type SHotInfo = {
@@ -175,9 +170,8 @@ module {
     public type Service = { tx_id: Nat; } -> async* Result<Nat, Text>;
 
     public type VoteNotFoundError = { #VoteNotFound: { vote_id: UUID; }; };
-    public type TransferIncident = { #TransferIncident: { incident_id: Nat }; };
     
-    public type PutBallotError = TransferFromError or VoteNotFoundError or TransferIncident or { #BallotAlreadyExists: { ballot_id: UUID; }; };
+    public type PutBallotError = TransferFromError or VoteNotFoundError or { #BallotAlreadyExists: { ballot_id: UUID; }; };
     
     public type PutBallotResult = Result<SBallotType, PutBallotError>;
     

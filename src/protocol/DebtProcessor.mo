@@ -1,6 +1,6 @@
 import Types "Types";
 import Timeline "utils/Timeline";
-import PayementFacade "payement/PayementFacade";
+import LedgerFacade "payement/LedgerFacade";
 
 import Set "mo:map/Set";
 import Map "mo:map/Map";
@@ -34,7 +34,7 @@ module {
     };
 
     public class DebtProcessor({
-        payement: PayementFacade.PayementFacade;
+        ledger: LedgerFacade.LedgerFacade;
         debts: Map<UUID, DebtInfo>;
         owed: Set<UUID>;
     }){
@@ -79,8 +79,8 @@ module {
             info.pending += difference;
             // Remove the debt from the set, it will be added back if the transfer fails
             Set.delete(owed, Map.thash, id);
-            // Run the payement
-            let transfer = await* payement.send_payement({ to = info.account; amount = difference; });
+            // Run the transfer
+            let transfer = await* ledger.transfer({ to = info.account; amount = difference; });
             info.transfers := Array.append(info.transfers, [transfer]);
             info.pending -= difference;
             // Update what is owed if the transfer succeded

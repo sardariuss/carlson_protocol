@@ -224,21 +224,6 @@ module {
     public type DepositInfo = {
         tx_id: Nat;
         from: Account;
-        deposit_state: DepositState;
-    };
-
-    public type DepositState = {
-        #DEPOSITED;
-        #REFUNDED: RefundState;
-    };
-
-    public type RefundState = {
-        since: Time;
-        transfer: {
-            #PENDING;
-            #FAILED: { incident_id: Nat; };
-            #SUCCESS: { tx_id: Nat };
-        };
     };
 
     public type HotInfo = {
@@ -252,15 +237,6 @@ module {
     };
 
     public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and DurationInfo;
-
-    public type Incident = {
-        #ServiceTrapped: ServiceError;
-        #ServiceFailed: ServiceError;
-        #TransferFailed: {
-            args: Icrc1TransferArgs;
-            error: Icrc1TransferError or { #Trapped : { error_code: Error.ErrorCode; }};
-        };
-    };
 
     public type Transfer = {
         args: Icrc1TransferArgs;
@@ -278,11 +254,6 @@ module {
             args: TransferFromArgs;
         };
         error: Text;
-    };
-
-    public type IncidentRegister = {
-        var index: Nat;
-        incidents: Map<Nat, Incident>;
     };
 
     public type Duration = {
@@ -348,12 +319,10 @@ module {
         deposit: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            incidents: IncidentRegister;
         };
         presence: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            incidents: IncidentRegister;
             debts: Map<UUID, DebtInfo>;
             owed: Set<UUID>;
             parameters: PresenseParameters;
@@ -361,7 +330,6 @@ module {
         resonance: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            incidents: IncidentRegister;
         };
         parameters: {
             nominal_lock_duration: Duration;

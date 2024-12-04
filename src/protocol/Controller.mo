@@ -1,19 +1,17 @@
 import Types              "Types";
 import VoteTypeController "votes/VoteTypeController";
-import PayementFacade     "payement/PayementFacade";
-import PresenceDispenser  "PresenceDispenser";
+import LedgerFacade       "payement/LedgerFacade";
 import MapUtils           "utils/Map";
 import Decay              "duration/Decay";
 import Timeline           "utils/Timeline";
 import Clock              "utils/Clock";
-import LockScheduler     "LockScheduler";
+import LockScheduler      "LockScheduler";
 import SharedConversions  "shared/SharedConversions";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
 
 import Int                "mo:base/Int";
-import Buffer             "mo:base/Buffer";
 import Option             "mo:base/Option";
 import Float              "mo:base/Float";
 import Time               "mo:base/Time";
@@ -61,7 +59,7 @@ module {
         vote_register: VoteRegister;
         lock_scheduler: LockScheduler.LockScheduler;
         vote_type_controller: VoteTypeController.VoteTypeController;
-        deposit_facade: PayementFacade.PayementFacade;
+        deposit_ledger: LedgerFacade.LedgerFacade;
         decay_model: Decay.DecayModel;
     }){
 
@@ -120,7 +118,7 @@ module {
                 case(null) {};
             };
 
-            let transfer = await* deposit_facade.transfer_from({
+            let transfer = await* deposit_ledger.transfer_from({
                 from = { owner = caller; subaccount = from_subaccount; };
                 amount;
             });
@@ -195,10 +193,6 @@ module {
 
         public func current_decay() : Float {
             decay_model.compute_decay(clock.get_time());
-        };
-
-        public func get_deposit_incidents() : [(Nat, Types.Incident)] {
-            deposit_facade.get_incidents();
         };
 
         public func get_clock() : Clock.Clock {
