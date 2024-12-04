@@ -23,7 +23,7 @@ module {
 
     public type HotOutput = {
         decay: Float;
-        hotness: Float;
+        var hotness: Float;
     };
 
     public type HotElem = HotInput and HotOutput;
@@ -32,7 +32,7 @@ module {
         v: V;
         hotness: Float;
         time: Time;
-    } -> V;
+    } -> ();
     
     public class HotMap<K, V>({
         decay_model: IDecayModel;
@@ -81,8 +81,7 @@ module {
                 let hotness = prev_elem.hotness + Float.fromInt(amount) * weight;
                 
                 // Update the hotness of the previous elem
-                let new_value = update_hotness({ v; hotness; time = timestamp; });
-                Map.set(map, key_hash, key, new_value);
+                update_hotness({ v; hotness; time = timestamp; });
             };
 
             // Add the new elem
@@ -151,7 +150,7 @@ module {
                 hotness += Float.fromInt(old_value.amount) * weight;
             };
 
-            builder.add_hot({ hotness; decay; }, timestamp);
+            builder.add_hot({ var hotness = hotness; decay; }, timestamp);
             builder.build();
         };
 

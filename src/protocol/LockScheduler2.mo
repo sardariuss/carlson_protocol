@@ -15,7 +15,7 @@ module {
     type YesNoBallot = Types.Ballot<Types.YesNoChoice>;
 
     public func compare_locks(a: Lock, b: Lock) : Order {
-        switch(Int.compare(a.unlock_time, b.unlock_time)){
+        switch(Int.compare(a.release_date, b.release_date)){
             case(#less) { #less; };
             case(#greater) { #greater; };
             case(#equal) { Text.compare(a.id, b.id); };
@@ -40,13 +40,13 @@ module {
         };
 
         // update
-        public func update(old_ballot: YesNoBallot, new_ballot: YesNoBallot, time: Time) {
-            // Only perform the update if the old lock is present in the tree
-            switch(BTree.delete(locks, compare_locks, get_lock(old_ballot))) {
+        public func update(ballot: YesNoBallot, time: Time) {
+            // Only perform the update the lock duration if the lock is active (i.e. present in the locks BTree)
+            switch(BTree.delete(locks, compare_locks, get_lock(ballot))) {
                 case(null) {};
                 case(_) {
-                    update_lock_duration(new_ballot, time);
-                    ignore BTree.insert(locks, compare_locks, get_lock(new_ballot), new_ballot);
+                    update_lock_duration(ballot, time);
+                    ignore BTree.insert(locks, compare_locks, get_lock(ballot), ballot);
                 };
             };
         };
@@ -57,8 +57,8 @@ module {
                 switch(BTree.min(locks)) {
                     case(null) { return; };
                     case(?(lock, ballot)) {
-                        if (lock.unlock_time > time) { return; };
-                        about_to_remove(ballot, lock.unlock_time);
+                        if (lock.release_date > time) { return; };
+                        about_to_remove(ballot, lock.release_date);
                         ignore BTree.delete(locks, compare_locks, lock);
                     };
                 };
@@ -66,7 +66,7 @@ module {
         };
 
         func get_lock(ballot: YesNoBallot) : Lock {
-            { unlock_time = 0; /*ballot.unlock_time*/ id = ballot.ballot_id; };
+            { release_date = ballot.release_date; id = ballot.ballot_id; };
         };
 
     };

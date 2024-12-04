@@ -7,7 +7,7 @@ import Int       "mo:base/Int";
 module {
 
     public type IDurationCalculator = {
-        compute_duration_ns: { hotness: Float; } -> Nat;
+        compute_duration_ns: Float -> Nat;
     };
 
     // https://www.desmos.com/calculator/9beo92hvwn
@@ -34,7 +34,7 @@ module {
         let nominal_duration_ns = Duration.toTime(nominal_duration);
         let scale_factor = Float.log(2.0) / Float.log(10.0);
 
-        public func compute_duration_ns({ hotness: Float }) : Nat {
+        public func compute_duration_ns(hotness: Float) : Nat {
             Int.abs(Float.toInt(Float.fromInt(nominal_duration_ns) * Float.pow(hotness, scale_factor)));
         };
     

@@ -242,13 +242,13 @@ module {
     };
 
     public type HotInfo = {
-        hotness: Float;
+        var hotness: Float;
         decay: Float;
     };
 
     public type DurationInfo = {
         duration_ns: Timeline<Nat>;
-        var unlock_time: Time;
+        var release_date: Time;
     };
 
     public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and DurationInfo;
@@ -305,7 +305,7 @@ module {
     };
 
     public type Lock = {
-        unlock_time: Time;
+        release_date: Time;
         id: UUID;
     };
 

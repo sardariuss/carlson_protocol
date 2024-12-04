@@ -115,12 +115,23 @@ module {
         consent: STimeline<Float>;
     };
 
-    public type SDurationInfo = {
-        duration_ns: STimeline<Nat>;
-        unlock_time: Time;
+    public type SDepositInfo = {
+        tx_id: Nat;
+        from: Account;
+        deposit_state: DepositState;
     };
 
-    public type SBallot<B> = SBallotInfo<B> and DepositInfo and HotInfo and SDurationInfo;
+    public type SHotInfo = {
+        hotness: Float;
+        decay: Float;
+    };
+
+    public type SDurationInfo = {
+        duration_ns: STimeline<Nat>;
+        release_date: Time;
+    };
+
+    public type SBallot<B> = SBallotInfo<B> and SDepositInfo and SHotInfo and SDurationInfo;
 
     public type SVote<A, B> = {
         vote_id: UUID;

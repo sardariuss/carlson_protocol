@@ -40,10 +40,10 @@ module {
             switch(_hot, _duration){
                 case(null, null) {
                     _hot := ?hot;
-                    let duration = duration_calculator.compute_duration_ns(hot);
+                    let duration = duration_calculator.compute_duration_ns(hot.hotness);
                     _duration := ?{
                         duration_ns = Timeline.initialize(timestamp, duration);
-                        var unlock_time = timestamp + duration;
+                        var release_date = timestamp + duration;
                     }; 
                 };
                 case(_) { Debug.trap("Hot Info has already been added")};
@@ -63,10 +63,10 @@ module {
                         tx_id = deposit.tx_id;
                         from = deposit.from;
                         deposit_state = deposit.deposit_state;
-                        hotness = hot.hotness;
+                        var hotness = hot.hotness;
                         decay = hot.decay;
                         duration_ns = duration.duration_ns;
-                        var unlock_time = duration.unlock_time;
+                        var release_date = duration.release_date;
                     };
                 };
                 case(_){

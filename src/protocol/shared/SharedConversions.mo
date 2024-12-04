@@ -66,6 +66,7 @@ module {
             deposit_state = ballot.deposit_state;
             hotness = ballot.hotness;
             decay = ballot.decay;
+            release_date = ballot.release_date;
         };
     };
 

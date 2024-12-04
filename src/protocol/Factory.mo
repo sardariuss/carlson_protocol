@@ -40,6 +40,12 @@ module {
 
         let clock = Clock.Clock(clock_parameters);
 
+        let decay_model = Decay.DecayModel(decay);
+
+        let duration_calculator = DurationCalculator.PowerScaler({
+            nominal_duration = nominal_lock_duration;
+        });
+
         let deposit_facade = PayementFacade.PayementFacade({ deposit with provider; });
         let presence_facade = PayementFacade.PayementFacade({ presence with provider; });
         let resonance_facade = PayementFacade.PayementFacade({ resonance with provider; });
@@ -57,40 +63,26 @@ module {
         
         let lock_scheduler = LockScheduler2.LockScheduler2({
             locks;
+            update_lock_duration = func(ballot: YesNoBallot, time: Time) {
+                let duration_ns = duration_calculator.compute_duration_ns(ballot.hotness);
+                Timeline.add(ballot.duration_ns, time, duration_ns);
+                ballot.release_date := ballot.timestamp + duration_ns;
+            };
             about_to_add = presence_dispenser2.about_to_add;
             about_to_remove = presence_dispenser2.about_to_remove;
-        });
-
-        let decay_model = Decay.DecayModel(decay);
-
-        let duration_calculator = DurationCalculator.PowerScaler({
-            nominal_duration = nominal_lock_duration;
         });
 
         // TODO: this should not assume it is a yes/no ballot, but work on every type of ballot
         let hot_map = HotMap.HotMap<UUID, YesNoBallot>({
             decay_model;
             get_elem = func (b: YesNoBallot): HotElem { b; };
-            update_hotness = func ({v: YesNoBallot; hotness: Float; time: Time}): YesNoBallot {
-                let updated_ballot = { v with hotness; };
-                // Update the duration of the lock if the lock is still active
-                // TODO: this logic shall be handled elsewhere, it feels like a hack
-                // Timeline.add(update.duration_ns, time, duration_calculator.compute_duration_ns({hotness}));
-                    
-                lock_scheduler.update(v, updated_ballot);
-                updated_ballot;
+            update_hotness = func ({v: YesNoBallot; hotness: Float; time: Time}) {
+                v.hotness := hotness; // Watchout: need to update the hotness first because the lock_scheduler depends on it
+                lock_scheduler.update(v, time);
             };
             key_hash = Map.thash;
-//            on_elem_added = func({key: UUID; value: YesNoBallot}){ 
-//                lock_scheduler.add({
-//                    id = key;
-//                    unlock_time = value.timestamp + Timeline.get_current(value.duration_ns);
-//                    ballot = value;
-//                }); 
-//            };
         });
 
-        // @todo: need to plug the hotmap observers
         let yes_no_controller = VoteFactory.build_yes_no({
             deposit_facade;
             decay_model;
