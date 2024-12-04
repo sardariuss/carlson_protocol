@@ -68,15 +68,12 @@ module {
         vote_id: UUID;
     };
 
-    public type PreviewBallotArgs = {
+    public type PutBallotArgs = {
+        ballot_id: UUID;
         vote_id: UUID;
         choice_type: ChoiceType;
         from_subaccount: ?Blob;
         amount: Nat;
-    };
-
-    public type PutBallotArgs = PreviewBallotArgs and {
-        ballot_id: UUID;
     };
 
     public type FindBallotArgs = {
@@ -120,6 +117,7 @@ module {
 
     public type SDurationInfo = {
         duration_ns: STimeline<Nat>;
+        unlock_time: Time;
     };
 
     public type SBallot<B> = SBallotInfo<B> and DepositInfo and HotInfo and SDurationInfo;

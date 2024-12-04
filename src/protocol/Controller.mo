@@ -49,16 +49,13 @@ module {
         type_enum: Types.VoteTypeEnum;
     };
 
-    public type PreviewBallotArgs = {
+    public type PutBallotArgs = {
         vote_id: UUID;
+        ballot_id: UUID;
         choice_type: ChoiceType;
         caller: Principal;
         from_subaccount: ?Blob;
         amount: Nat;
-    };
-
-    public type PutBallotArgs = PreviewBallotArgs and {
-        ballot_id: UUID;
     };
 
     public class Controller({
@@ -98,16 +95,28 @@ module {
             #ok(vote);
         };
 
-        public func preview_ballot(args: PreviewBallotArgs) : PreviewBallotResult {
+        public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
 
-            let { vote_id; choice_type; caller; from_subaccount; amount; } = args;
+            let { vote_id; ballot_id; choice_type; caller; from_subaccount; amount; } = args;
 
-            let vote_type = switch(Map.get(vote_register.votes, Map.thash, args.vote_id)){
+            let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
+                case(null) { return #err(#VoteNotFound({vote_id})); };
                 case(?v) { v };
-                case(null) { return #err(#VoteNotFound({vote_id}));  };
             };
 
-            let put_args = { vote_type; choice_type; args = { from = { owner = caller; subaccount = from_subaccount; }; time = clock.get_time(); amount; } };
+            let put_args = { 
+                vote_type; 
+                choice_type; 
+                args = { 
+                    ballot_id; 
+                    from = { 
+                        owner = caller; 
+                        subaccount = from_subaccount; 
+                    }; 
+                    time = clock.get_time(); 
+                    amount; 
+                }
+            };
 
             #ok(vote_type_controller.preview_ballot(put_args));
         };

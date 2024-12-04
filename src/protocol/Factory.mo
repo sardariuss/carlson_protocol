@@ -57,8 +57,8 @@ module {
         
         let lock_scheduler = LockScheduler2.LockScheduler2({
             locks;
-            on_lock_added = func(lock : Lock, ballot: YesNoBallot) { presence_dispenser2.handle_lock_added(lock, ballot); };
-            on_lock_removed = func(lock : Lock, ballot: YesNoBallot) { presence_dispenser2.handle_lock_removed(lock, ballot); };
+            about_to_add = presence_dispenser2.about_to_add;
+            about_to_remove = presence_dispenser2.about_to_remove;
         });
 
         let decay_model = Decay.DecayModel(decay);
@@ -72,31 +72,22 @@ module {
             decay_model;
             get_elem = func (b: YesNoBallot): HotElem { b; };
             update_hotness = func ({v: YesNoBallot; hotness: Float; time: Time}): YesNoBallot {
-                let update = { v with hotness; };
+                let updated_ballot = { v with hotness; };
                 // Update the duration of the lock if the lock is still active
                 // TODO: this logic shall be handled elsewhere, it feels like a hack
-                if (v.timestamp + Timeline.get_current(v.duration_ns) > time){
-                    Timeline.add(update.duration_ns, time, duration_calculator.compute_duration_ns({hotness}));
-                };
-                update;
+                // Timeline.add(update.duration_ns, time, duration_calculator.compute_duration_ns({hotness}));
+                    
+                lock_scheduler.update(v, updated_ballot);
+                updated_ballot;
             };
             key_hash = Map.thash;
-            on_elem_added = func({key: UUID; value: YesNoBallot}){ 
-                lock_scheduler.add({
-                    id = key;
-                    unlock_time = value.timestamp + Timeline.get_current(value.duration_ns);
-                    ballot = value;
-                }); 
-            };
-            // TODO: could use get history instead
-            on_hot_changed = func({key: UUID; old_value: YesNoBallot; new_value: YesNoBallot}){
-                lock_scheduler.update({ 
-                    id = key; 
-                    old_time = old_value.timestamp + Timeline.get_current(old_value.duration_ns);
-                    new_time = new_value.timestamp + Timeline.get_current(new_value.duration_ns);
-                    ballot = new_value;
-                });
-            };
+//            on_elem_added = func({key: UUID; value: YesNoBallot}){ 
+//                lock_scheduler.add({
+//                    id = key;
+//                    unlock_time = value.timestamp + Timeline.get_current(value.duration_ns);
+//                    ballot = value;
+//                }); 
+//            };
         });
 
         // @todo: need to plug the hotmap observers

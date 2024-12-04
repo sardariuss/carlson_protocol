@@ -34,16 +34,13 @@ module {
     public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
     public type ComputeConsent<A, B> = ({aggregate: A; choice: B; time: Time}) -> Float;
 
-    public type PreviewBallotArgs = {
+    public type PutBallotArgs = {
         from: {
             owner: Principal;
             subaccount: ?Blob;
         };
         time: Time;
         amount: Nat;
-    };
-
-    public type PutBallotArgs = PreviewBallotArgs and {
         ballot_id: UUID;
     };
    
@@ -77,7 +74,7 @@ module {
         public func preview_ballot({
             vote: Vote<A, B>;
             choice: B;
-            args: PreviewBallotArgs;
+            args: PutBallotArgs;
         }) : Ballot<B> {
 
             let builder = intialize_ballot({ choice; args; aggregate = vote.aggregate.current.data; });
@@ -109,7 +106,12 @@ module {
                 // TODO: should be Time.now() of the simulation instead
                 let time = ballot.timestamp;
                 // Recompute the aggregate because other ballots might have been added during the awaited deposit, hence changing the aggregate.
-                let aggregate = update_aggregate({ ballot with time; aggregate = vote.aggregate.current.data; });
+                let aggregate = update_aggregate({ 
+                    choice = ballot.choice;
+                    amount = ballot.amount;
+                    time; 
+                    aggregate = vote.aggregate.current.data;
+                });
                 // Update the aggregate history
                 Timeline.add(vote.aggregate, time, aggregate);
                 // Update the ballot consents
@@ -138,12 +140,13 @@ module {
         func intialize_ballot({
             aggregate: A;
             choice: B;
-            args: PreviewBallotArgs;
+            args: PutBallotArgs;
         }) : BallotBuilder.BallotBuilder<B> {
-            let { time; amount; } = args;
+            let { ballot_id; time; amount; } = args;
 
             let builder = BallotBuilder.BallotBuilder<B>({duration_calculator});
             builder.add_ballot({
+                ballot_id;
                 timestamp = time;
                 choice;
                 amount;

@@ -39,8 +39,6 @@ module {
         get_elem: V -> HotElem;
         update_hotness: UpdateHotness<V>;
         key_hash: Map.HashUtils<K>;
-        on_elem_added: ({key: K; value: V}) -> ();
-        on_hot_changed: ({key: K; old_value: V; new_value: V;}) -> ();
     }){
 
         // Creates a new elem with the given amount and timestamp
@@ -85,12 +83,10 @@ module {
                 // Update the hotness of the previous elem
                 let new_value = update_hotness({ v; hotness; time = timestamp; });
                 Map.set(map, key_hash, key, new_value);
-                on_hot_changed({key; old_value = v; new_value;});
             };
 
             // Add the new elem
             Map.set(map, key_hash, key, value);
-            on_elem_added({key; value;});
             #ok(value);
         };
 

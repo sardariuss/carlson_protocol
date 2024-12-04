@@ -55,7 +55,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().find_vote(args);
     };
 
-    public query({caller}) func preview_ballot(args: Types.PreviewBallotArgs) : async Types.SPreviewBallotResult {
+    public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.SPreviewBallotResult {
         getFacade().preview_ballot({ args with caller; });
     };
 

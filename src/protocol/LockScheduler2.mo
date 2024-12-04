@@ -3,6 +3,7 @@ import BTree "mo:stableheapbtreemap/BTree";
 import Order "mo:base/Order";
 import Text "mo:base/Text";
 import Int "mo:base/Int";
+import Option "mo:base/Option";
 
 module {
 
@@ -23,32 +24,31 @@ module {
 
     public class LockScheduler2({
         locks: BTree<Lock, YesNoBallot>;
-        on_lock_added: (Lock, YesNoBallot) -> ();
-        on_lock_removed: (Lock, YesNoBallot) -> ();
+        update_lock_duration: (YesNoBallot, Time) -> ();
+        about_to_add: (YesNoBallot, Time) -> ();
+        about_to_remove: (YesNoBallot, Time) -> ();
     }) {
 
         // add
-        public func add({unlock_time: Time; id: UUID; ballot: YesNoBallot}) {
-            let lock = { unlock_time; id; };
-            switch(BTree.insert(locks, compare_locks, lock, ballot)){
-                case(null) { on_lock_added(lock, ballot); };
-                case(_) {};
-            };
-        };
-
-        // remove
-        public func remove({unlock_time: Time; id: UUID}) {
-            let lock = { unlock_time; id; };
-            switch(BTree.delete(locks, compare_locks, lock)){
-                case(null) {};
-                case(?ballot) { on_lock_removed(lock, ballot); };
+        public func add(ballot: YesNoBallot, time: Time) {
+            update_lock_duration(ballot, time);
+            let lock = get_lock(ballot);
+            if (not BTree.has(locks, compare_locks, lock)){
+                about_to_add(ballot, ballot.timestamp);
+                ignore BTree.insert(locks, compare_locks, lock, ballot);
             };
         };
 
         // update
-        public func update({id: UUID; old_time: Time; new_time: Time; ballot: YesNoBallot; }) {
-            remove({unlock_time = old_time; id});
-            add({unlock_time = new_time; id; ballot; });
+        public func update(old_ballot: YesNoBallot, new_ballot: YesNoBallot, time: Time) {
+            // Only perform the update if the old lock is present in the tree
+            switch(BTree.delete(locks, compare_locks, get_lock(old_ballot))) {
+                case(null) {};
+                case(_) {
+                    update_lock_duration(new_ballot, time);
+                    ignore BTree.insert(locks, compare_locks, get_lock(new_ballot), new_ballot);
+                };
+            };
         };
 
         // try_unlock
@@ -56,12 +56,17 @@ module {
             while (true) {
                 switch(BTree.min(locks)) {
                     case(null) { return; };
-                    case(?(lock, _)) {
+                    case(?(lock, ballot)) {
                         if (lock.unlock_time > time) { return; };
-                        remove(lock);
+                        about_to_remove(ballot, lock.unlock_time);
+                        ignore BTree.delete(locks, compare_locks, lock);
                     };
                 };
             };
+        };
+
+        func get_lock(ballot: YesNoBallot) : Lock {
+            { unlock_time = 0; /*ballot.unlock_time*/ id = ballot.ballot_id; };
         };
 
     };

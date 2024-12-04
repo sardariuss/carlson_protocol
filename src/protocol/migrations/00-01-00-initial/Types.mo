@@ -213,6 +213,7 @@ module {
     };
 
     public type BallotInfo<B> = {
+        ballot_id: UUID;
         timestamp: Time;
         choice: B;
         amount: Nat;
@@ -247,6 +248,7 @@ module {
 
     public type DurationInfo = {
         duration_ns: Timeline<Nat>;
+        var unlock_time: Time;
     };
 
     public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and DurationInfo;
