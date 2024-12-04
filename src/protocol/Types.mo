@@ -179,7 +179,7 @@ module {
     
     public type PutBallotError = TransferFromError or VoteNotFoundError or TransferIncident or { #BallotAlreadyExists: { ballot_id: UUID; }; };
     
-    public type PutBallotResult = Result<UUID, PutBallotError>;
+    public type PutBallotResult = Result<SBallotType, PutBallotError>;
     
     public type PreviewBallotResult = Result<BallotType, VoteNotFoundError>;
     public type NewVoteResult = Result<VoteType, NewVoteError>;

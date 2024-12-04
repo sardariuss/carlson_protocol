@@ -5,7 +5,6 @@ import Types              "../Types";
 import Decay              "../duration/Decay";
 import DurationCalculator "../duration/DurationCalculator";
 import PayementFacade     "../payement/PayementFacade";
-import DepositScheduler   "../payement/DepositScheduler";
 import HotMap             "../locks/HotMap";
 
 import Float              "mo:base/Float";
@@ -25,7 +24,6 @@ module {
     type UUID = Types.UUID;
 
     type HotElem = HotMap.HotElem;
-    type Deposit = DepositScheduler.Deposit;
 
     type Time = Int;
 
@@ -39,7 +37,6 @@ module {
     let CONSENT_STEEPNESS = 0.1;
 
     public func build_yes_no({
-        deposit_facade: PayementFacade.PayementFacade;
         decay_model: Decay.DecayModel;
         duration_calculator: DurationCalculator.IDurationCalculator;
         hot_map: HotMap.HotMap<UUID, YesNoBallot>;
@@ -81,11 +78,6 @@ module {
                 total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
             });
         };
-
-        let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({
-            deposit_facade;
-            hot_map;
-        });
         
         VoteController.VoteController<YesNoAggregate, YesNoChoice>({
             empty_aggregate;
@@ -93,7 +85,7 @@ module {
             compute_dissent;
             compute_consent;
             duration_calculator;
-            deposit_scheduler;
+            hot_map;
         });
     };
 

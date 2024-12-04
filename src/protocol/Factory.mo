@@ -6,12 +6,11 @@ import VoteFactory        "votes/VoteFactory";
 import VoteTypeController "votes/VoteTypeController";
 import PayementFacade     "payement/PayementFacade";
 import PresenceDispenser  "PresenceDispenser";
-import LockScheduler2     "LockScheduler2";
+import LockScheduler      "LockScheduler";
 import Clock              "utils/Clock";
 import HotMap             "locks/HotMap";
 import Timeline           "utils/Timeline";
 import DebtProcessor      "DebtProcessor";
-import PresenceDispenser2 "PresenceDispenser2";
 
 import Map                "mo:map/Map";
 
@@ -55,21 +54,21 @@ module {
             payement = presence_facade;
         });
 
-        let presence_dispenser2 = PresenceDispenser2.PresenceDispenser2({
+        let presence_dispenser = PresenceDispenser.PresenceDispenser({
             locks;
             parameters = presence.parameters;
             debt_processor = presence_debt;
         });
         
-        let lock_scheduler = LockScheduler2.LockScheduler2({
+        let lock_scheduler = LockScheduler.LockScheduler({
             locks;
             update_lock_duration = func(ballot: YesNoBallot, time: Time) {
                 let duration_ns = duration_calculator.compute_duration_ns(ballot.hotness);
                 Timeline.add(ballot.duration_ns, time, duration_ns);
                 ballot.release_date := ballot.timestamp + duration_ns;
             };
-            about_to_add = presence_dispenser2.about_to_add;
-            about_to_remove = presence_dispenser2.about_to_remove;
+            about_to_add = presence_dispenser.about_to_add;
+            about_to_remove = presence_dispenser.about_to_remove;
         });
 
         // TODO: this should not assume it is a yes/no ballot, but work on every type of ballot
@@ -84,7 +83,6 @@ module {
         });
 
         let yes_no_controller = VoteFactory.build_yes_no({
-            deposit_facade;
             decay_model;
             duration_calculator;
             hot_map;
@@ -94,17 +92,12 @@ module {
             yes_no_controller;
         });
 
-        let presence_dispenser = PresenceDispenser.PresenceDispenser({ parameters = presence.parameters });
-
         Controller.Controller({
             clock;
             vote_register;
             lock_scheduler;
             vote_type_controller;
             deposit_facade;
-            presence_facade;
-            resonance_facade;
-            presence_dispenser;
             decay_model;
         });
     };

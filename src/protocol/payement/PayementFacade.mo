@@ -41,6 +41,34 @@ module {
         fee: Nat;
     }){
 
+        public func transfer_from({
+            from: Account;
+            amount: Nat
+        }) : async* Result<ICRC1.TxIndex, ICRC2.TransferFromError> {
+
+                let args = {
+                // According to the ICRC2 specifications, if the from account has been approved with a
+                // different spender subaccount than the one specified, the transfer will be rejected.
+                spender_subaccount = null;
+                from;
+                to = {
+                    owner = provider;
+                    subaccount = null;
+                };
+                amount = amount + fee;
+                fee = null;
+                memo = null;
+                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            };
+
+            // Perform the transfer
+            // @todo: can this trap ?
+            switch(await ledger.icrc2_transfer_from(args)){
+                case(#Err(error)){ #err(error); };
+                case(#Ok(tx_id)){ #ok(tx_id); };
+            };
+        };
+
         public func pay_service({
             from: Account;
             amount: Nat;

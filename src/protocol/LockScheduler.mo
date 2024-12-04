@@ -22,7 +22,7 @@ module {
         };
     };
 
-    public class LockScheduler2({
+    public class LockScheduler({
         locks: BTree<Lock, YesNoBallot>;
         update_lock_duration: (YesNoBallot, Time) -> ();
         about_to_add: (YesNoBallot, Time) -> ();

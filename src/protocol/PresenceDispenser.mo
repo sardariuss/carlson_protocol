@@ -1,115 +1,70 @@
 import Types "Types";
-import Timeline "utils/Timeline";
+import DebtProcessor "DebtProcessor";
 
-import Map "mo:map/Map";
-import Buffer "mo:base/Buffer";
-import Order "mo:base/Order";
-import Debug "mo:base/Debug";
+import BTree "mo:stableheapbtreemap/BTree";
 import Float "mo:base/Float";
-import Result "mo:base/Result";
+import Debug "mo:base/Debug";
 
 module {
 
-  type Time = Int;
-  type Timeline<T> = Types.Timeline<T>;
-  type Order = Order.Order;
-  type Result<Ok, Err> = Result.Result<Ok, Err>;
+    type Lock = Types.Lock;
+    type BTree<K, V> = BTree.BTree<K, V>;
+    type Time = Int;
+    type YesNoBallot = Types.Ballot<Types.YesNoChoice>;
 
-  type Lock = {
-    amount: Nat;
-    add_presence: (Float) -> ();
-  };
+    type PresenseParameters = Types.PresenseParameters;
 
-  public type ExtendedLock = Lock and {
-    release_time: ?Time;
-  };
+    // Required just amount and from fields from YesNoBallot
+    public class PresenceDispenser({
+        locks: BTree<Lock, YesNoBallot>;
+        parameters: PresenseParameters;
+        debt_processor: DebtProcessor.DebtProcessor;
+    }) {
 
-  type Released = { 
-    key: Nat;
-    time: Time; 
-  };
-
-  type PresenseParameters = {
-    presence_per_ns: Float;
-    var time_last_dispense: Time;
-  };
-
-  public class PresenceDispenser({
-    parameters: PresenseParameters;
-  }) {
-
-    public func get_presence_parameters() : PresenseParameters {
-      parameters;
-    };
-
-    public func dispense({
-      locks: [ExtendedLock];
-      time_dispense: Time;
-      total_locked: Timeline<Nat>;
-    }){
-
-      // Map locks contains all the locks with their index as key
-      let map_locks = Map.new<Nat, Lock>();
-      // Released locks contains the index of the locks that have been released with the time of release
-      let released = Buffer.Buffer<Released>(0);
-      
-      // Fill map_locks and released
-      var index : Nat = 0;
-      while(index < locks.size()) {
-        let lock = locks[index];
-        Map.set(map_locks, Map.nhash, index, lock);
-        switch(lock.release_time) {
-          case(?time) {
-            released.add({ key = index; time; });
-          };
-          case(null) {};
-        };
-        index := index + 1;
-      };
-
-      // Make sure the released ones are ordered by time of release
-      released.sort(func(a: Released, b: Released) : Order.Order   {
-        if (a.time < b.time) { #less }
-        else if (a.time > b.time) { #greater }
-        else { #equal }
-      });
-
-      // If there is an unlock, there has to be at least one entry in the timeline.
-      var total_amount = Timeline.get_current(total_locked);
-
-      // Dispense the locks
-      for ({ key; time; } in released.vals()) {
-
-        let { amount } = switch(Map.get(map_locks, Map.nhash, key)){
-          case(?l) { l };
-          case(null) { Debug.trap("Lock not found"); };
+        // @todo: map fold
+        func get_total_locked() : Nat {
+            var total : Nat = 0;
+            for ((_, ballot) in BTree.entries(locks)) {
+                total += ballot.amount;
+            };
+            total;
         };
 
-        // Dispense the locks up to the time of release which is the time of release of the lock here
-        dispense_locks(total_amount, map_locks, time);
+        var total_locked = get_total_locked();
 
-        // Subtract the amount from the total locked;
-        total_amount -= amount;
+        public func about_to_add(ballot: YesNoBallot, time: Time) {
+            dispense(time);
+            total_locked += ballot.amount;
+        };
 
-        // Update the timeline accordingly
-        Timeline.add(total_locked, time, total_amount);
+        public func about_to_remove(ballot: YesNoBallot, time: Time) {
+            dispense(time);
+            total_locked -= ballot.amount;
+        };
 
-        // Remove the lock from the map
-        Map.delete(map_locks, Map.nhash, key);
-      };
+        public func dispense(time: Time) {
+            
+            let period = Float.fromInt(time - parameters.time_last_dispense);
 
-      dispense_locks(total_amount, map_locks, time_dispense);
+            if (period < 0) {
+                Debug.trap("Cannot dispense presence in the past");
+            };
+
+            // Dispense presence over the period
+            label dispense for (({id}, ballot) in BTree.entries(locks)) {
+                
+                // Add to the debt
+                debt_processor.add_debt({
+                    id;
+                    account = ballot.from;
+                    amount = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * parameters.presence_per_ns * period;
+                    time;
+                });
+            };
+
+            // Update the time of the last dispense
+            parameters.time_last_dispense := time;
+        };
+        
     };
-
-    public func dispense_locks(total_amount: Nat, map_locks: Map.Map<Nat, Lock>, time: Time) {
-
-      for ({ amount; add_presence; } in Map.vals(map_locks)) {
-        add_presence(Float.fromInt(amount) / Float.fromInt(total_amount) * parameters.presence_per_ns * Float.fromInt(time - parameters.time_last_dispense));
-      };
-
-      parameters.time_last_dispense := time;
-    };
-
-  };
-
 };
