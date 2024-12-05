@@ -13,6 +13,7 @@ import Int                "mo:base/Int";
 import Float              "mo:base/Float";
 import Time               "mo:base/Time";
 import Debug              "mo:base/Debug";
+import Iter               "mo:base/Iter";
 
 module {
 
@@ -22,6 +23,9 @@ module {
     type IDurationCalculator = DurationCalculator.IDurationCalculator;
     type UUID = Types.UUID;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
+    type Map<K, V> = Map.Map<K, V>;
+    type Set<K> = Set.Set<K>;
+    type Iter<T> = Iter.Iter<T>;
 
     type Vote<A, B> = Types.Vote<A, B>;
 
@@ -46,6 +50,7 @@ module {
         compute_consent: ComputeConsent<A, B>;
         duration_calculator: IDurationCalculator;
         hot_map: HotMap.HotMap<UUID, Ballot<B>>;
+        iter_ballots: () -> Iter<(UUID, Ballot<B>)>;
     }){
 
         public func new_vote({
@@ -59,6 +64,7 @@ module {
                 last_mint = date;
                 origin;
                 aggregate = Timeline.initialize(date, empty_aggregate);
+                ballots = Set.new<UUID>();
                 ballot_register = {
                     map = Map.new<UUID, Ballot<B>>();
                 };
@@ -69,7 +75,7 @@ module {
 
             let builder = build_ballot({ vote_id = vote.vote_id; aggregate = vote.aggregate.current.data; choice; args; });
 
-            hot_map.set_hot({ map = vote.ballot_register.map; builder; args; });
+            hot_map.add_new({ iter = vote_ballots(vote); builder; args; update_map = false; });
         };
 
         public func put_ballot(vote: Vote<A, B>, choice: B, args: PutBallotArgs) : Ballot<B> {
@@ -93,12 +99,10 @@ module {
 
             // Update the hotness
             let builder = build_ballot({ vote_id = vote.vote_id; aggregate; choice; args; });
-            switch(hot_map.add_new({ map; key = ballot_id; builder; args; })) {
-                case(#err(_)) { Debug.trap("Error adding new ballot to hot map"); };
-                case(#ok(ballot)) { ballot; };
-            };
+            hot_map.add_new({ iter = vote_ballots(vote); builder; args; update_map = true; });
         };
 
+        // @todo: remove this function
         public func find_ballot({
             vote: Vote<A, B>;
             ballot_id: UUID;
@@ -130,6 +134,24 @@ module {
             });
             builder.add_deposit({ tx_id; from; });
             builder;
+        };
+
+        func vote_ballots(vote: Vote<A, B>) : Iter<Ballot<B>> {
+            let it = iter_ballots();
+            func next() : ?(Ballot<B>) {
+                label get_next while(true) {
+                    switch(it.next()){
+                        case(null) { break get_next; };
+                        case(?(id, ballot)) { 
+                            if (Set.has(vote.ballots, Set.thash, id)) {
+                                return ?ballot;
+                            };
+                        };
+                    };
+                };
+                null;
+            };
+            return { next };
         };
 
     };

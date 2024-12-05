@@ -7,6 +7,8 @@ import Prim "mo:prim";
 import Iter "mo:base/Iter";
 import Option "mo:base/Option";
 import Debug "mo:base/Debug";
+import Prelude "mo:base/Prelude";
+import Bool "mo:base/Bool";
 
 module {
 

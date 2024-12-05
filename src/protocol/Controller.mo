@@ -142,7 +142,7 @@ module {
             };
 
             // Update the user_ballots map
-            MapUtils.putInnerSet(vote_register.user_ballots, MapUtils.acchash, from, MapUtils.tthash, (vote_id, ballot_id));
+            MapUtils.putInnerSet(vote_register.user_ballots, MapUtils.acchash, from, Map.thash, ballot_id);
 
             #ok(SharedConversions.shareBallotType(ballot_type));
         };
@@ -150,11 +150,13 @@ module {
         public func get_ballots(account: Account) : [QueriedBallot] {
             switch(Map.get(vote_register.user_ballots, MapUtils.acchash, account)){
                 case(?ballots) { 
-                    Set.toArrayMap(ballots, func((vote_id, ballot_id): (UUID, UUID)) : ?QueriedBallot =
-                        Option.map(find_ballot({vote_id; ballot_id;}), func(ballot: BallotType) : QueriedBallot = 
-                            { vote_id; ballot_id; ballot; }
-                        )
-                    );
+                    // @todo
+                    [];
+//                    Set.toArrayMap(ballots, func((vote_id, ballot_id): (UUID, UUID)) : ?QueriedBallot =
+//                        Option.map(find_ballot({vote_id; ballot_id;}), func(ballot: BallotType) : QueriedBallot = 
+//                            { vote_id; ballot_id; ballot; }
+//                        )
+//                    );
                 };
                 case(null) { [] };
             };

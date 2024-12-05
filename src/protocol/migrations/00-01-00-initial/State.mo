@@ -27,6 +27,8 @@ module {
     type DebtInfo      = Types.DebtInfo;
     type Ballot<B>     = Types.Ballot<B>;
     type YesNoChoice   = Types.YesNoChoice;
+    type VoteType      = Types.VoteType;
+    type BallotType    = Types.BallotType;
 
     let BTREE_ORDER = 8;
 
@@ -41,9 +43,12 @@ module {
                 mutable = simulated;
             };
             vote_register = { 
-                votes = Map.new<UUID, Types.VoteType>();
+                votes = Map.new<UUID, VoteType>();
                 by_origin = Map.new<Principal, Set.Set<UUID>>();
-                user_ballots = Map.new<Account, Set.Set<(UUID, UUID)>>();
+                user_ballots = Map.new<Account, Set.Set<UUID>>();
+            };
+            ballot_register = {
+                ballots = Map.new<UUID, BallotType>();
             };
             lock_register = {
                 total_amount = Timeline.initialize(now, 0);

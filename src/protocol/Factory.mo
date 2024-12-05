@@ -27,7 +27,7 @@ module {
 
     public func build(args: State and { provider: Principal }) : Controller.Controller {
 
-        let { clock_parameters; vote_register; lock_register; deposit; presence; resonance; parameters; provider; } = args;
+        let { clock_parameters; vote_register; ballot_register; lock_register; deposit; presence; resonance; parameters; provider; } = args;
         let { nominal_lock_duration; decay; } = parameters;
 
         let deposit_ledger = LedgerFacade.LedgerFacade({ deposit with provider; });
@@ -106,6 +106,7 @@ module {
         });
 
         let yes_no_controller = VoteFactory.build_yes_no({
+            ballot_register;
             decay_model;
             duration_calculator;
             hot_map;

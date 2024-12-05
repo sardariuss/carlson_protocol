@@ -49,6 +49,8 @@ module {
     public type Transfer           = Types.Current.Transfer;
     public type TransferResult     = Types.Current.TransferResult;
     public type PresenseParameters = Types.Current.PresenseParameters;
+    public type BallotType         = Types.Current.BallotType;
+    public type BallotRegister     = Types.Current.BallotRegister;
 
     // CANISTER ARGS
 
@@ -154,10 +156,6 @@ module {
     public type LocksParams = {
         ns_per_sat: Nat;
         decay_params: DecayParameters;
-    };
-
-    public type BallotType = {
-        #YES_NO: Ballot<YesNoChoice>;
     };
 
     public type AggregateHistoryType = {

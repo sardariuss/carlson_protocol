@@ -6,7 +6,11 @@ import Decay              "../duration/Decay";
 import DurationCalculator "../duration/DurationCalculator";
 import HotMap             "../locks/HotMap";
 
+import Map                "mo:map/Map";
+
 import Float              "mo:base/Float";
+import Debug              "mo:base/Debug";
+import Iter               "mo:base/Iter";
 
 module {
 
@@ -20,6 +24,8 @@ module {
     type Duration = Types.Duration;
     type TimedData<T> = Types.TimedData<T>;
     type UUID = Types.UUID;
+    type BallotRegister = Types.BallotRegister;
+    type Iter<T> = Iter.Iter<T>;
 
     type HotElem = HotMap.HotElem;
 
@@ -35,6 +41,7 @@ module {
     let CONSENT_STEEPNESS = 0.1;
 
     public func build_yes_no({
+        ballot_register: BallotRegister;
         decay_model: Decay.DecayModel;
         duration_calculator: DurationCalculator.IDurationCalculator;
         hot_map: HotMap.HotMap<UUID, YesNoBallot>;
@@ -84,6 +91,20 @@ module {
             compute_consent;
             duration_calculator;
             hot_map;
+            iter_ballots = func() : Iter<(UUID, YesNoBallot)> {
+                let it = Map.entries(ballot_register.ballots);
+                func next() : ?(UUID, YesNoBallot) {
+                    switch(it.next()){
+                        case(null) { return null; };
+                        case(?(id, ballot)) { 
+                            switch(ballot){
+                                case(#YES_NO(b)) { ?(id, b); };
+                            };
+                        };
+                    };
+                };
+                return { next };
+            };
         });
     };
 

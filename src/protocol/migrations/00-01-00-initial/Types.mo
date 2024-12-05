@@ -169,11 +169,19 @@ module {
     public type VoteRegister = {
         votes: Map<UUID, VoteType>;
         by_origin: Map<Principal, Set<UUID>>;
-        user_ballots: Map<Account, Set<(UUID, UUID)>>;
+        user_ballots: Map<Account, Set<UUID>>; // @todo: move this in BallotRegister
+    };
+
+    public type BallotRegister = {
+        ballots: Map<UUID, BallotType>;
     };
 
     public type VoteType = {
         #YES_NO: Vote<YesNoAggregate, YesNoChoice>;
+    };
+
+    public type BallotType = {
+        #YES_NO: Ballot<YesNoChoice>;
     };
 
     public type YesNoAggregate = {
@@ -197,6 +205,7 @@ module {
         date: Time;
         origin: Principal;
         aggregate: Timeline<A>;
+        ballots: Set<UUID>;
         ballot_register: {
             map: Map<UUID, Ballot<B>>;
         };
@@ -210,14 +219,15 @@ module {
         var transfers: [Transfer];
     };
 
+    // should distinguish between what is lock related and what is vote related
     public type BallotInfo<B> = {
         ballot_id: UUID;
-        vote_id: UUID;
-        timestamp: Time;
-        choice: B;
-        amount: Nat;
-        dissent: Float;
-        consent: Timeline<Float>;
+        vote_id: UUID; // vote related
+        timestamp: Time; // lock related, vote maybe ?
+        choice: B; // vote related
+        amount: Nat; // both, because impacts the aggregate and lock weight
+        dissent: Float; // vote related
+        consent: Timeline<Float>; // vote related
         ck_btc: DebtInfo;
         presence: DebtInfo;
         resonance: DebtInfo;
@@ -322,6 +332,7 @@ module {
     public type State = {
         clock_parameters: ClockParameters;
         vote_register: VoteRegister;
+        ballot_register: BallotRegister;
         lock_register: LockRegister;
         deposit: {
             ledger: ICRC1 and ICRC2;
