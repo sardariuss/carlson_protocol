@@ -105,11 +105,16 @@ module {
     };
 
     public type SBallotInfo<B> = {
+        ballot_id: UUID;
+        vote_id: UUID;
         timestamp: Time;
         choice: B;
         amount: Nat;
         dissent: Float;
         consent: STimeline<Float>;
+        ck_btc: SDebtInfo;
+        presence: SDebtInfo;
+        resonance: SDebtInfo;
     };
 
     public type SDepositInfo = {
@@ -136,7 +141,6 @@ module {
         aggregate: STimeline<A>;
         ballot_register: {
             map: [(UUID, SBallot<B>)];
-            locks: [UUID];
         };
     };
 

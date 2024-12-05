@@ -1,4 +1,5 @@
 import BallotBuilder      "BallotBuilder";
+import DebtProcessor      "../DebtProcessor";
 import Types              "../Types";
 import DurationCalculator "../duration/DurationCalculator";
 import Timeline           "../utils/Timeline";
@@ -60,14 +61,13 @@ module {
                 aggregate = Timeline.initialize(date, empty_aggregate);
                 ballot_register = {
                     map = Map.new<UUID, Ballot<B>>();
-                    locks = Set.new<UUID>();
                 };
             };
         };
 
         public func preview_ballot(vote: Vote<A, B>, choice: B, args: PutBallotArgs) : Ballot<B> {
 
-            let builder = build_ballot({ aggregate = vote.aggregate.current.data; choice; args; });
+            let builder = build_ballot({ vote_id = vote.vote_id; aggregate = vote.aggregate.current.data; choice; args; });
 
             hot_map.set_hot({ map = vote.ballot_register.map; builder; args; });
         };
@@ -92,7 +92,7 @@ module {
             };
 
             // Update the hotness
-            let builder = build_ballot({ aggregate; choice; args; });
+            let builder = build_ballot({ vote_id = vote.vote_id; aggregate; choice; args; });
             switch(hot_map.add_new({ map; key = ballot_id; builder; args; })) {
                 case(#err(_)) { Debug.trap("Error adding new ballot to hot map"); };
                 case(#ok(ballot)) { ballot; };
@@ -107,6 +107,7 @@ module {
         };
 
         func build_ballot({
+            vote_id: UUID;
             aggregate: A;
             choice: B;
             args: PutBallotArgs;
@@ -116,12 +117,16 @@ module {
 
             let builder = BallotBuilder.BallotBuilder<B>({duration_calculator});
             builder.add_ballot({
+                vote_id;
                 ballot_id;
                 timestamp;
                 choice;
                 amount;
                 dissent = compute_dissent({ aggregate; choice; amount; time = timestamp; });
                 consent = Timeline.initialize(timestamp, compute_consent({ aggregate; choice; time = timestamp; }));
+                ck_btc = DebtProcessor.init_debt_info(timestamp, from);
+                presence = DebtProcessor.init_debt_info(timestamp, from);
+                resonance = DebtProcessor.init_debt_info(timestamp, from);
             });
             builder.add_deposit({ tx_id; from; });
             builder;

@@ -55,11 +55,15 @@ module {
                 case(?ballot, ?deposit, ?hot, ?duration) {
                     { 
                         ballot_id = ballot.ballot_id;
+                        vote_id = ballot.vote_id;
                         timestamp = ballot.timestamp;
                         choice = ballot.choice;
                         amount = ballot.amount;
                         dissent = ballot.dissent;
                         consent = ballot.consent;
+                        ck_btc = ballot.ck_btc;
+                        presence = ballot.presence;
+                        resonance = ballot.resonance;
                         tx_id = deposit.tx_id;
                         from = deposit.from;
                         var hotness = hot.hotness;

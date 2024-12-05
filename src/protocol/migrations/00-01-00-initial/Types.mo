@@ -199,7 +199,6 @@ module {
         aggregate: Timeline<A>;
         ballot_register: {
             map: Map<UUID, Ballot<B>>;
-            locks: Set<UUID>;
         };
     };
 
@@ -213,11 +212,15 @@ module {
 
     public type BallotInfo<B> = {
         ballot_id: UUID;
+        vote_id: UUID;
         timestamp: Time;
         choice: B;
         amount: Nat;
         dissent: Float;
         consent: Timeline<Float>;
+        ck_btc: DebtInfo;
+        presence: DebtInfo;
+        resonance: DebtInfo;
     };
 
     public type DepositInfo = {

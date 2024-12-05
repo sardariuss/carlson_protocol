@@ -48,18 +48,22 @@ module {
             aggregate = shareTimeline(vote.aggregate);
             ballot_register = {
                 map = Map.toArray(ballots);
-                locks = Set.toArray(vote.ballot_register.locks);
             }
         };
     };
 
     func shareBallot<B>(ballot: Ballot<B>) : SBallot<B> {
         {
+            ballot_id = ballot.ballot_id;
+            vote_id = ballot.vote_id;
             timestamp = ballot.timestamp;
             choice = ballot.choice;
             amount = ballot.amount;
             dissent = ballot.dissent;
             consent = shareTimeline(ballot.consent);
+            ck_btc = shareDebtInfo(ballot.ck_btc);
+            presence = shareDebtInfo(ballot.presence);
+            resonance = shareDebtInfo(ballot.resonance);
             duration_ns = shareTimeline(ballot.duration_ns);
             tx_id = ballot.tx_id;
             from = ballot.from;
