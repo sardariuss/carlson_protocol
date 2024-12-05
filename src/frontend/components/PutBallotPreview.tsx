@@ -5,6 +5,7 @@ import { formatDuration } from "../utils/conversions/duration";
 import { DISSENT_EMOJI, DURATION_EMOJI } from "../constants";
 import { BallotInfo } from "./types";
 import { get_current } from "../utils/timeline";
+import { v4 as uuidv4 } from 'uuid';
 
 interface PutBallotPreviewProps {
   vote_id: string;
@@ -21,6 +22,7 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
 
   useEffect(() => {
     refreshPreview([{
+      ballot_id: uuidv4(),
       vote_id,
       from_subaccount: [],
       amount: ballot.amount,

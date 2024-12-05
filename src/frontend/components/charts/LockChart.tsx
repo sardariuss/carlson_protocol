@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useRef, useState, Fragment } from 'react';
 import { ResponsiveLine, Serie } from '@nivo/line';
 import { BITCOIN_TOKEN_SYMBOL, CHART_BACKGROUND_COLOR, LOCK_EMOJI } from '../../constants';
-import { SQueriedBallot } from '@/declarations/protocol/protocol.did';
+import { SQueriedBallot } from '@/declarations/backend/backend.did';
 import IntervalPicker from './IntervalPicker';
 import { DurationUnit, toNs } from '../../utils/conversions/duration';
 import { CHART_CONFIGURATIONS, computeTicksMs, isNotFiniteNorNaN } from '.';

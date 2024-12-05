@@ -18,6 +18,7 @@ module {
     type SQueriedBallot = Types.SQueriedBallot;
     type QueriedBallot = Types.QueriedBallot;
     type UUID = Types.UUID;
+    type SDebtInfo = Types.SDebtInfo;
 
     public func shareVoteType(vote_type: VoteType) : SVoteType {
         switch(vote_type){
@@ -58,19 +59,27 @@ module {
             choice = ballot.choice;
             amount = ballot.amount;
             dissent = ballot.dissent;
-            consent = { current = ballot.consent.current; history = ballot.consent.history; };
-            presence = { current = ballot.presence.current; history = ballot.presence.history; };
-            duration_ns = { current = ballot.duration_ns.current; history = ballot.duration_ns.history; };
+            consent = shareTimeline(ballot.consent);
+            duration_ns = shareTimeline(ballot.duration_ns);
             tx_id = ballot.tx_id;
             from = ballot.from;
-            deposit_state = ballot.deposit_state;
             hotness = ballot.hotness;
             decay = ballot.decay;
+            release_date = ballot.release_date;
         };
     };
 
     func shareTimeline<T>(history: Timeline<T>) : STimeline<T> {
         { current = history.current; history = history.history; };
+    };
+
+    func shareDebtInfo(debt_info: Types.DebtInfo) : SDebtInfo {
+        {
+            amount = shareTimeline(debt_info.amount);
+            owed = debt_info.owed;
+            pending = debt_info.pending;
+            transfers = debt_info.transfers;
+        };
     };
 
 };

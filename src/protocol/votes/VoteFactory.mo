@@ -4,13 +4,7 @@ import Incentives         "Incentives";
 import Types              "../Types";
 import Decay              "../duration/Decay";
 import DurationCalculator "../duration/DurationCalculator";
-import PayementFacade     "../payement/PayementFacade";
-import DepositScheduler   "../payement/DepositScheduler";
-import LockScheduler      "../locks/LockScheduler";
 import HotMap             "../locks/HotMap";
-import Timeline            "../utils/Timeline";
-
-import Map                "mo:map/Map";
 
 import Float              "mo:base/Float";
 
@@ -23,14 +17,11 @@ module {
     type YesNoAggregate = Types.YesNoAggregate;
     type YesNoBallot = Types.Ballot<YesNoChoice>;
     type YesNoChoice = Types.YesNoChoice;
-    type RefundState = Types.RefundState;
     type Duration = Types.Duration;
     type TimedData<T> = Types.TimedData<T>;
     type UUID = Types.UUID;
 
     type HotElem = HotMap.HotElem;
-    type Deposit = DepositScheduler.Deposit;
-    type Lock = LockScheduler.Lock;
 
     type Time = Int;
 
@@ -44,9 +35,9 @@ module {
     let CONSENT_STEEPNESS = 0.1;
 
     public func build_yes_no({
-        deposit_facade: PayementFacade.PayementFacade;
         decay_model: Decay.DecayModel;
         duration_calculator: DurationCalculator.IDurationCalculator;
+        hot_map: HotMap.HotMap<UUID, YesNoBallot>;
     }) : VoteController<YesNoAggregate, YesNoChoice> {
 
         let empty_aggregate = { total_yes = 0; total_no = 0; current_yes = #DECAYED(0.0); current_no = #DECAYED(0.0); };
@@ -85,35 +76,6 @@ module {
                 total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
             });
         };
-
-        let hot_map = HotMap.HotMap<UUID, YesNoBallot>({
-            decay_model;
-            get_elem = func (b: YesNoBallot): HotElem { b; };
-            update_hotness = func ({v: YesNoBallot; hotness: Float; time: Time}): YesNoBallot {
-                let update = { v with hotness; };
-                // Update the duration of the lock if the lock is still active
-                // TODO: this logic shall be handled elsewhere, it feels like a hack
-                if (v.timestamp + Timeline.get_current(v.duration_ns) > time){
-                    Timeline.add(update.duration_ns, time, duration_calculator.compute_duration_ns({hotness}));
-                };
-                update;
-            };
-            key_hash = Map.thash;
-        });
-
-        let lock_scheduler = LockScheduler.LockScheduler<YesNoBallot>({
-            hot_map;
-            lock_info = func (b: YesNoBallot): Lock {
-                { timestamp = b.timestamp; duration_ns = Timeline.get_current(b.duration_ns); } 
-            };
-        });
-
-        let deposit_scheduler = DepositScheduler.DepositScheduler<YesNoBallot>({
-            deposit_facade;
-            lock_scheduler;
-            get_deposit = func (b: YesNoBallot): Deposit { b; };
-            tag_refunded = func (b: YesNoBallot, s: RefundState): YesNoBallot { { b with deposit_state = #REFUNDED(s); } };
-        });
         
         VoteController.VoteController<YesNoAggregate, YesNoChoice>({
             empty_aggregate;
@@ -121,7 +83,7 @@ module {
             compute_dissent;
             compute_consent;
             duration_calculator;
-            deposit_scheduler;
+            hot_map;
         });
     };
 

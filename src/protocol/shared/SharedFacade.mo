@@ -19,7 +19,6 @@ module {
     type VoteBallotId = Types.VoteBallotId;
     type NewVoteArgs = Types.NewVoteArgs;
     type PutBallotArgs = Types.PutBallotArgs;
-    type PreviewBallotArgs = Types.PreviewBallotArgs;
     type Account = Types.Account;
     type QueriedBallot = Types.QueriedBallot;
     type SQueriedBallot = Types.SQueriedBallot;
@@ -36,7 +35,7 @@ module {
             Result.mapOk<VoteType, SVoteType, NewVoteError>(controller.new_vote(args), SharedConversions.shareVoteType);
         };
 
-        public func preview_ballot(args: PreviewBallotArgs and { caller: Principal; }) : SPreviewBallotResult {
+        public func preview_ballot(args: PutBallotArgs and { caller: Principal; }) : SPreviewBallotResult {
             Result.mapOk<BallotType, SBallotType, VoteNotFoundError>(controller.preview_ballot(args), SharedConversions.shareBallotType);
         };
 
@@ -45,7 +44,7 @@ module {
         };
 
         public func run() : async* () {
-            await* controller.run(null);
+            await* controller.run();
         };
 
         public func get_votes({origin: Principal;}) : [SVoteType] {
@@ -67,18 +66,6 @@ module {
 
         public func current_decay() : Float {
             controller.current_decay();
-        };
-
-        public func get_deposit_incidents() : [(Nat, Types.Incident)] {
-            controller.get_deposit_incidents();
-        };
-        
-        public func get_presence_incidents() : [(Nat, Types.Incident)] {
-            controller.get_presence_incidents();
-        };
-
-        public func get_resonance_incidents() : [(Nat, Types.Incident)] {
-            controller.get_resonance_incidents();
         };
 
         public func add_offset(duration: Duration) : Result<(), Text> {

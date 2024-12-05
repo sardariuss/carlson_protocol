@@ -2,6 +2,7 @@ import Error "mo:base/Error";
 
 import Map   "mo:map/Map";
 import Set   "mo:map/Set";
+import BTree "mo:stableheapbtreemap/BTree";
 
 // please do not import any types from your project outside migrations folder here
 // it can lead to bugs when you change those types later, because migration types should not be changed
@@ -11,6 +12,7 @@ module {
 
     type Map<K, V> = Map.Map<K, V>;
     type Set<K> = Set.Set<K>;
+    type BTree<K, V> = BTree.BTree<K, V>;
 
     // From ICRC1    
 
@@ -39,7 +41,7 @@ module {
 
     public type TxIndex = Nat;
 
-    public type TransferError = TimeError or {
+    public type Icrc1TransferError = TimeError or {
         #BadFee : { expected_fee : Balance };
         #BadBurn : { min_burn_amount : Balance };
         #InsufficientFunds : { balance : Balance };
@@ -48,12 +50,12 @@ module {
         #GenericError : { error_code : Nat; message : Text };
     };
     
-    public type TransferResult = {
+    public type Icrc1TransferResult = {
         #Ok : TxIndex;
-        #Err : TransferError;
+        #Err : Icrc1TransferError;
     };
 
-    public type TransferArgs = {
+    public type Icrc1TransferArgs = {
         from_subaccount : ?Subaccount;
         to : Account;
         amount : Balance;
@@ -76,7 +78,7 @@ module {
         icrc1_supported_standards : shared query () -> async [SupportedStandard];
         icrc1_symbol : shared query () -> async Text;
         icrc1_total_supply : shared query () -> async Nat;
-        icrc1_transfer : shared TransferArgs -> async TransferResult;
+        icrc1_transfer : shared Icrc1TransferArgs -> async Icrc1TransferResult;
     };
 
     // From ICRC2
@@ -168,7 +170,6 @@ module {
         votes: Map<UUID, VoteType>;
         by_origin: Map<Principal, Set<UUID>>;
         user_ballots: Map<Account, Set<(UUID, UUID)>>;
-        total_locked: Timeline<Nat>;
     };
 
     public type VoteType = {
@@ -202,53 +203,48 @@ module {
         };
     };
 
+    public type DebtInfo = {
+        amount: Timeline<Float>;
+        account: Account;
+        var owed: Float;
+        var pending: Nat;
+        var transfers: [Transfer];
+    };
+
     public type BallotInfo<B> = {
+        ballot_id: UUID;
         timestamp: Time;
         choice: B;
         amount: Nat;
         dissent: Float;
         consent: Timeline<Float>;
-        presence: Timeline<Float>;
     };
 
     public type DepositInfo = {
         tx_id: Nat;
         from: Account;
-        deposit_state: DepositState;
-    };
-
-    public type DepositState = {
-        #DEPOSITED;
-        #REFUNDED: RefundState;
-    };
-
-    public type RefundState = {
-        since: Time;
-        transfer: {
-            #PENDING;
-            #FAILED: { incident_id: Nat; };
-            #SUCCESS: { tx_id: Nat };
-        };
     };
 
     public type HotInfo = {
-        hotness: Float;
+        var hotness: Float;
         decay: Float;
     };
 
     public type DurationInfo = {
         duration_ns: Timeline<Nat>;
+        var release_date: Time;
     };
 
     public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and DurationInfo;
 
-    public type Incident = {
-        #ServiceTrapped: ServiceError;
-        #ServiceFailed: ServiceError;
-        #TransferFailed: {
-            args: TransferArgs;
-            error: TransferError or { #Trapped : { error_code: Error.ErrorCode; }};
-        };
+    public type Transfer = {
+        args: Icrc1TransferArgs;
+        result: TransferResult;
+    };
+
+    public type TransferResult = {
+        #ok: TxIndex;
+        #err: Icrc1TransferError or { #Trapped : { error_code: Error.ErrorCode; }};
     };
 
     public type ServiceError = {
@@ -257,11 +253,6 @@ module {
             args: TransferFromArgs;
         };
         error: Text;
-    };
-
-    public type IncidentRegister = {
-        var index: Nat;
-        incidents: Map<Nat, Incident>;
     };
 
     public type Duration = {
@@ -281,6 +272,16 @@ module {
     public type ClockParameters = { 
         var offset_ns: Nat;
         mutable: Bool;
+    };
+
+    public type Lock = {
+        release_date: Time;
+        id: UUID;
+    };
+
+    public type LockRegister = {
+        total_amount: Timeline<Nat>;
+        locks: BTree<Lock, Ballot<YesNoChoice>>; // TODO: use the generic BallotType instead
     };
 
     public type Args = {
@@ -318,21 +319,25 @@ module {
     public type State = {
         clock_parameters: ClockParameters;
         vote_register: VoteRegister;
+        lock_register: LockRegister;
         deposit: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            incidents: IncidentRegister;
+            debts: Map<UUID, DebtInfo>;
+            owed: Set<UUID>;
         };
         presence: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            incidents: IncidentRegister;
+            debts: Map<UUID, DebtInfo>;
+            owed: Set<UUID>;
             parameters: PresenseParameters;
         };
         resonance: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            incidents: IncidentRegister;
+            debts: Map<UUID, DebtInfo>;
+            owed: Set<UUID>;
         };
         parameters: {
             nominal_lock_duration: Duration;

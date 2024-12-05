@@ -38,9 +38,13 @@ module {
 
         public func add_hot(hot : HotInfo, timestamp : Time){
             switch(_hot, _duration){
-                case(null, null) { 
+                case(null, null) {
                     _hot := ?hot;
-                    _duration := ?{ duration_ns = Timeline.initialize(timestamp, duration_calculator.compute_duration_ns(hot)) }; 
+                    let duration = duration_calculator.compute_duration_ns(hot.hotness);
+                    _duration := ?{
+                        duration_ns = Timeline.initialize(timestamp, duration);
+                        var release_date = timestamp + duration;
+                    }; 
                 };
                 case(_) { Debug.trap("Hot Info has already been added")};
             };
@@ -49,7 +53,20 @@ module {
         public func build() : Ballot<B> {
             switch(_ballot, _deposit, _hot, _duration){
                 case(?ballot, ?deposit, ?hot, ?duration) {
-                    { ballot and deposit and hot and duration };
+                    { 
+                        ballot_id = ballot.ballot_id;
+                        timestamp = ballot.timestamp;
+                        choice = ballot.choice;
+                        amount = ballot.amount;
+                        dissent = ballot.dissent;
+                        consent = ballot.consent;
+                        tx_id = deposit.tx_id;
+                        from = deposit.from;
+                        var hotness = hot.hotness;
+                        decay = hot.decay;
+                        duration_ns = duration.duration_ns;
+                        var release_date = duration.release_date;
+                    };
                 };
                 case(_){
                     Debug.trap("BallotBuilder: Missing required fields");

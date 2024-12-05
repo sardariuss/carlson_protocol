@@ -55,7 +55,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().find_vote(args);
     };
 
-    public query({caller}) func preview_ballot(args: Types.PreviewBallotArgs) : async Types.SPreviewBallotResult {
+    public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.SPreviewBallotResult {
         getFacade().preview_ballot({ args with caller; });
     };
 
@@ -81,20 +81,6 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
 
     public query func current_decay() : async Float {
         getFacade().current_decay();
-    };
-
-    // Get the failed refunds for the given principal
-    public query func get_deposit_incidents() : async [(Nat, Types.Incident)] {
-        getFacade().get_deposit_incidents();
-    };
-
-    // Get the failed rewards for the given principal
-    public query func get_presence_incidents() : async [(Nat, Types.Incident)] {
-        getFacade().get_presence_incidents();
-    };
-
-    public query func get_resonance_incidents() : async [(Nat, Types.Incident)] {
-        getFacade().get_resonance_incidents();
     };
 
     public shared func add_offset(duration: Types.Duration) : async Result.Result<(), Text> {

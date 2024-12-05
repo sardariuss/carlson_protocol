@@ -27,7 +27,6 @@ module {
     type Ballot<B> = Types.Ballot<B>;
 
     public type PutBallotArgs = VoteController.PutBallotArgs;
-    public type PreviewBallotArgs = VoteController.PreviewBallotArgs;
 
     public class VoteTypeController({
         yes_no_controller: VoteController.VoteController<YesNoAggregate, YesNoChoice>;
@@ -39,33 +38,15 @@ module {
             };
         };
 
-        public func preview_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PreviewBallotArgs; }) : BallotType {
+        public func preview_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PutBallotArgs; }) : BallotType {
             switch(vote_type, choice_type){
-                case(#YES_NO(vote), #YES_NO(choice)) { #YES_NO(yes_no_controller.preview_ballot({ vote; args; choice; })); };
+                case(#YES_NO(vote), #YES_NO(choice)) { #YES_NO(yes_no_controller.preview_ballot(vote, choice, args)); };
             };
         };
 
-        public func put_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PutBallotArgs; }) : async* Result<UUID, PutBallotError> {
+        public func put_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PutBallotArgs; }) : BallotType {
             switch(vote_type, choice_type){
-                case(#YES_NO(vote), #YES_NO(choice)) { await* yes_no_controller.put_ballot({ vote; args; choice; }); };
-            };
-        };
-
-        public func try_release({
-            vote_type: VoteType;
-            on_release_attempt: ReleaseAttempt<BallotType> -> ();
-            time: Time;
-        }) : async* () {
-            switch(vote_type){
-                case(#YES_NO(vote)) { 
-                    await* yes_no_controller.try_release({ 
-                        vote; 
-                        time; 
-                        on_release_attempt = func(release_attempt: ReleaseAttempt<YesNoBallot>) {
-                            on_release_attempt(wrap_attempt(release_attempt));
-                        };
-                    }); 
-                };
+                case(#YES_NO(vote), #YES_NO(choice)) { #YES_NO(yes_no_controller.put_ballot(vote, choice, args)); };
             };
         };
 
@@ -73,18 +54,6 @@ module {
             switch(vote_type){
                 case(#YES_NO(vote)) { 
                     Option.map(yes_no_controller.find_ballot({ vote; ballot_id; }), func(b: YesNoBallot) : Types.BallotType { #YES_NO(b); }); 
-                };
-            };
-        };
-
-        func wrap_attempt(release_attempt: ReleaseAttempt<YesNoBallot>) : ReleaseAttempt<BallotType> {
-            { 
-                release_attempt with
-                elem = #YES_NO(release_attempt.elem); 
-                update_elem = func(b: BallotType) { 
-                    switch(b){
-                        case(#YES_NO(b)) { release_attempt.update_elem(b); };
-                    };
                 };
             };
         };
