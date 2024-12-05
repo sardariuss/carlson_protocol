@@ -49,7 +49,7 @@ module {
         // update
         public func update(ballot: YesNoBallot, time: Time) {
             
-            let { locks; total_amount; } = lock_register;
+            let { locks; } = lock_register;
 
             // Only perform the update the lock duration if the lock is active (i.e. present in the locks BTree)
             switch(BTree.delete(locks, compare_locks, get_lock(ballot))) {
@@ -57,20 +57,22 @@ module {
                 case(_) {
                     update_lock_duration(ballot, time);
                     ignore BTree.insert(locks, compare_locks, get_lock(ballot), ballot);
-                    Timeline.add(total_amount, time, Timeline.current(total_amount) - ballot.amount);
                 };
             };
         };
 
         // try_unlock
         public func try_unlock(time: Time) {
+            let { locks; total_amount; } = lock_register;
+
             while (true) {
-                switch(BTree.min(lock_register.locks)) {
+                switch(BTree.min(locks)) {
                     case(null) { return; };
                     case(?(lock, ballot)) {
                         if (lock.release_date > time) { return; };
                         about_to_remove(ballot, lock.release_date);
-                        ignore BTree.delete(lock_register.locks, compare_locks, lock);
+                        ignore BTree.delete(locks, compare_locks, lock);
+                        Timeline.add(total_amount, time, Timeline.current(total_amount) - ballot.amount);
                     };
                 };
             };

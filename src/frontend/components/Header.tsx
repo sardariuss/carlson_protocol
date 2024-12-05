@@ -78,6 +78,9 @@ const Header = () => {
             <button type="button" onClick={() => { navigate("/user/" + identity.getPrincipal()) }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
               Profile
             </button>
+            <button type="button" onClick={() => { logout() }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
+              Log out
+            </button>
           </div> :
           <button type="button" onClick={() => { login() }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
             Log in

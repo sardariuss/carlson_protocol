@@ -31,7 +31,7 @@ module {
             amount: Nat
         }) : async* Result<TxIndex, TransferFromError> {
 
-                let args = {
+            let args = {
                 // According to the ICRC2 specifications, if the from account has been approved with a
                 // different spender subaccount than the one specified, the transfer will be rejected.
                 spender_subaccount = null;

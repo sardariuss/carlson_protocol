@@ -33,7 +33,7 @@ const User = () => {
   }, []);
 
   const totalLocked = ballots?.reduce((acc, ballot) =>
-    acc + ('DEPOSITED' in ballot.ballot.YES_NO.deposit_state ? ballot.ballot.YES_NO.amount : 0n), 0n);
+    acc + 0n, 0n); // @todo: locked amount
   // @todo: reward preview?
   
   return (
