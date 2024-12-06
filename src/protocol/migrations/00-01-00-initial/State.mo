@@ -27,6 +27,8 @@ module {
     type DebtInfo      = Types.DebtInfo;
     type Ballot<B>     = Types.Ballot<B>;
     type YesNoChoice   = Types.YesNoChoice;
+    type VoteType      = Types.VoteType;
+    type BallotType    = Types.BallotType;
 
     let BTREE_ORDER = 8;
 
@@ -41,9 +43,12 @@ module {
                 mutable = simulated;
             };
             vote_register = { 
-                votes = Map.new<UUID, Types.VoteType>();
+                votes = Map.new<UUID, VoteType>();
                 by_origin = Map.new<Principal, Set.Set<UUID>>();
-                user_ballots = Map.new<Account, Set.Set<(UUID, UUID)>>();
+            };
+            ballot_register = {
+                ballots = Map.new<UUID, BallotType>();
+                by_account = Map.new<Account, Set.Set<UUID>>();
             };
             lock_register = {
                 total_amount = Timeline.initialize(now, 0);
@@ -52,13 +57,11 @@ module {
             deposit = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(deposit.ledger));
                 fee = deposit.fee;
-                debts = Map.new<UUID, DebtInfo>();
                 owed = Set.new<UUID>();
             };
             presence = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(presence.ledger));
                 fee = presence.fee;
-                debts = Map.new<UUID, DebtInfo>();
                 owed = Set.new<UUID>();
                 parameters = {
                     presence_per_ns = Float.fromInt(presence.mint_per_day) / Float.fromInt(Duration.NS_IN_DAY);
@@ -68,7 +71,6 @@ module {
             resonance = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(resonance.ledger));
                 fee = resonance.fee;
-                debts = Map.new<UUID, DebtInfo>();
                 owed = Set.new<UUID>();
             };
             parameters = { parameters with 

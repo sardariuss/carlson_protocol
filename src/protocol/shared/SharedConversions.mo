@@ -1,8 +1,5 @@
 import Types "../Types";
 
-import Map "mo:map/Map";
-import Set "mo:map/Set";
-
 module {
 
     type VoteType = Types.VoteType;
@@ -15,8 +12,6 @@ module {
     type SBallot<B> = Types.SBallot<B>;
     type Timeline<T> = Types.Timeline<T>;
     type STimeline<T> = Types.STimeline<T>;
-    type SQueriedBallot = Types.SQueriedBallot;
-    type QueriedBallot = Types.QueriedBallot;
     type UUID = Types.UUID;
     type SDebtInfo = Types.SDebtInfo;
 
@@ -32,34 +27,25 @@ module {
         };
     };
 
-    public func shareQueriedBallot (queried_ballot: QueriedBallot) : SQueriedBallot {
-        {
-            queried_ballot with
-            ballot = shareBallotType(queried_ballot.ballot);
-        };
-    };
-
     func shareVote<A, B>(vote: Vote<A, B>) : SVote<A, B> {
-        let ballots = Map.map<UUID, Ballot<B>, SBallot<B>>(vote.ballot_register.map, Map.thash, func(id: UUID, ballot: Ballot<B>) : SBallot<B> { 
-            shareBallot(ballot);
-        });
         {
             vote with 
             aggregate = shareTimeline(vote.aggregate);
-            ballot_register = {
-                map = Map.toArray(ballots);
-                locks = Set.toArray(vote.ballot_register.locks);
-            }
         };
     };
 
     func shareBallot<B>(ballot: Ballot<B>) : SBallot<B> {
         {
+            ballot_id = ballot.ballot_id;
+            vote_id = ballot.vote_id;
             timestamp = ballot.timestamp;
             choice = ballot.choice;
             amount = ballot.amount;
             dissent = ballot.dissent;
             consent = shareTimeline(ballot.consent);
+            ck_btc = shareDebtInfo(ballot.ck_btc);
+            presence = shareDebtInfo(ballot.presence);
+            resonance = shareDebtInfo(ballot.resonance);
             duration_ns = shareTimeline(ballot.duration_ns);
             tx_id = ballot.tx_id;
             from = ballot.from;

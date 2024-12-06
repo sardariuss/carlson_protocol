@@ -16,12 +16,9 @@ module {
     type PutBallotResult = Types.PutBallotResult;
     type PreviewBallotResult = Types.PreviewBallotResult;
     type SPreviewBallotResult = Types.SPreviewBallotResult;
-    type VoteBallotId = Types.VoteBallotId;
     type NewVoteArgs = Types.NewVoteArgs;
     type PutBallotArgs = Types.PutBallotArgs;
     type Account = Types.Account;
-    type QueriedBallot = Types.QueriedBallot;
-    type SQueriedBallot = Types.SQueriedBallot;
     type SBallotType = Types.SBallotType;
     type VoteNotFoundError = Types.VoteNotFoundError;
     type Duration = Types.Duration;
@@ -52,16 +49,20 @@ module {
             Array.map(vote_types, SharedConversions.shareVoteType);
         };
 
+        public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
+            Array.map(controller.get_vote_ballots(vote_id), SharedConversions.shareBallotType);
+        };
+
         public func find_vote({vote_id: UUID;}) : ?SVoteType {
             Option.map(controller.find_vote(vote_id), SharedConversions.shareVoteType);
         };
 
-        public func get_ballots(account: Account) : [SQueriedBallot] {
-            Array.map(controller.get_ballots(account), SharedConversions.shareQueriedBallot);
+        public func get_ballots(account: Account) : [SBallotType] {
+            Array.map(controller.get_ballots(account), SharedConversions.shareBallotType);
         };
 
-        public func find_ballot({ vote_id: UUID; ballot_id: UUID; }) : ?SBallotType {
-            Option.map<BallotType, SBallotType>(controller.find_ballot({vote_id; ballot_id;}), SharedConversions.shareBallotType);
+        public func find_ballot(ballot_id: UUID) : ?SBallotType {
+            Option.map<BallotType, SBallotType>(controller.find_ballot(ballot_id), SharedConversions.shareBallotType);
         };
 
         public func current_decay() : Float {

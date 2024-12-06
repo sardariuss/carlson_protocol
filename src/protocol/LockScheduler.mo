@@ -5,7 +5,6 @@ import BTree "mo:stableheapbtreemap/BTree";
 import Order "mo:base/Order";
 import Text "mo:base/Text";
 import Int "mo:base/Int";
-import Option "mo:base/Option";
 
 module {
 
@@ -51,7 +50,7 @@ module {
             
             let { locks; } = lock_register;
 
-            // Only perform the update the lock duration if the lock is active (i.e. present in the locks BTree)
+            // Only update the lock if it is already there
             switch(BTree.delete(locks, compare_locks, get_lock(ballot))) {
                 case(null) {};
                 case(_) {

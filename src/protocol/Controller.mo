@@ -7,6 +7,8 @@ import Timeline           "utils/Timeline";
 import Clock              "utils/Clock";
 import LockScheduler      "LockScheduler";
 import SharedConversions  "shared/SharedConversions";
+import BallotUtils        "votes/BallotUtils";
+import PresenceDispenser  "PresenceDispenser";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
@@ -27,12 +29,11 @@ module {
     type PutBallotResult = Types.PutBallotResult;
     type PreviewBallotResult = Types.PreviewBallotResult;
     type ChoiceType = Types.ChoiceType;
-    type QueriedBallot = Types.QueriedBallot;
     type Account = Types.Account;
-    type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
     type TimedData<T> = Timeline.TimedData<T>;
     type UUID = Types.UUID;
     type NewVoteResult = Types.NewVoteResult;
+    type BallotRegister = Types.BallotRegister;
 
     type WeightParams = {
         ballot: BallotType;
@@ -58,12 +59,14 @@ module {
     public class Controller({
         clock: Clock.Clock;
         vote_register: VoteRegister;
+        ballot_register: BallotRegister;
         lock_scheduler: LockScheduler.LockScheduler;
         vote_type_controller: VoteTypeController.VoteTypeController;
         deposit_debt: DebtProcessor.DebtProcessor;
         presence_debt: DebtProcessor.DebtProcessor;
         resonance_debt: DebtProcessor.DebtProcessor;
         decay_model: Decay.DecayModel;
+        presence_dispenser: PresenceDispenser.PresenceDispenser;
     }){
 
         public func new_vote(args: NewVoteArgs) : NewVoteResult {
@@ -103,7 +106,6 @@ module {
             let timestamp = clock.get_time();
             let from = { owner = caller; subaccount = from_subaccount; };
 
-            // @todo: transaction ID is 0
             #ok(vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with tx_id = 0; timestamp; from; }}));
         };
 
@@ -116,7 +118,7 @@ module {
                 case(?v) { v };
             };
 
-            switch(vote_type_controller.find_ballot({ vote_type; ballot_id; })){
+            switch(find_ballot(ballot_id)){
                 case(?_) { return #err(#BallotAlreadyExists({ballot_id})); };
                 case(null) {};
             };
@@ -137,33 +139,47 @@ module {
             let ballot_type = vote_type_controller.put_ballot({vote_type; choice_type; args = { args with tx_id; timestamp; from; }});
 
             // Update the locks
-            switch(ballot_type){
-                case(#YES_NO(ballot)) { lock_scheduler.add(ballot, timestamp); };
+            for (ballot in vote_type_controller.vote_ballots(vote_type)){
+                lock_scheduler.update(BallotUtils.unwrap_yes_no(ballot), timestamp);
             };
+            lock_scheduler.add(BallotUtils.unwrap_yes_no(ballot_type), timestamp);
 
-            // Update the user_ballots map
-            MapUtils.putInnerSet(vote_register.user_ballots, MapUtils.acchash, from, MapUtils.tthash, (vote_id, ballot_id));
+            // Add the ballot to that account
+            MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
 
+            // TODO: Ideally the controller shall not share the ballot type
             #ok(SharedConversions.shareBallotType(ballot_type));
         };
 
-        public func get_ballots(account: Account) : [QueriedBallot] {
-            switch(Map.get(vote_register.user_ballots, MapUtils.acchash, account)){
-                case(?ballots) { 
-                    Set.toArrayMap(ballots, func((vote_id, ballot_id): (UUID, UUID)) : ?QueriedBallot =
-                        Option.map(find_ballot({vote_id; ballot_id;}), func(ballot: BallotType) : QueriedBallot = 
-                            { vote_id; ballot_id; ballot; }
-                        )
-                    );
+        public func get_ballots(account: Account) : [BallotType] {
+            let buffer = Buffer.Buffer<BallotType>(0);
+            Option.iterate(Map.get(ballot_register.by_account, MapUtils.acchash, account), func(ids: Set.Set<UUID>) {
+                for (id in Set.keys(ids)) {
+                    Option.iterate(Map.get(ballot_register.ballots, Map.thash, id), func(ballot_type: BallotType) {
+                        buffer.add(ballot_type);
+                    });
                 };
-                case(null) { [] };
+            }); 
+            Buffer.toArray(buffer);
+        };
+
+        public func get_vote_ballots(vote_id: UUID) : [BallotType] {
+            let vote = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
+                case(null) { return []; };
+                case(?v) { v };
             };
+            let buffer = Buffer.Buffer<BallotType>(0);
+            for (ballot in vote_type_controller.vote_ballots(vote)){
+                buffer.add(ballot);
+            };
+            Buffer.toArray(buffer);
         };
 
         public func run() : async* () {
             let time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
             lock_scheduler.try_unlock(time);
+            presence_dispenser.dispense(time);
 
             let transfers = Buffer.Buffer<async* ()>(3);
 
@@ -187,14 +203,8 @@ module {
             Map.get(vote_register.votes, Map.thash, vote_id);
         };
 
-        public func find_ballot({vote_id: UUID; ballot_id: UUID;}) : ?BallotType {
-            
-            let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
-                case(?v) { v; };
-                case(null) { return null; };
-            };
-
-            vote_type_controller.find_ballot({ vote_type; ballot_id; });
+        public func find_ballot(ballot_id: UUID) : ?BallotType {
+            Map.get(ballot_register.ballots, Map.thash, ballot_id);
         };
 
         public func current_decay() : Float {

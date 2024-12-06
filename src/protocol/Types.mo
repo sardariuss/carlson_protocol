@@ -38,7 +38,6 @@ module {
     public type HotInfo            = Types.Current.HotInfo;
     public type DurationInfo       = Types.Current.DurationInfo;
     public type Ballot<B>          = Types.Current.Ballot<B>;
-    public type ServiceError       = Types.Current.ServiceError;
     public type Duration           = Types.Current.Duration;
     public type State              = Types.Current.State;
     public type ClockParameters    = Types.Current.ClockParameters;
@@ -49,6 +48,8 @@ module {
     public type Transfer           = Types.Current.Transfer;
     public type TransferResult     = Types.Current.TransferResult;
     public type PresenseParameters = Types.Current.PresenseParameters;
+    public type BallotType         = Types.Current.BallotType;
+    public type BallotRegister     = Types.Current.BallotRegister;
 
     // CANISTER ARGS
 
@@ -105,11 +106,16 @@ module {
     };
 
     public type SBallotInfo<B> = {
+        ballot_id: UUID;
+        vote_id: UUID;
         timestamp: Time;
         choice: B;
         amount: Nat;
         dissent: Float;
         consent: STimeline<Float>;
+        ck_btc: SDebtInfo;
+        presence: SDebtInfo;
+        resonance: SDebtInfo;
     };
 
     public type SDepositInfo = {
@@ -134,13 +140,23 @@ module {
         date: Time;
         origin: Principal;
         aggregate: STimeline<A>;
-        ballot_register: {
-            map: [(UUID, SBallot<B>)];
-            locks: [UUID];
-        };
     };
 
     // CUSTOM TYPES
+
+    public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
+    public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
+    public type ComputeConsent<A, B> = ({aggregate: A; choice: B; time: Time}) -> Float;
+
+    public type BallotAggregatorOutcome<A> = {
+        aggregate: {
+            update: A;
+        };
+        ballot: {
+            dissent: Float;
+            consent: Float;
+        };
+    };
     
     public type DecayParameters = {
         lambda: Float;
@@ -150,10 +166,6 @@ module {
     public type LocksParams = {
         ns_per_sat: Nat;
         decay_params: DecayParameters;
-    };
-
-    public type BallotType = {
-        #YES_NO: Ballot<YesNoChoice>;
     };
 
     public type AggregateHistoryType = {
@@ -168,33 +180,17 @@ module {
         #YES_NO;
     };
 
-    public type Service = { tx_id: Nat; } -> async* Result<Nat, Text>;
+    public type YesNoBallot = Ballot<YesNoChoice>;
 
-    public type VoteNotFoundError = { #VoteNotFound: { vote_id: UUID; }; };
-    
-    public type PutBallotError = TransferFromError or VoteNotFoundError or { #BallotAlreadyExists: { ballot_id: UUID; }; };
-    
-    public type PutBallotResult = Result<SBallotType, PutBallotError>;
-    
-    public type PreviewBallotResult = Result<BallotType, VoteNotFoundError>;
-    public type NewVoteResult = Result<VoteType, NewVoteError>;
-    public type NewVoteError = { #VoteAlreadyExists: { vote_id: UUID; }; };
+    // RESULT/ERROR TYPES
 
-    public type VoteBallotId = {
-        vote_id: UUID;
-        ballot_id: UUID;
-    };
-
-    public type QueriedBallot = VoteBallotId and { ballot: BallotType; };
-    public type SQueriedBallot = VoteBallotId and { ballot: SBallotType; };
-    public type SNewVoteResult = Result<SVoteType, NewVoteError>;
+    public type VoteNotFoundError    = { #VoteNotFound: { vote_id: UUID; }; };
+    public type NewVoteError         = { #VoteAlreadyExists: { vote_id: UUID; }; };
+    public type PutBallotError       = TransferFromError or VoteNotFoundError or { #BallotAlreadyExists: { ballot_id: UUID; }; };
+    public type PutBallotResult      = Result<SBallotType, PutBallotError>;
+    public type PreviewBallotResult  = Result<BallotType, VoteNotFoundError>;
+    public type NewVoteResult        = Result<VoteType, NewVoteError>;
+    public type SNewVoteResult       = Result<SVoteType, NewVoteError>;
     public type SPreviewBallotResult = Result<SBallotType, VoteNotFoundError>;
-    
-
-    public type ReleaseAttempt<T> = {
-        elem: T;
-        release_time: ?Time;
-        update_elem: T -> ();
-    };
 
 };

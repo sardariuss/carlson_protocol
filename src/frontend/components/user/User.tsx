@@ -11,6 +11,27 @@ import { BITCOIN_TOKEN_SYMBOL, BALLOT_EMOJI, LOCK_EMOJI, DURATION_EMOJI, PRESENC
 import { formatBalanceE8s } from "../../utils/conversions/token";
 import { get_current, get_first } from "../../utils/timeline";
 import DurationChart from "../charts/DurationChart";
+import { protocolActor } from "../../actors/ProtocolActor";
+import { SBallotType } from "../../../declarations/protocol/protocol.did";
+import { fromNullable } from "@dfinity/utils";
+
+interface VoteTextProps {
+  ballot: SBallotType;
+}
+
+const VoteText = ({ ballot }: VoteTextProps) => {
+
+  const { data: text } = backendActor.useQueryCall({
+    functionName: "get_vote_text",
+    args: [{ vote_id: ballot.YES_NO.vote_id }],
+  });
+
+  if (!text) {
+    return <div>Invalid vote</div>;
+  }
+
+  return <span>{ fromNullable(text) || "" }</span>;
+}
 
 const User = () => {
   
@@ -22,7 +43,7 @@ const User = () => {
 
   const [selected, setSelected] = useState<number>(0);
 
-  const { data: ballots, call: refreshBallots } = backendActor.useQueryCall({
+  const { data: ballots, call: refreshBallots } = protocolActor.useQueryCall({
     functionName: "get_ballots",
     args: [{ owner: Principal.fromText(principal), subaccount: [] }],
   });
@@ -52,20 +73,20 @@ const User = () => {
                 <li key={index} className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 justify-items-center border dark:border-gray-700 border-gray-200 p-1">
                   {/* Row 1: Text */}
                   <div className="col-span-2 justify-self-start">
-                    { ballot.text }
+                    <VoteText ballot={ballot} />
                   </div>
 
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{LOCK_EMOJI}</span>
                     <div>
-                      <div><span className="italic text-gray-400 text-sm">Amount:</span> {formatBalanceE8s(ballot.ballot.YES_NO.amount, BITCOIN_TOKEN_SYMBOL) } </div>
+                      <div><span className="italic text-gray-400 text-sm">Amount:</span> {formatBalanceE8s(ballot.YES_NO.amount, BITCOIN_TOKEN_SYMBOL) } </div>
                     </div>
                   </div>
 
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{TIMESTAMP_EMOJI}</span>
                     <div>
-                      <div><span className="italic text-gray-400 text-sm">Date:</span> {formatDate(timeToDate(ballot.ballot.YES_NO.timestamp)) } </div>
+                      <div><span className="italic text-gray-400 text-sm">Date:</span> {formatDate(timeToDate(ballot.YES_NO.timestamp)) } </div>
                     </div>
                   </div>
 
@@ -73,8 +94,8 @@ const User = () => {
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{DURATION_EMOJI}</span>
                     <div>
-                      <div><span className="italic text-gray-400 text-sm">Initial:</span> {formatDuration(ballot.ballot.YES_NO.timestamp + get_first(ballot.ballot.YES_NO.duration_ns).data - dateToTime(new Date(Number(ballot.ballot.YES_NO.timestamp)/ 1_000_000))) } </div>
-                      <div><span className="italic text-gray-400 text-sm">Current:</span> {formatDuration(ballot.ballot.YES_NO.timestamp + get_current(ballot.ballot.YES_NO.duration_ns).data - dateToTime(new Date(Number(ballot.ballot.YES_NO.timestamp)/ 1_000_000))) } </div>
+                      <div><span className="italic text-gray-400 text-sm">Initial:</span> {formatDuration(ballot.YES_NO.timestamp + get_first(ballot.YES_NO.duration_ns).data - dateToTime(new Date(Number(ballot.YES_NO.timestamp)/ 1_000_000))) } </div>
+                      <div><span className="italic text-gray-400 text-sm">Current:</span> {formatDuration(ballot.YES_NO.timestamp + get_current(ballot.YES_NO.duration_ns).data - dateToTime(new Date(Number(ballot.YES_NO.timestamp)/ 1_000_000))) } </div>
                     </div>
                   </div>
                   
@@ -82,33 +103,33 @@ const User = () => {
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{BALLOT_EMOJI}</span>
                     <div>
-                      <div><span className="italic text-gray-400 text-sm">Yours:</span> <span className={`${toEnum(ballot.ballot.YES_NO.choice) === EYesNoChoice.Yes ? " text-green-500" : " text-red-500"}`}>
-                        { toEnum(ballot.ballot.YES_NO.choice)}</span></div>
-                      <div><span className="italic text-gray-400 text-sm">Current:</span> <span className={`${toEnum(ballot.ballot.YES_NO.choice) === EYesNoChoice.Yes ? " text-green-500" : " text-red-500"}`}>
-                        { toEnum(ballot.ballot.YES_NO.choice)}</span></div>
+                      <div><span className="italic text-gray-400 text-sm">Yours:</span> <span className={`${toEnum(ballot.YES_NO.choice) === EYesNoChoice.Yes ? " text-green-500" : " text-red-500"}`}>
+                        { toEnum(ballot.YES_NO.choice)}</span></div>
+                      <div><span className="italic text-gray-400 text-sm">Current:</span> <span className={`${toEnum(ballot.YES_NO.choice) === EYesNoChoice.Yes ? " text-green-500" : " text-red-500"}`}>
+                        { toEnum(ballot.YES_NO.choice)}</span></div>
                     </div>
                   </div>
                   
                   {/* Row 4: Presence */}
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{PRESENCE_TOKEN_EMOJI}</span>
-                    <div><span className="italic text-gray-400 text-sm">Accumulated:</span> { formatBalanceE8s(BigInt(Math.floor(get_current(ballot.ballot.YES_NO.presence).data)), PRESENCE_TOKEN_SYMBOL) }</div>
+                    <div><span className="italic text-gray-400 text-sm">Accumulated:</span> { formatBalanceE8s(BigInt(Math.floor(get_current(ballot.YES_NO.presence.amount).data)), PRESENCE_TOKEN_SYMBOL) }</div>
                   </div>
                   
                   {/* Row 5: Resonance */}
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{RESONANCE_TOKEN_EMOJI}</span>
-                    <div><span className="italic text-gray-400 text-sm">Forecasted:</span> { formatBalanceE8s(BigInt(Math.floor(get_current(ballot.ballot.YES_NO.presence).data)), RESONANCE_TOKEN_SYMBOL) }</div>
+                    <div><span className="italic text-gray-400 text-sm">Forecasted:</span> { formatBalanceE8s(BigInt(Math.floor(get_current(ballot.YES_NO.resonance.amount).data)), RESONANCE_TOKEN_SYMBOL) }</div>
                   </div>
 
                   <div className="col-span-2 w-full flex flex-col">
                     <div>Duration</div>
                     <DurationChart duration_timeline={{
                       current: {
-                        timestamp: ballot.ballot.YES_NO.duration_ns.current.timestamp, 
-                        data: Number(ballot.ballot.YES_NO.duration_ns.current.data)
+                        timestamp: ballot.YES_NO.duration_ns.current.timestamp, 
+                        data: Number(ballot.YES_NO.duration_ns.current.data)
                       }, 
-                      history:ballot.ballot.YES_NO.duration_ns.history.map((duration_ns) => {
+                      history:ballot.YES_NO.duration_ns.history.map((duration_ns) => {
                         return {
                           timestamp: duration_ns.timestamp,
                           data: Number(duration_ns.data)
@@ -118,11 +139,14 @@ const User = () => {
                   </div>
                   <div className="col-span-2 w-full flex flex-col">
                     <div>Presence</div>
-                    <DurationChart duration_timeline={ballot.ballot.YES_NO.presence}/>
+                    <DurationChart duration_timeline={ballot.YES_NO.presence.amount}/>
                   </div>
                   <div className="col-span-2 w-full flex flex-col">
                     <div>Consent</div>
-                    <DurationChart duration_timeline={ballot.ballot.YES_NO.consent}/>
+                    <DurationChart duration_timeline={ballot.YES_NO.consent}/>
+                  </div>
+                  <div className="col-span-2 w-full flex flex-col">
+                    { ballot.YES_NO.ballot_id }
                   </div>
                 </li>
               )

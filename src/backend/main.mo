@@ -16,9 +16,6 @@ shared({ caller = admin }) actor class Backend() = this {
     type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate, YesNoChoice> and {
         text: ?Text;
     };
-    type SQueriedBallot = ProtocolTypes.SQueriedBallot and {
-        text: ?Text;
-    };
     type Account = ProtocolTypes.Account;
     type UUID = ProtocolTypes.UUID;
 
@@ -41,6 +38,10 @@ shared({ caller = admin }) actor class Backend() = this {
         });
     };
 
+    public query func get_vote_text({ vote_id: UUID }) : async ?Text {
+        Map.get<UUID, Text>(_texts, Map.thash, vote_id);
+    };
+
     public composite query func get_votes() : async [SYesNoVote] {
         let votes = await Protocol.get_votes({ origin = Principal.fromActor(this); });
         Array.map(votes, func(vote_type: SVoteType) : SYesNoVote {
@@ -49,13 +50,6 @@ shared({ caller = admin }) actor class Backend() = this {
                     { vote with text = Map.get<UUID, Text>(_texts, Map.thash, vote.vote_id); };
                 };
             };
-        });
-    };
-
-    public composite query func get_ballots(account: Account) : async [SQueriedBallot] {
-        let ballots = await Protocol.get_ballots({ owner = account.owner; subaccount = account.subaccount; });
-        Array.map(ballots, func(ballot: ProtocolTypes.SQueriedBallot) : SQueriedBallot {
-            { ballot with text = Map.get<UUID, Text>(_texts, Map.thash, ballot.vote_id); };
         });
     };
 

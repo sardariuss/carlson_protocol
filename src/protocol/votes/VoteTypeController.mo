@@ -1,31 +1,22 @@
 import VoteController "VoteController";
 import Types          "../Types";
 
-import Result         "mo:base/Result";
-import Option         "mo:base/Option";
+import Iter           "mo:base/Iter";
 
 module {
 
-    type VoteType = Types.VoteType;
-    type ChoiceType = Types.ChoiceType;
-    type VoteTypeEnum = Types.VoteTypeEnum;
+    type VoteType       = Types.VoteType;
+    type ChoiceType     = Types.ChoiceType;
+    type VoteTypeEnum   = Types.VoteTypeEnum;
     type YesNoAggregate = Types.YesNoAggregate;
-    type YesNoChoice = Types.YesNoChoice;
-    type PutBallotError = Types.PutBallotError;
-    type YesNoBallot = Ballot<Types.YesNoChoice>;
-    type ReleaseAttempt<T> = Types.ReleaseAttempt<T>;
-    type Time = Int;
-    type YesNoVote = Types.Vote<YesNoAggregate, YesNoChoice>;
-    type UUID = Types.UUID;
+    type YesNoChoice    = Types.YesNoChoice;
+    type Time           = Int;
+    type UUID           = Types.UUID;
+    type BallotType     = Types.BallotType;
+    
+    type Iter<T>        = Iter.Iter<T>;
 
-    type Account = Types.Account;
-    type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type BallotType = Types.BallotType;
-
-    type Vote<A, B> = Types.Vote<A, B>;
-
-    type Ballot<B> = Types.Ballot<B>;
-
+    // TODO: put in Types.mo
     public type PutBallotArgs = VoteController.PutBallotArgs;
 
     public class VoteTypeController({
@@ -50,10 +41,22 @@ module {
             };
         };
 
-        public func find_ballot({ vote_type: VoteType; ballot_id: UUID; }) : ?Types.BallotType {
+        public func vote_ballots(vote_type: VoteType) : Iter<BallotType> {
             switch(vote_type){
                 case(#YES_NO(vote)) { 
-                    Option.map(yes_no_controller.find_ballot({ vote; ballot_id; }), func(b: YesNoBallot) : Types.BallotType { #YES_NO(b); }); 
+                    let it = yes_no_controller.vote_ballots(vote);
+                    func next() : ?(BallotType) {
+                        label get_next while(true) {
+                            switch(it.next()){
+                                case(null) { break get_next; };
+                                case(?ballot){
+                                    return ?#YES_NO(ballot);
+                                };
+                            };
+                        };
+                        null;
+                    };
+                    return { next };
                 };
             };
         };

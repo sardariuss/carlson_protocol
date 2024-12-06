@@ -169,11 +169,19 @@ module {
     public type VoteRegister = {
         votes: Map<UUID, VoteType>;
         by_origin: Map<Principal, Set<UUID>>;
-        user_ballots: Map<Account, Set<(UUID, UUID)>>;
+    };
+
+    public type BallotRegister = {
+        ballots: Map<UUID, BallotType>;
+        by_account: Map<Account, Set<UUID>>;
     };
 
     public type VoteType = {
         #YES_NO: Vote<YesNoAggregate, YesNoChoice>;
+    };
+
+    public type BallotType = {
+        #YES_NO: Ballot<YesNoChoice>;
     };
 
     public type YesNoAggregate = {
@@ -197,10 +205,7 @@ module {
         date: Time;
         origin: Principal;
         aggregate: Timeline<A>;
-        ballot_register: {
-            map: Map<UUID, Ballot<B>>;
-            locks: Set<UUID>;
-        };
+        ballots: Set<UUID>;
     };
 
     public type DebtInfo = {
@@ -211,13 +216,18 @@ module {
         var transfers: [Transfer];
     };
 
+    // should distinguish between what is lock related and what is vote related
     public type BallotInfo<B> = {
         ballot_id: UUID;
-        timestamp: Time;
-        choice: B;
-        amount: Nat;
-        dissent: Float;
-        consent: Timeline<Float>;
+        vote_id: UUID; // vote related
+        timestamp: Time; // lock related, vote maybe ?
+        choice: B; // vote related
+        amount: Nat; // both, because impacts the aggregate and lock weight
+        dissent: Float; // vote related
+        consent: Timeline<Float>; // vote related WILL CHANGE
+        ck_btc: DebtInfo;
+        presence: DebtInfo;
+        resonance: DebtInfo;
     };
 
     public type DepositInfo = {
@@ -226,7 +236,7 @@ module {
     };
 
     public type HotInfo = {
-        var hotness: Float;
+        var hotness: Float; // vote related WILL CHANGE
         decay: Float;
     };
 
@@ -245,14 +255,6 @@ module {
     public type TransferResult = {
         #ok: TxIndex;
         #err: Icrc1TransferError or { #Trapped : { error_code: Error.ErrorCode; }};
-    };
-
-    public type ServiceError = {
-        original_transfer: {
-            tx_id: TxIndex;
-            args: TransferFromArgs;
-        };
-        error: Text;
     };
 
     public type Duration = {
@@ -319,24 +321,22 @@ module {
     public type State = {
         clock_parameters: ClockParameters;
         vote_register: VoteRegister;
+        ballot_register: BallotRegister;
         lock_register: LockRegister;
         deposit: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            debts: Map<UUID, DebtInfo>;
             owed: Set<UUID>;
         };
         presence: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            debts: Map<UUID, DebtInfo>;
             owed: Set<UUID>;
             parameters: PresenseParameters;
         };
         resonance: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            debts: Map<UUID, DebtInfo>;
             owed: Set<UUID>;
         };
         parameters: {
