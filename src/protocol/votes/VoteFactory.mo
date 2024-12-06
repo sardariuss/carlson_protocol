@@ -9,7 +9,6 @@ import HotMap             "../locks/HotMap";
 import Map                "mo:map/Map";
 
 import Float              "mo:base/Float";
-import Debug              "mo:base/Debug";
 import Iter               "mo:base/Iter";
 
 module {
@@ -27,8 +26,6 @@ module {
     type BallotRegister = Types.BallotRegister;
     type Iter<T> = Iter.Iter<T>;
 
-    type HotElem = HotMap.HotElem;
-
     type Time = Int;
 
     // https://www.desmos.com/calculator/8iww2wlp2t
@@ -44,7 +41,7 @@ module {
         ballot_register: BallotRegister;
         decay_model: Decay.DecayModel;
         duration_calculator: DurationCalculator.IDurationCalculator;
-        hot_map: HotMap.HotMap<UUID, YesNoBallot>;
+        hot_map: HotMap.HotMap;
     }) : VoteController<YesNoAggregate, YesNoChoice> {
 
         let empty_aggregate = { total_yes = 0; total_no = 0; current_yes = #DECAYED(0.0); current_no = #DECAYED(0.0); };
@@ -91,6 +88,7 @@ module {
             compute_consent;
             duration_calculator;
             hot_map;
+            decay_model;
             iter_ballots = func() : Iter<(UUID, YesNoBallot)> {
                 let it = Map.entries(ballot_register.ballots);
                 func next() : ?(UUID, YesNoBallot) {
@@ -104,6 +102,9 @@ module {
                     };
                 };
                 return { next };
+            };
+            add_ballot = func(id: UUID, ballot: YesNoBallot) {
+                Map.set(ballot_register.ballots, Map.thash, id, #YES_NO(ballot));
             };
         });
     };

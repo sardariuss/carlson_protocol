@@ -3,6 +3,7 @@ import Interfaces "../Interfaces";
 import Float      "mo:base/Float";
 import Result     "mo:base/Result";
 import Iter       "mo:base/Iter";
+import Debug      "mo:base/Debug";
 
 module {
 
@@ -11,34 +12,14 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type Iter<T> = Iter.Iter<T>;
 
-    public type IHotElemBuilder<V> = {
-        add_hot: (HotOutput, Time) -> ();
-        build: () -> V;
-    };
-
-    public type HotInput = {
+    type HotItem = {
         amount: Nat;
         timestamp: Time;
-    };
-
-    public type HotOutput = {
         decay: Float;
         var hotness: Float;
     };
 
-    public type HotElem = HotInput and HotOutput;
-
-    public type UpdateHotness<V> = {
-        v: V;
-        hotness: Float;
-        time: Time;
-    } -> ();
-    
-    public class HotMap<K, V>({
-        decay_model: IDecayModel;
-        get_elem: V -> HotElem;
-        update_hotness: UpdateHotness<V>;
-    }){
+    public class HotMap(){
 
         // Creates a new elem with the given amount and timestamp
         // Deduce the decay from the given timestamp
@@ -76,39 +57,29 @@ module {
         //  hotness_i = amount_i
         //            + (decay_0 / decay_i  ) * amount_0   + ... + (decay_i-1 / decay_i) * amount_i-1
         //            + (decay_i / decay_i+1) * amount_i+1 + ... + (decay_i  / decay_n ) * amount_n
-        public func add_new({
-            iter: Iter<V>;
-            builder: IHotElemBuilder<V>;
-            args: HotInput;
-            update_map: Bool;
-        }) : V {
+        public func add_new(
+            iter: Iter<HotItem>,
+            elem: HotItem,
+            update_map: Bool,
+        ) {
 
-            let { amount; timestamp; } = args;
-            let decay = decay_model.compute_decay(timestamp);
-            var hotness = Float.fromInt(amount);
-
-            // Iterate over the previous elems
-            for (v in iter) {
-
-                let prev_elem = get_elem(v);
-
-                // Compute the weight between the two elems
-                let weight = prev_elem.decay / decay;
-
-                hotness += Float.fromInt(prev_elem.amount) * weight;
-
-                if (update_map) {
-                    // Add to the hotness of the new elem
-                    let prev_hotness = prev_elem.hotness + Float.fromInt(amount) * weight;
-                    
-                    // Update the hotness of the previous elem
-                    update_hotness({ v; hotness = prev_hotness; time = timestamp; });
-                };
+            if(elem.hotness > 0.0) {
+                Debug.trap("The hotness of the new elem should be 0.0");
             };
 
-            // Return the new elem
-            builder.add_hot({ var hotness = hotness; decay; }, timestamp);
-            builder.build();
+            // Iterate over the previous elems
+            for (prev_elem in iter) {
+
+                // Compute the weight between the two elems
+                let weight = prev_elem.decay / elem.decay;
+
+                elem.hotness += Float.fromInt(prev_elem.amount) * weight;
+
+                if (update_map) {                  
+                    // Update the hotness of the previous elem
+                    prev_elem.hotness += Float.fromInt(elem.amount) * weight;
+                };
+            };
         };
 
     };

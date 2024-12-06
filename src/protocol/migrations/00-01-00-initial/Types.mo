@@ -206,9 +206,6 @@ module {
         origin: Principal;
         aggregate: Timeline<A>;
         ballots: Set<UUID>;
-        ballot_register: {
-            map: Map<UUID, Ballot<B>>;
-        };
     };
 
     public type DebtInfo = {
@@ -227,7 +224,7 @@ module {
         choice: B; // vote related
         amount: Nat; // both, because impacts the aggregate and lock weight
         dissent: Float; // vote related
-        consent: Timeline<Float>; // vote related
+        consent: Timeline<Float>; // vote related WILL CHANGE
         ck_btc: DebtInfo;
         presence: DebtInfo;
         resonance: DebtInfo;
@@ -239,7 +236,7 @@ module {
     };
 
     public type HotInfo = {
-        var hotness: Float;
+        var hotness: Float; // vote related WILL CHANGE
         decay: Float;
     };
 

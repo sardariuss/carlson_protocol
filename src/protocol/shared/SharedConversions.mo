@@ -1,8 +1,5 @@
 import Types "../Types";
 
-import Map "mo:map/Map";
-import Set "mo:map/Set";
-
 module {
 
     type VoteType = Types.VoteType;
@@ -40,15 +37,9 @@ module {
     };
 
     func shareVote<A, B>(vote: Vote<A, B>) : SVote<A, B> {
-        let ballots = Map.map<UUID, Ballot<B>, SBallot<B>>(vote.ballot_register.map, Map.thash, func(id: UUID, ballot: Ballot<B>) : SBallot<B> { 
-            shareBallot(ballot);
-        });
         {
             vote with 
             aggregate = shareTimeline(vote.aggregate);
-            ballot_register = {
-                map = Map.toArray(ballots);
-            }
         };
     };
 

@@ -141,9 +141,6 @@ module {
         date: Time;
         origin: Principal;
         aggregate: STimeline<A>;
-        ballot_register: {
-            map: [(UUID, SBallot<B>)];
-        };
     };
 
     // CUSTOM TYPES

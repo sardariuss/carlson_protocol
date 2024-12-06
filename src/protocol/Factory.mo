@@ -23,7 +23,6 @@ module {
     type State = Types.State;
     type UUID = Types.UUID;
     type YesNoBallot = Types.Ballot<Types.YesNoChoice>;
-    type HotElem = HotMap.HotElem;
 
     public func build(args: State and { provider: Principal }) : Controller.Controller {
 
@@ -94,16 +93,9 @@ module {
 
         let decay_model = Decay.DecayModel(decay);
 
-        // TODO: this should not assume it is a yes/no ballot, but work on every type of ballot
-        let hot_map = HotMap.HotMap<UUID, YesNoBallot>({
-            decay_model;
-            get_elem = func (b: YesNoBallot): HotElem { b; };
-            update_hotness = func ({v: YesNoBallot; hotness: Float; time: Time}) {
-                v.hotness := hotness; // Watchout: need to update the hotness first because the lock_scheduler depends on it
-                lock_scheduler.update(v, time);
-            };
-            key_hash = Map.thash;
-        });
+        // @todo: need to update lock_scheduler with each hotness update!!
+        //lock_scheduler.update(v, time);
+        let hot_map = HotMap.HotMap();
 
         let yes_no_controller = VoteFactory.build_yes_no({
             ballot_register;

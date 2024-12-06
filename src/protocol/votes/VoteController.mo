@@ -4,8 +4,8 @@ import Types              "../Types";
 import DurationCalculator "../duration/DurationCalculator";
 import Timeline           "../utils/Timeline";
 import HotMap             "../locks/HotMap";
+import Decay              "../duration/Decay";  
 
-import Map                "mo:map/Map";
 import Set                "mo:map/Set";
 
 import Result             "mo:base/Result";
@@ -23,7 +23,6 @@ module {
     type IDurationCalculator = DurationCalculator.IDurationCalculator;
     type UUID = Types.UUID;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type Map<K, V> = Map.Map<K, V>;
     type Set<K> = Set.Set<K>;
     type Iter<T> = Iter.Iter<T>;
 
@@ -49,8 +48,10 @@ module {
         compute_dissent: ComputeDissent<A, B>;
         compute_consent: ComputeConsent<A, B>;
         duration_calculator: IDurationCalculator;
-        hot_map: HotMap.HotMap<UUID, Ballot<B>>;
+        decay_model: Decay.DecayModel;
+        hot_map: HotMap.HotMap;
         iter_ballots: () -> Iter<(UUID, Ballot<B>)>;
+        add_ballot: (UUID, Ballot<B>) -> ();
     }){
 
         public func new_vote({
@@ -65,41 +66,65 @@ module {
                 origin;
                 aggregate = Timeline.initialize(date, empty_aggregate);
                 ballots = Set.new<UUID>();
-                ballot_register = {
-                    map = Map.new<UUID, Ballot<B>>();
-                };
             };
         };
 
         public func preview_ballot(vote: Vote<A, B>, choice: B, args: PutBallotArgs) : Ballot<B> {
 
-            let builder = build_ballot({ vote_id = vote.vote_id; aggregate = vote.aggregate.current.data; choice; args; });
+            let { vote_id } = vote;
+            let { amount; timestamp; } = args;
+            let time = timestamp;
+            var aggregate = vote.aggregate.current.data;
 
-            hot_map.add_new({ iter = vote_ballots(vote); builder; args; update_map = false; });
+            // Compute the dissent before updating the aggregate
+            let dissent = compute_dissent({ aggregate; choice; amount; time; });
+            
+            // Update the aggregate then compute the consent
+            aggregate := update_aggregate({ aggregate; choice; amount; time; });
+            let consent = compute_consent({ aggregate; choice; time; });
+
+            let ballot = init_ballot({vote_id; choice; args; dissent; consent; });
+            hot_map.add_new(vote_ballots(vote), ballot, false);
+
+            ballot;
         };
 
         public func put_ballot(vote: Vote<A, B>, choice: B, args: PutBallotArgs) : Ballot<B> {
 
+            let { vote_id } = vote;
             let { ballot_id; amount; timestamp; } = args;
-            let { map } = vote.ballot_register;
+            let time = timestamp;
 
-            if (Map.has(map, Map.thash, ballot_id)) {
+            if (Set.has(vote.ballots, Set.thash, ballot_id)) {
                 Debug.trap("A ballot with the ID " # args.ballot_id # " already exists");
             };
 
-            // Update the aggregate
             var aggregate = vote.aggregate.current.data;
-            aggregate := update_aggregate({ choice; amount; time = timestamp; aggregate; });
+
+            // Compute the dissent before updating the aggregate
+            let dissent = compute_dissent({ aggregate; choice; amount; time; });
+            
+            // Update the aggregate
+            aggregate := update_aggregate({ aggregate; choice; amount; time; });
             Timeline.add(vote.aggregate, timestamp, aggregate);
+            
+            // Compute the consent
+            let consent = compute_consent({ aggregate; choice; time; });
 
             // Update the ballot consents
-            for ((id, bal) in Map.entries(map)) {
-                Timeline.add(bal.consent, timestamp, compute_consent({ aggregate; choice; time = timestamp; }));
+            for (ballot in vote_ballots(vote)) {
+                Timeline.add(ballot.consent, timestamp, compute_consent({ aggregate; choice; time; }));
             };
 
             // Update the hotness
-            let builder = build_ballot({ vote_id = vote.vote_id; aggregate; choice; args; });
-            hot_map.add_new({ iter = vote_ballots(vote); builder; args; update_map = true; });
+            let ballot = init_ballot({vote_id; choice; args; dissent; consent; });
+            hot_map.add_new(vote_ballots(vote), ballot, true);
+
+            // Add the ballot
+            add_ballot(ballot_id, ballot);
+            Set.add(vote.ballots, Set.thash, ballot_id);
+
+            ballot;
         };
 
         // @todo: remove this function
@@ -107,33 +132,34 @@ module {
             vote: Vote<A, B>;
             ballot_id: UUID;
         }) : ?Ballot<B> {
-            Map.get(vote.ballot_register.map, Map.thash, ballot_id);
+            null;
         };
 
-        func build_ballot({
+        func init_ballot({
             vote_id: UUID;
-            aggregate: A;
             choice: B;
             args: PutBallotArgs;
-        }) : BallotBuilder.BallotBuilder<B> {
-            
-            let { ballot_id; timestamp; amount; tx_id; from; } = args;
+            dissent: Float;
+            consent: Float;
+        }) : Ballot<B> {
+            let { timestamp; from; } = args;
 
-            let builder = BallotBuilder.BallotBuilder<B>({duration_calculator});
-            builder.add_ballot({
+            let ballot : Ballot<B> = {
+                args with
                 vote_id;
-                ballot_id;
-                timestamp;
                 choice;
-                amount;
-                dissent = compute_dissent({ aggregate; choice; amount; time = timestamp; });
-                consent = Timeline.initialize(timestamp, compute_consent({ aggregate; choice; time = timestamp; }));
+                dissent;
+                consent = Timeline.initialize<Float>(timestamp, consent);
                 ck_btc = DebtProcessor.init_debt_info(timestamp, from);
                 presence = DebtProcessor.init_debt_info(timestamp, from);
                 resonance = DebtProcessor.init_debt_info(timestamp, from);
-            });
-            builder.add_deposit({ tx_id; from; });
-            builder;
+                decay = decay_model.compute_decay(timestamp);
+                // @todo: shall be init with null
+                var hotness = 0.0;
+                duration_ns = Timeline.initialize<Nat>(timestamp, duration_calculator.compute_duration_ns(0.0));
+                var release_date = -1;
+            };
+            ballot;
         };
 
         func vote_ballots(vote: Vote<A, B>) : Iter<Ballot<B>> {
