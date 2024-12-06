@@ -25,6 +25,7 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type SNewVoteResult = Types.SNewVoteResult;
     type NewVoteError = Types.NewVoteError;
+    type SPresenceInfo = Types.SPresenceInfo;
 
     public class SharedFacade(controller: Controller.Controller) {
 
@@ -42,6 +43,13 @@ module {
 
         public func run() : async* () {
             await* controller.run();
+        };
+
+        public func get_presence_info() : SPresenceInfo {
+            let info = controller.get_presence_info();
+            {
+                info with ck_btc_locked = SharedConversions.shareTimeline(info.ck_btc_locked);
+            }
         };
 
         public func get_votes({origin: Principal;}) : [SVoteType] {

@@ -142,7 +142,19 @@ module {
         aggregate: STimeline<A>;
     };
 
+    public type SPresenceInfo = {
+        presence_per_ns: Float;
+        time_last_dispense: Time;
+        ck_btc_locked: STimeline<Nat>;
+    };
+
     // CUSTOM TYPES
+
+    public type PresenceInfo = {
+        presence_per_ns: Float;
+        time_last_dispense: Time;
+        ck_btc_locked: Timeline<Nat>;
+    };
 
     public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
     public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;

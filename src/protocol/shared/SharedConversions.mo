@@ -55,7 +55,7 @@ module {
         };
     };
 
-    func shareTimeline<T>(history: Timeline<T>) : STimeline<T> {
+    public func shareTimeline<T>(history: Timeline<T>) : STimeline<T> {
         { current = history.current; history = history.history; };
     };
 

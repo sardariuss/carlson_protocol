@@ -71,7 +71,7 @@ module {
                         if (lock.release_date > time) { return; };
                         about_to_remove(ballot, lock.release_date);
                         ignore BTree.delete(locks, compare_locks, lock);
-                        Timeline.add(total_amount, time, Timeline.current(total_amount) - ballot.amount);
+                        Timeline.add(total_amount, lock.release_date, Timeline.current(total_amount) - ballot.amount);
                     };
                 };
             };

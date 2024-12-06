@@ -283,7 +283,7 @@ module {
 
     public type LockRegister = {
         total_amount: Timeline<Nat>;
-        locks: BTree<Lock, Ballot<YesNoChoice>>; // TODO: use the generic BallotType instead
+        locks: BTree<Lock, Ballot<YesNoChoice>>; // TODO: use the BallotType or even a generic lock type instead
     };
 
     public type Args = {

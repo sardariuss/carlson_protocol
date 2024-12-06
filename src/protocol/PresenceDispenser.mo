@@ -11,6 +11,7 @@ module {
     type Time = Int;
     type LockRegister = Types.LockRegister;
     type PresenseParameters = Types.PresenseParameters;
+    type PresenceInfo = Types.PresenceInfo;
 
     public class PresenceDispenser({
         lock_register: LockRegister;
@@ -43,6 +44,14 @@ module {
 
             // Update the time of the last dispense
             parameters.time_last_dispense := time;
+        };
+
+        public func get_info() : PresenceInfo {
+            {
+                presence_per_ns = parameters.presence_per_ns;
+                time_last_dispense = parameters.time_last_dispense;
+                ck_btc_locked = lock_register.total_amount;
+            };
         };
         
     };

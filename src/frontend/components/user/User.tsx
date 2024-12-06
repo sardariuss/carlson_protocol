@@ -9,11 +9,12 @@ import { useEffect, useState } from "react";
 import LockChart from "../charts/LockChart";
 import { BITCOIN_TOKEN_SYMBOL, BALLOT_EMOJI, LOCK_EMOJI, DURATION_EMOJI, PRESENCE_TOKEN_EMOJI, RESONANCE_TOKEN_EMOJI, PRESENCE_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL, TIMESTAMP_EMOJI } from "../../constants";
 import { formatBalanceE8s } from "../../utils/conversions/token";
-import { get_current, get_first } from "../../utils/timeline";
+import { get_current, get_first, to_number_timeline } from "../../utils/timeline";
 import DurationChart from "../charts/DurationChart";
 import { protocolActor } from "../../actors/ProtocolActor";
 import { SBallotType } from "../../../declarations/protocol/protocol.did";
 import { fromNullable } from "@dfinity/utils";
+import Balance from "../Balance";
 
 interface VoteTextProps {
   ballot: SBallotType;
@@ -60,6 +61,7 @@ const User = () => {
   
   return (
     <div className="flex flex-col items-center w-full">
+      <Balance/>
       <div>
         {
           totalLocked? <div> Total locked: { formatBalanceE8s(totalLocked, BITCOIN_TOKEN_SYMBOL) } </div> : <></>
@@ -124,18 +126,7 @@ const User = () => {
 
                   <div className="col-span-2 w-full flex flex-col">
                     <div>Duration</div>
-                    <DurationChart duration_timeline={{
-                      current: {
-                        timestamp: ballot.YES_NO.duration_ns.current.timestamp, 
-                        data: Number(ballot.YES_NO.duration_ns.current.data)
-                      }, 
-                      history:ballot.YES_NO.duration_ns.history.map((duration_ns) => {
-                        return {
-                          timestamp: duration_ns.timestamp,
-                          data: Number(duration_ns.data)
-                        };
-                      })
-                    }}/>
+                    <DurationChart duration_timeline={to_number_timeline(ballot.YES_NO.duration_ns)}/>
                   </div>
                   <div className="col-span-2 w-full flex flex-col">
                     <div>Presence</div>

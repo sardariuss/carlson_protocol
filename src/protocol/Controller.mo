@@ -192,6 +192,10 @@ module {
             };
         };
 
+        public func get_presence_info() : Types.PresenceInfo {
+            presence_dispenser.get_info();
+        };
+
         public func get_votes({origin: Principal;}) : [VoteType] {
             let vote_ids = Option.get(Map.get(vote_register.by_origin, Map.phash, origin), Set.new<UUID>());
             Set.toArrayMap(vote_ids, func(vote_id: UUID) : ?VoteType {

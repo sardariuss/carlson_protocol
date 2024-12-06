@@ -69,6 +69,10 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         await* getFacade().run();
     };
 
+    public query func get_presence_info() : async Types.SPresenceInfo {
+        getFacade().get_presence_info();
+    };
+
     // Get the ballots of the given account
     public query func get_ballots(account: Types.Account) : async [Types.SBallotType] {
         getFacade().get_ballots(account);

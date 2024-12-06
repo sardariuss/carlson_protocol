@@ -1,14 +1,18 @@
 import { Link, useNavigate }      from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@ic-reactor/react";
-import Balance from "./Balance";
-
+import { protocolActor } from "../actors/ProtocolActor";
 
 const Header = () => {
 
   const navigate = useNavigate();
 
   const { login, logout, authenticated, identity } = useAuth({});
+
+  const { data: presenceInfo, call: refreshPresenceInfo } = protocolActor.useQueryCall({
+    functionName: "get_presence_info",
+    args: [],
+  });
 
   useEffect(() => {
 
@@ -59,6 +63,8 @@ const Header = () => {
       }
     });
 
+    refreshPresenceInfo();
+
   }, []);
 
   return (
@@ -69,12 +75,16 @@ const Header = () => {
           <span className="text-md md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl font-neon-spark whitespace-nowrap drop-shadow shadow-blue-800 neon-effect">.defi </span>
         </div>
       </Link>
-      <div className="flex flex-row items-center justify-center md:space-x-4">
-      </div>
+        { presenceInfo && 
+          <Link className="flex flex-row items-center justify-center md:space-x-4" to={"/info"}>
+            <span>
+              { Number((presenceInfo.presence_per_ns * 86_400_000_000_000) / Number(presenceInfo.ck_btc_locked.current.data)).toFixed(0) } presence/sat/day
+            </span>
+          </Link> 
+        }
       <div className="flex flex-row items-center justify-end md:space-x-4 space-x-2">
         { authenticated && identity ? 
           <div className="flex flex-row items-center justify-end">
-            <Balance/>
             <button type="button" onClick={() => { navigate("/user/" + identity.getPrincipal()) }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
               Profile
             </button>
