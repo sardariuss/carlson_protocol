@@ -1,5 +1,6 @@
 import VoteController     "VoteController";
 import Incentives         "Incentives";
+import BallotAggregator   "BallotAggregator";
 import Types              "../Types";
 import Decay              "../duration/Decay";
 import HotMap             "../locks/HotMap";
@@ -37,48 +38,44 @@ module {
         hot_map: HotMap.HotMap;
     }) : VoteController<YesNoAggregate, YesNoChoice> {
 
-        let empty_aggregate = { total_yes = 0; total_no = 0; current_yes = #DECAYED(0.0); current_no = #DECAYED(0.0); };
-
-        func update_aggregate({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time;}) : YesNoAggregate {
-            switch(choice){
-                case(#YES) {{
-                    aggregate with 
-                    total_yes = aggregate.total_yes + amount;
-                    current_yes = Decay.add(aggregate.current_yes, decay_model.create_decayed(Float.fromInt(amount), time)); 
-                }};
-                case(#NO) {{
-                    aggregate with 
-                    total_no = aggregate.total_no + amount;
-                    current_no = Decay.add(aggregate.current_no, decay_model.create_decayed(Float.fromInt(amount), time)); 
-                }};
+        let ballot_aggregator = BallotAggregator.BallotAggregator<YesNoAggregate, YesNoChoice>({
+            update_aggregate = func({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time;}) : YesNoAggregate {
+                switch(choice){
+                    case(#YES) {{
+                        aggregate with 
+                        total_yes = aggregate.total_yes + amount;
+                        current_yes = Decay.add(aggregate.current_yes, decay_model.create_decayed(Float.fromInt(amount), time)); 
+                    }};
+                    case(#NO) {{
+                        aggregate with 
+                        total_no = aggregate.total_no + amount;
+                        current_no = Decay.add(aggregate.current_no, decay_model.create_decayed(Float.fromInt(amount), time)); 
+                    }};
+                };
             };
-        };
-
-        func compute_dissent({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
-            Incentives.compute_dissent({
-                initial_addend = INITIAL_DISSENT_ADDEND;
-                steepness = DISSENT_STEEPNESS;
-                choice;
-                amount = Float.fromInt(amount);
-                total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
-                total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
-            });
-        };
-
-        func compute_consent({aggregate: YesNoAggregate; choice: YesNoChoice; time: Time;}) : Float {
-            Incentives.compute_consent({ 
-                steepness = CONSENT_STEEPNESS;
-                choice;
-                total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
-                total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
-            });
-        };
+            compute_dissent = func({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
+                Incentives.compute_dissent({
+                    initial_addend = INITIAL_DISSENT_ADDEND;
+                    steepness = DISSENT_STEEPNESS;
+                    choice;
+                    amount = Float.fromInt(amount);
+                    total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
+                    total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
+                });
+            };
+            compute_consent = func ({aggregate: YesNoAggregate; choice: YesNoChoice; time: Time;}) : Float {
+                Incentives.compute_consent({ 
+                    steepness = CONSENT_STEEPNESS;
+                    choice;
+                    total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
+                    total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
+                });
+            };
+        });
         
         VoteController.VoteController<YesNoAggregate, YesNoChoice>({
-            empty_aggregate;
-            update_aggregate;
-            compute_dissent;
-            compute_consent;
+            empty_aggregate = { total_yes = 0; total_no = 0; current_yes = #DECAYED(0.0); current_no = #DECAYED(0.0); };
+            ballot_aggregator;
             hot_map;
             decay_model;
             iter_ballots = func() : Iter<(UUID, YesNoBallot)> {

@@ -1,3 +1,4 @@
+import BallotAggregator   "BallotAggregator";
 import Types              "../Types";
 import Timeline           "../utils/Timeline";
 import HotMap             "../locks/HotMap";
@@ -19,10 +20,6 @@ module {
     type Time = Int;
     type Iter<T> = Iter.Iter<T>;
 
-    public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
-    public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
-    public type ComputeConsent<A, B> = ({aggregate: A; choice: B; time: Time}) -> Float;
-
     public type PutBallotArgs = {
         ballot_id: UUID;
         timestamp: Time;
@@ -33,9 +30,7 @@ module {
    
     public class VoteController<A, B>({
         empty_aggregate: A;
-        update_aggregate: UpdateAggregate<A, B>;
-        compute_dissent: ComputeDissent<A, B>;
-        compute_consent: ComputeConsent<A, B>;
+        ballot_aggregator: BallotAggregator.BallotAggregator<A, B>;
         decay_model: Decay.DecayModel;
         hot_map: HotMap.HotMap;
         iter_ballots: () -> Iter<(UUID, Ballot<B>)>;
@@ -62,14 +57,9 @@ module {
             let { vote_id } = vote;
             let { amount; timestamp; } = args;
             let time = timestamp;
-            var aggregate = vote.aggregate.current.data;
-
-            // Compute the dissent before updating the aggregate
-            let dissent = compute_dissent({ aggregate; choice; amount; time; });
             
-            // Update the aggregate then compute the consent
-            aggregate := update_aggregate({ aggregate; choice; amount; time; });
-            let consent = compute_consent({ aggregate; choice; time; });
+            let outcome = ballot_aggregator.compute_outcome({ aggregate = vote.aggregate.current.data; choice; amount; time; });
+            let { dissent; consent } = outcome.ballot;
 
             let ballot = init_ballot({vote_id; choice; args; dissent; consent; });
             hot_map.add_new(vote_ballots(vote), ballot, false);
@@ -87,21 +77,16 @@ module {
                 Debug.trap("A ballot with the ID " # args.ballot_id # " already exists");
             };
 
-            var aggregate = vote.aggregate.current.data;
+            let outcome = ballot_aggregator.compute_outcome({ aggregate = vote.aggregate.current.data; choice; amount; time; });
+            let aggregate = outcome.aggregate.update;
+            let { dissent; consent } = outcome.ballot;
 
-            // Compute the dissent before updating the aggregate
-            let dissent = compute_dissent({ aggregate; choice; amount; time; });
-            
-            // Update the aggregate
-            aggregate := update_aggregate({ aggregate; choice; amount; time; });
+            // Update the vote aggregate
             Timeline.add(vote.aggregate, timestamp, aggregate);
-            
-            // Compute the consent
-            let consent = compute_consent({ aggregate; choice; time; });
 
-            // Update the ballot consents
+            // Update the ballot consents because of the new aggregate
             for (ballot in vote_ballots(vote)) {
-                Timeline.add(ballot.consent, timestamp, compute_consent({ aggregate; choice; time; }));
+                Timeline.add(ballot.consent, timestamp, ballot_aggregator.get_consent({ aggregate; choice; time; }));
             };
 
             // Update the hotness
@@ -152,7 +137,7 @@ module {
                 presence = DebtProcessor.init_debt_info(timestamp, from);
                 resonance = DebtProcessor.init_debt_info(timestamp, from);
                 decay = decay_model.compute_decay(timestamp);
-                // TODO: these three fields shall ideally be init with null
+                // TODO: these three fields shall ideally be initialized to null
                 var hotness = 0.0;
                 duration_ns = Timeline.initialize<Nat>(timestamp, 0);
                 var release_date = -1;

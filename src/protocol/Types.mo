@@ -143,6 +143,20 @@ module {
     };
 
     // CUSTOM TYPES
+
+    public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
+    public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
+    public type ComputeConsent<A, B> = ({aggregate: A; choice: B; time: Time}) -> Float;
+
+    public type BallotAggregatorOutcome<A> = {
+        aggregate: {
+            update: A;
+        };
+        ballot: {
+            dissent: Float;
+            consent: Float;
+        };
+    };
     
     public type DecayParameters = {
         lambda: Float;
