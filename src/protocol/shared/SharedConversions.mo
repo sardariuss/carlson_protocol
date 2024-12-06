@@ -12,8 +12,6 @@ module {
     type SBallot<B> = Types.SBallot<B>;
     type Timeline<T> = Types.Timeline<T>;
     type STimeline<T> = Types.STimeline<T>;
-    type SQueriedBallot = Types.SQueriedBallot;
-    type QueriedBallot = Types.QueriedBallot;
     type UUID = Types.UUID;
     type SDebtInfo = Types.SDebtInfo;
 
@@ -26,13 +24,6 @@ module {
     public func shareBallotType(ballot: BallotType) : SBallotType {
         switch(ballot){
             case(#YES_NO(ballot)) { #YES_NO(shareBallot(ballot)); };
-        };
-    };
-
-    public func shareQueriedBallot (queried_ballot: QueriedBallot) : SQueriedBallot {
-        {
-            queried_ballot with
-            ballot = shareBallotType(queried_ballot.ballot);
         };
     };
 

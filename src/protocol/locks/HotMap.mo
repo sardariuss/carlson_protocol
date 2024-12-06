@@ -1,15 +1,10 @@
-import Interfaces "../Interfaces";
-
-import Float      "mo:base/Float";
-import Result     "mo:base/Result";
-import Iter       "mo:base/Iter";
-import Debug      "mo:base/Debug";
+import Float "mo:base/Float";
+import Iter  "mo:base/Iter";
+import Debug "mo:base/Debug";
 
 module {
 
-    type Time = Int;
-    type IDecayModel = Interfaces.IDecayModel;
-    type Result<Ok, Err> = Result.Result<Ok, Err>;
+    type Time    = Int;
     type Iter<T> = Iter.Iter<T>;
 
     type HotItem = {

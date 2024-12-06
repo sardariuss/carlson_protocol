@@ -38,7 +38,6 @@ module {
     public type HotInfo            = Types.Current.HotInfo;
     public type DurationInfo       = Types.Current.DurationInfo;
     public type Ballot<B>          = Types.Current.Ballot<B>;
-    public type ServiceError       = Types.Current.ServiceError;
     public type Duration           = Types.Current.Duration;
     public type State              = Types.Current.State;
     public type ClockParameters    = Types.Current.ClockParameters;
@@ -167,33 +166,17 @@ module {
         #YES_NO;
     };
 
-    public type Service = { tx_id: Nat; } -> async* Result<Nat, Text>;
+    public type YesNoBallot = Ballot<YesNoChoice>;
 
-    public type VoteNotFoundError = { #VoteNotFound: { vote_id: UUID; }; };
-    
-    public type PutBallotError = TransferFromError or VoteNotFoundError or { #BallotAlreadyExists: { ballot_id: UUID; }; };
-    
-    public type PutBallotResult = Result<SBallotType, PutBallotError>;
-    
-    public type PreviewBallotResult = Result<BallotType, VoteNotFoundError>;
-    public type NewVoteResult = Result<VoteType, NewVoteError>;
-    public type NewVoteError = { #VoteAlreadyExists: { vote_id: UUID; }; };
+    // RESULT/ERROR TYPES
 
-    public type VoteBallotId = {
-        vote_id: UUID;
-        ballot_id: UUID;
-    };
-
-    public type QueriedBallot = VoteBallotId and { ballot: BallotType; };
-    public type SQueriedBallot = VoteBallotId and { ballot: SBallotType; };
-    public type SNewVoteResult = Result<SVoteType, NewVoteError>;
+    public type VoteNotFoundError    = { #VoteNotFound: { vote_id: UUID; }; };
+    public type NewVoteError         = { #VoteAlreadyExists: { vote_id: UUID; }; };
+    public type PutBallotError       = TransferFromError or VoteNotFoundError or { #BallotAlreadyExists: { ballot_id: UUID; }; };
+    public type PutBallotResult      = Result<SBallotType, PutBallotError>;
+    public type PreviewBallotResult  = Result<BallotType, VoteNotFoundError>;
+    public type NewVoteResult        = Result<VoteType, NewVoteError>;
+    public type SNewVoteResult       = Result<SVoteType, NewVoteError>;
     public type SPreviewBallotResult = Result<SBallotType, VoteNotFoundError>;
-    
-
-    public type ReleaseAttempt<T> = {
-        elem: T;
-        release_time: ?Time;
-        update_elem: T -> ();
-    };
 
 };

@@ -13,16 +13,14 @@ import HotMap             "locks/HotMap";
 import Timeline           "utils/Timeline";
 import DebtProcessor      "DebtProcessor";
 
-import Map                "mo:map/Map";
-
 import Float              "mo:base/Float";
 
 module {
 
-    type Time = Int;
-    type State = Types.State;
-    type UUID = Types.UUID;
-    type YesNoBallot = Types.Ballot<Types.YesNoChoice>;
+    type State       = Types.State;
+    type YesNoBallot = Types.YesNoBallot;
+
+    type Time        = Int;
 
     public func build(args: State and { provider: Principal }) : Controller.Controller {
 
@@ -93,15 +91,10 @@ module {
 
         let decay_model = Decay.DecayModel(decay);
 
-        // @todo: need to update lock_scheduler with each hotness update!!
-        //lock_scheduler.update(v, time);
-        let hot_map = HotMap.HotMap();
-
         let yes_no_controller = VoteFactory.build_yes_no({
             ballot_register;
             decay_model;
-            duration_calculator;
-            hot_map;
+            hot_map = HotMap.HotMap();
         });
 
         let vote_type_controller = VoteTypeController.VoteTypeController({
@@ -113,6 +106,7 @@ module {
         Controller.Controller({
             clock;
             vote_register;
+            ballot_register;
             lock_scheduler;
             vote_type_controller;
             deposit_debt;

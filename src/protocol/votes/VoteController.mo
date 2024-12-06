@@ -1,34 +1,23 @@
-import BallotBuilder      "BallotBuilder";
-import DebtProcessor      "../DebtProcessor";
 import Types              "../Types";
-import DurationCalculator "../duration/DurationCalculator";
 import Timeline           "../utils/Timeline";
 import HotMap             "../locks/HotMap";
 import Decay              "../duration/Decay";  
+import DebtProcessor      "../DebtProcessor";
 
 import Set                "mo:map/Set";
 
-import Result             "mo:base/Result";
-import Int                "mo:base/Int";
-import Float              "mo:base/Float";
-import Time               "mo:base/Time";
 import Debug              "mo:base/Debug";
 import Iter               "mo:base/Iter";
 
 module {
 
-    type Time = Int;
-
     type Account = Types.Account;
-    type IDurationCalculator = DurationCalculator.IDurationCalculator;
     type UUID = Types.UUID;
-    type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type Set<K> = Set.Set<K>;
-    type Iter<T> = Iter.Iter<T>;
-
     type Vote<A, B> = Types.Vote<A, B>;
-
     type Ballot<B> = Types.Ballot<B>;
+
+    type Time = Int;
+    type Iter<T> = Iter.Iter<T>;
 
     public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
     public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
@@ -47,7 +36,6 @@ module {
         update_aggregate: UpdateAggregate<A, B>;
         compute_dissent: ComputeDissent<A, B>;
         compute_consent: ComputeConsent<A, B>;
-        duration_calculator: IDurationCalculator;
         decay_model: Decay.DecayModel;
         hot_map: HotMap.HotMap;
         iter_ballots: () -> Iter<(UUID, Ballot<B>)>;
@@ -127,12 +115,22 @@ module {
             ballot;
         };
 
-        // @todo: remove this function
-        public func find_ballot({
-            vote: Vote<A, B>;
-            ballot_id: UUID;
-        }) : ?Ballot<B> {
-            null;
+        public func vote_ballots(vote: Vote<A, B>) : Iter<Ballot<B>> {
+            let it = iter_ballots();
+            func next() : ?(Ballot<B>) {
+                label get_next while(true) {
+                    switch(it.next()){
+                        case(null) { break get_next; };
+                        case(?(id, ballot)) { 
+                            if (Set.has(vote.ballots, Set.thash, id)) {
+                                return ?ballot;
+                            };
+                        };
+                    };
+                };
+                null;
+            };
+            return { next };
         };
 
         func init_ballot({
@@ -154,30 +152,12 @@ module {
                 presence = DebtProcessor.init_debt_info(timestamp, from);
                 resonance = DebtProcessor.init_debt_info(timestamp, from);
                 decay = decay_model.compute_decay(timestamp);
-                // @todo: shall be init with null
+                // TODO: these three fields shall ideally be init with null
                 var hotness = 0.0;
-                duration_ns = Timeline.initialize<Nat>(timestamp, duration_calculator.compute_duration_ns(0.0));
+                duration_ns = Timeline.initialize<Nat>(timestamp, 0);
                 var release_date = -1;
             };
             ballot;
-        };
-
-        func vote_ballots(vote: Vote<A, B>) : Iter<Ballot<B>> {
-            let it = iter_ballots();
-            func next() : ?(Ballot<B>) {
-                label get_next while(true) {
-                    switch(it.next()){
-                        case(null) { break get_next; };
-                        case(?(id, ballot)) { 
-                            if (Set.has(vote.ballots, Set.thash, id)) {
-                                return ?ballot;
-                            };
-                        };
-                    };
-                };
-                null;
-            };
-            return { next };
         };
 
     };

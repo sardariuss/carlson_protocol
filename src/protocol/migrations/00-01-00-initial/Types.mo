@@ -169,11 +169,11 @@ module {
     public type VoteRegister = {
         votes: Map<UUID, VoteType>;
         by_origin: Map<Principal, Set<UUID>>;
-        user_ballots: Map<Account, Set<UUID>>; // @todo: move this in BallotRegister
     };
 
     public type BallotRegister = {
         ballots: Map<UUID, BallotType>;
+        by_account: Map<Account, Set<UUID>>;
     };
 
     public type VoteType = {
@@ -255,14 +255,6 @@ module {
     public type TransferResult = {
         #ok: TxIndex;
         #err: Icrc1TransferError or { #Trapped : { error_code: Error.ErrorCode; }};
-    };
-
-    public type ServiceError = {
-        original_transfer: {
-            tx_id: TxIndex;
-            args: TransferFromArgs;
-        };
-        error: Text;
     };
 
     public type Duration = {

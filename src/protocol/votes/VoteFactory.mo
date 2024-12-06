@@ -1,9 +1,7 @@
 import VoteController     "VoteController";
 import Incentives         "Incentives";
-
 import Types              "../Types";
 import Decay              "../duration/Decay";
-import DurationCalculator "../duration/DurationCalculator";
 import HotMap             "../locks/HotMap";
 
 import Map                "mo:map/Map";
@@ -14,19 +12,15 @@ import Iter               "mo:base/Iter";
 module {
 
     type VoteController<A, B> = VoteController.VoteController<A, B>;
-
-    type Vote<A, B> = Types.Vote<A, B>;
-    type VoteType = Types.VoteType;
-    type YesNoAggregate = Types.YesNoAggregate;
-    type YesNoBallot = Types.Ballot<YesNoChoice>;
-    type YesNoChoice = Types.YesNoChoice;
-    type Duration = Types.Duration;
-    type TimedData<T> = Types.TimedData<T>;
-    type UUID = Types.UUID;
-    type BallotRegister = Types.BallotRegister;
-    type Iter<T> = Iter.Iter<T>;
-
-    type Time = Int;
+    type YesNoAggregate       = Types.YesNoAggregate;
+    type YesNoBallot          = Types.YesNoBallot;
+    type YesNoChoice          = Types.YesNoChoice;
+    type Duration             = Types.Duration;
+    type UUID                 = Types.UUID;
+    type BallotRegister       = Types.BallotRegister;
+    
+    type Iter<T>              = Iter.Iter<T>;
+    type Time                 = Int;
 
     // https://www.desmos.com/calculator/8iww2wlp2t
     // TODO: these should be protocol parameters
@@ -40,7 +34,6 @@ module {
     public func build_yes_no({
         ballot_register: BallotRegister;
         decay_model: Decay.DecayModel;
-        duration_calculator: DurationCalculator.IDurationCalculator;
         hot_map: HotMap.HotMap;
     }) : VoteController<YesNoAggregate, YesNoChoice> {
 
@@ -86,7 +79,6 @@ module {
             update_aggregate;
             compute_dissent;
             compute_consent;
-            duration_calculator;
             hot_map;
             decay_model;
             iter_ballots = func() : Iter<(UUID, YesNoBallot)> {

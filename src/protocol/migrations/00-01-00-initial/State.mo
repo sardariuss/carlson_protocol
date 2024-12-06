@@ -45,10 +45,10 @@ module {
             vote_register = { 
                 votes = Map.new<UUID, VoteType>();
                 by_origin = Map.new<Principal, Set.Set<UUID>>();
-                user_ballots = Map.new<Account, Set.Set<UUID>>();
             };
             ballot_register = {
                 ballots = Map.new<UUID, BallotType>();
+                by_account = Map.new<Account, Set.Set<UUID>>();
             };
             lock_register = {
                 total_amount = Timeline.initialize(now, 0);
