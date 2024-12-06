@@ -57,13 +57,11 @@ module {
             deposit = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(deposit.ledger));
                 fee = deposit.fee;
-                debts = Map.new<UUID, DebtInfo>();
                 owed = Set.new<UUID>();
             };
             presence = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(presence.ledger));
                 fee = presence.fee;
-                debts = Map.new<UUID, DebtInfo>();
                 owed = Set.new<UUID>();
                 parameters = {
                     presence_per_ns = Float.fromInt(presence.mint_per_day) / Float.fromInt(Duration.NS_IN_DAY);
@@ -73,7 +71,6 @@ module {
             resonance = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(resonance.ledger));
                 fee = resonance.fee;
-                debts = Map.new<UUID, DebtInfo>();
                 owed = Set.new<UUID>();
             };
             parameters = { parameters with 

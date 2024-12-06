@@ -326,20 +326,17 @@ module {
         deposit: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            debts: Map<UUID, DebtInfo>;
             owed: Set<UUID>;
         };
         presence: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            debts: Map<UUID, DebtInfo>;
             owed: Set<UUID>;
             parameters: PresenseParameters;
         };
         resonance: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            debts: Map<UUID, DebtInfo>;
             owed: Set<UUID>;
         };
         parameters: {

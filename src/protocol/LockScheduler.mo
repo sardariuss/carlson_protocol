@@ -5,7 +5,6 @@ import BTree "mo:stableheapbtreemap/BTree";
 import Order "mo:base/Order";
 import Text "mo:base/Text";
 import Int "mo:base/Int";
-import Option "mo:base/Option";
 
 module {
 

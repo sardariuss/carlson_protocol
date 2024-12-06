@@ -12,13 +12,19 @@ import Clock              "utils/Clock";
 import HotMap             "locks/HotMap";
 import Timeline           "utils/Timeline";
 import DebtProcessor      "DebtProcessor";
+import BallotUtils        "votes/BallotUtils";
+
+import Map                "mo:map/Map";
 
 import Float              "mo:base/Float";
+import Debug              "mo:base/Debug";
 
 module {
 
     type State       = Types.State;
     type YesNoBallot = Types.YesNoBallot;
+    type UUID        = Types.UUID;
+    type DebtInfo    = Types.DebtInfo;
 
     type Time        = Int;
 
@@ -33,16 +39,40 @@ module {
 
         let deposit_debt = DebtProcessor.DebtProcessor({
             deposit with 
+            get_debt_info = func (id: UUID) : DebtInfo {
+                switch(Map.get(ballot_register.ballots, Map.thash, id)) {
+                    case(null) { Debug.trap("Debt not found"); };
+                    case(?ballot) {
+                        BallotUtils.unwrap_yes_no(ballot).ck_btc;
+                    };
+                };
+            };
             ledger = deposit_ledger;
         });
 
         let presence_debt = DebtProcessor.DebtProcessor({
             presence with 
+            get_debt_info = func (id: UUID) : DebtInfo {
+                switch(Map.get(ballot_register.ballots, Map.thash, id)) {
+                    case(null) { Debug.trap("Debt not found"); };
+                    case(?ballot) {
+                        BallotUtils.unwrap_yes_no(ballot).presence;
+                    };
+                };
+            };
             ledger = presence_ledger;
         });
 
         let resonance_debt = DebtProcessor.DebtProcessor({
             resonance with 
+            get_debt_info = func (id: UUID) : DebtInfo {
+                switch(Map.get(ballot_register.ballots, Map.thash, id)) {
+                    case(null) { Debug.trap("Debt not found"); };
+                    case(?ballot) {
+                        BallotUtils.unwrap_yes_no(ballot).resonance;
+                    };
+                };
+            };
             ledger = resonance_ledger;
         });
 
@@ -69,13 +99,11 @@ module {
             about_to_remove = func (ballot: YesNoBallot, time: Time) {
                 presence_dispenser.dispense(time);
                 deposit_debt.add_debt({ 
-                    account = ballot.from;
                     amount = Float.fromInt(ballot.amount);
                     id = ballot.ballot_id;
                     time;
                 });
                 resonance_debt.add_debt({ 
-                    account = ballot.from;
                     amount = Incentives.compute_resonance({ 
                         amount = ballot.amount;
                         dissent = ballot.dissent;
@@ -113,6 +141,7 @@ module {
             presence_debt;
             resonance_debt;
             decay_model;
+            presence_dispenser;
         });
     };
 

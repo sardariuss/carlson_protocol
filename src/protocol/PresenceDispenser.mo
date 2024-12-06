@@ -26,6 +26,8 @@ module {
                 Debug.trap("Cannot dispense presence in the past");
             };
 
+            Debug.print("Dispensing presence over period: " # debug_show(period));
+
             let total_amount = Timeline.current(lock_register.total_amount);
 
             // Dispense presence over the period
@@ -34,7 +36,6 @@ module {
                 // Add to the debt
                 debt_processor.add_debt({
                     id;
-                    account = ballot.from;
                     amount = (Float.fromInt(ballot.amount) / Float.fromInt(total_amount)) * parameters.presence_per_ns * period;
                     time;
                 });

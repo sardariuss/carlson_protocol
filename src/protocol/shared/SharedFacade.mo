@@ -49,6 +49,10 @@ module {
             Array.map(vote_types, SharedConversions.shareVoteType);
         };
 
+        public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
+            Array.map(controller.get_vote_ballots(vote_id), SharedConversions.shareBallotType);
+        };
+
         public func find_vote({vote_id: UUID;}) : ?SVoteType {
             Option.map(controller.find_vote(vote_id), SharedConversions.shareVoteType);
         };

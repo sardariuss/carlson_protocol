@@ -8,6 +8,7 @@ import Clock              "utils/Clock";
 import LockScheduler      "LockScheduler";
 import SharedConversions  "shared/SharedConversions";
 import BallotUtils        "votes/BallotUtils";
+import PresenceDispenser  "PresenceDispenser";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
@@ -65,6 +66,7 @@ module {
         presence_debt: DebtProcessor.DebtProcessor;
         resonance_debt: DebtProcessor.DebtProcessor;
         decay_model: Decay.DecayModel;
+        presence_dispenser: PresenceDispenser.PresenceDispenser;
     }){
 
         public func new_vote(args: NewVoteArgs) : NewVoteResult {
@@ -161,10 +163,23 @@ module {
             Buffer.toArray(buffer);
         };
 
+        public func get_vote_ballots(vote_id: UUID) : [BallotType] {
+            let vote = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
+                case(null) { return []; };
+                case(?v) { v };
+            };
+            let buffer = Buffer.Buffer<BallotType>(0);
+            for (ballot in vote_type_controller.vote_ballots(vote)){
+                buffer.add(ballot);
+            };
+            Buffer.toArray(buffer);
+        };
+
         public func run() : async* () {
             let time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
             lock_scheduler.try_unlock(time);
+            presence_dispenser.dispense(time);
 
             let transfers = Buffer.Buffer<async* ()>(3);
 

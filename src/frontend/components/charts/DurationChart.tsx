@@ -1,5 +1,5 @@
 
-import { STimeline_1 } from "@/declarations/backend/backend.did";
+import { STimeline } from "@/declarations/protocol/protocol.did";
 import { nsToMs } from "../../utils/conversions/date";
 
 import { ResponsiveLine, Serie } from '@nivo/line';
@@ -10,7 +10,7 @@ import { formatDuration } from "../../utils/conversions/duration";
 import { format } from "date-fns";
 
 interface DurationChartProps {
-  duration_timeline: STimeline_1;
+  duration_timeline: STimeline;
 };
   
 const DurationChart = ({ duration_timeline }: DurationChartProps) => {

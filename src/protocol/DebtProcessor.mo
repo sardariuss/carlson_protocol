@@ -9,6 +9,7 @@ import Result "mo:base/Result";
 import Buffer "mo:base/Buffer";
 import Float "mo:base/Float";
 import Int "mo:base/Int";
+import Debug "mo:base/Debug";
 
 module {
 
@@ -35,20 +36,14 @@ module {
 
     public class DebtProcessor({
         ledger: LedgerFacade.LedgerFacade;
-        debts: Map<UUID, DebtInfo>;
+        get_debt_info: (UUID) -> DebtInfo;
         owed: Set<UUID>;
     }){
 
-        public func add_debt({ id: UUID; account: Account; amount: Float; time: Time; }) {
-            let info : DebtInfo = switch(Map.get(debts, Map.thash, id)){
-                case(null) { 
-                    init_debt_info(time, account);
-                };
-                case(?v) { v; };
-            };
+        public func add_debt({ id: UUID; amount: Float; time: Time; }) {
+            let info = get_debt_info(id);
             Timeline.add(info.amount, time, Timeline.current(info.amount) + amount);
             info.owed += amount;
-            Map.set(debts, Map.thash, id, info);
             tag_to_transfer(id, info);
         };
 
@@ -57,12 +52,13 @@ module {
             let calls = Buffer.Buffer<async* ()>(Set.size(owed));
             label infinite while(true){
                 switch(Set.pop(owed, Map.thash)){
-                    case(null) { break infinite; };
+                    case(null) { 
+                        Debug.print("No more debts to transfer");
+                        break infinite; 
+                    };
                     case(?id) {
-                        switch(Map.get(debts, Map.thash, id)){
-                            case(null) { continue infinite; };
-                            case(?v) { calls.add(transfer(id, v)); };
-                        };
+                        Debug.print("Transferring debt for id: " # debug_show(id));
+                        calls.add(transfer(id));
                     };
                 };
             };
@@ -79,7 +75,8 @@ module {
             ledger;
         };
 
-        func transfer(id: UUID, info: DebtInfo) : async* () {
+        func transfer(id: UUID) : async* () {
+            let info = get_debt_info(id);
             let difference : Nat = Int.abs(Float.toInt(info.owed)) - info.pending;
             info.pending += difference;
             // Remove the debt from the set, it will be added back if the transfer fails

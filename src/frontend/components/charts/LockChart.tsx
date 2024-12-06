@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useRef, useState, Fragment } from 'react';
 import { ResponsiveLine, Serie } from '@nivo/line';
 import { BITCOIN_TOKEN_SYMBOL, CHART_BACKGROUND_COLOR, LOCK_EMOJI } from '../../constants';
-import { SQueriedBallot } from '@/declarations/backend/backend.did';
+import { SBallotType } from '@/declarations/protocol/protocol.did';
 import IntervalPicker from './IntervalPicker';
 import { DurationUnit, toNs } from '../../utils/conversions/duration';
 import { CHART_CONFIGURATIONS, computeTicksMs, isNotFiniteNorNaN } from '.';
@@ -11,7 +11,7 @@ import { formatDate, msToNs, nsToMs, timeToDate } from '../../utils/conversions/
 import { get_current, get_first } from '../../utils/timeline';
 
 interface LockChartProps {
-  ballots: SQueriedBallot[];
+  ballots: SBallotType[];
   selected: number;
   select_ballot: (index: number) => void;
 };
@@ -40,7 +40,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
     const segments : Segment[] = [];
 
     ballots.forEach((ballot, index) => {
-      const { YES_NO: { timestamp, duration_ns } } = ballot.ballot;
+      const { YES_NO: { timestamp, duration_ns, amount } } = ballot;
 
       // Compute timestamps
       const baseTimestamp = nsToMs(timestamp);
@@ -67,7 +67,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
         start: points[0],
         end: points[1],
         percentage: ((initialLockEnd - baseTimestamp) / (actualLockEnd - baseTimestamp)) * 100,
-        label: LOCK_EMOJI + " " + formatBalanceE8s(ballot.ballot.YES_NO.amount, BITCOIN_TOKEN_SYMBOL)
+        label: LOCK_EMOJI + " " + formatBalanceE8s(amount, BITCOIN_TOKEN_SYMBOL)
       });
     });
 
