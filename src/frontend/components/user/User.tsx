@@ -15,6 +15,7 @@ import { protocolActor } from "../../actors/ProtocolActor";
 import { SBallotType } from "../../../declarations/protocol/protocol.did";
 import { fromNullable } from "@dfinity/utils";
 import Balance from "../Balance";
+import { unwrapLock } from "../../utils/conversions/ballot";
 
 interface VoteTextProps {
   ballot: SBallotType;
@@ -96,8 +97,8 @@ const User = () => {
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{DURATION_EMOJI}</span>
                     <div>
-                      <div><span className="italic text-gray-400 text-sm">Initial:</span> {formatDuration(ballot.YES_NO.timestamp + get_first(ballot.YES_NO.duration_ns).data - dateToTime(new Date(Number(ballot.YES_NO.timestamp)/ 1_000_000))) } </div>
-                      <div><span className="italic text-gray-400 text-sm">Current:</span> {formatDuration(ballot.YES_NO.timestamp + get_current(ballot.YES_NO.duration_ns).data - dateToTime(new Date(Number(ballot.YES_NO.timestamp)/ 1_000_000))) } </div>
+                      <div><span className="italic text-gray-400 text-sm">Initial:</span> {formatDuration(ballot.YES_NO.timestamp + get_first(unwrapLock(ballot).duration_ns).data - dateToTime(new Date(Number(ballot.YES_NO.timestamp)/ 1_000_000))) } </div>
+                      <div><span className="italic text-gray-400 text-sm">Current:</span> {formatDuration(ballot.YES_NO.timestamp + get_current(unwrapLock(ballot).duration_ns).data - dateToTime(new Date(Number(ballot.YES_NO.timestamp)/ 1_000_000))) } </div>
                     </div>
                   </div>
                   
@@ -126,7 +127,7 @@ const User = () => {
 
                   <div className="col-span-2 w-full flex flex-col">
                     <div>Duration</div>
-                    <DurationChart duration_timeline={to_number_timeline(ballot.YES_NO.duration_ns)}/>
+                    <DurationChart duration_timeline={to_number_timeline(unwrapLock(ballot).duration_ns)}/>
                   </div>
                   <div className="col-span-2 w-full flex flex-col">
                     <div>Presence</div>

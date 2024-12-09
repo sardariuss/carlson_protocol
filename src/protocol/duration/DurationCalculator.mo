@@ -1,13 +1,21 @@
 import Types     "../Types";
 import Duration  "Duration";
+import Timeline  "../utils/Timeline";
 
 import Float     "mo:base/Float";
 import Int       "mo:base/Int";
 
 module {
 
+    type Time = Int;
+
     public type IDurationCalculator = {
         compute_duration_ns: Float -> Nat;
+    };
+
+    type LockElem = {
+        timestamp: Time;
+        var lock: ?Types.LockInfo;
     };
 
     // https://www.desmos.com/calculator/9beo92hvwn
@@ -36,6 +44,25 @@ module {
 
         public func compute_duration_ns(hotness: Float) : Nat {
             Int.abs(Float.toInt(Float.fromInt(nominal_duration_ns) * Float.pow(hotness, scale_factor)));
+        };
+
+        public func update_lock_duration(elem: LockElem, hotness: Float, time: Time) {
+            let duration = compute_duration_ns(hotness);
+            let release_date = elem.timestamp + duration;
+            switch(elem.lock) {
+                case(null) { 
+                    elem.lock := ?{
+                        duration_ns = Timeline.initialize(time, duration);
+                        var release_date = release_date;
+                    };
+                };
+                case(?lock) {
+                    if (release_date != lock.release_date) {
+                        Timeline.add(lock.duration_ns, time, duration);
+                        lock.release_date := release_date;
+                    };
+                };
+            };
         };
     
     };

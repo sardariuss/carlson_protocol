@@ -106,7 +106,11 @@ module {
             let timestamp = clock.get_time();
             let from = { owner = caller; subaccount = from_subaccount; };
 
-            #ok(vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with tx_id = 0; timestamp; from; }}));
+            let ballot = vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with tx_id = 0; timestamp; from; }});
+
+            lock_scheduler.refresh_lock_duration(BallotUtils.unwrap_yes_no(ballot), timestamp);
+
+            #ok(ballot);
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
@@ -139,15 +143,17 @@ module {
             let ballot_type = vote_type_controller.put_ballot({vote_type; choice_type; args = { args with tx_id; timestamp; from; }});
 
             // Update the locks
+            // TODO: fix the following limitation
+            // Watchout, the new ballot shall be added first, otherwise the update will trap
+            lock_scheduler.add(BallotUtils.unwrap_yes_no(ballot_type), timestamp);
             for (ballot in vote_type_controller.vote_ballots(vote_type)){
                 lock_scheduler.update(BallotUtils.unwrap_yes_no(ballot), timestamp);
             };
-            lock_scheduler.add(BallotUtils.unwrap_yes_no(ballot_type), timestamp);
 
             // Add the ballot to that account
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
 
-            // TODO: Ideally the controller shall not share the ballot type
+            // TODO: Ideally it's not the controller's responsibility to share types
             #ok(SharedConversions.shareBallotType(ballot_type));
         };
 

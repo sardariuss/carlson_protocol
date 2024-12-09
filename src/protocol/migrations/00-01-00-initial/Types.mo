@@ -216,36 +216,28 @@ module {
         var transfers: [Transfer];
     };
 
-    // should distinguish between what is lock related and what is vote related
-    public type BallotInfo<B> = {
+    public type Ballot<B> = {
         ballot_id: UUID;
-        vote_id: UUID; // vote related
-        timestamp: Time; // lock related, vote maybe ?
-        choice: B; // vote related
-        amount: Nat; // both, because impacts the aggregate and lock weight
-        dissent: Float; // vote related
-        consent: Timeline<Float>; // vote related WILL CHANGE
+        vote_id: UUID;
+        timestamp: Time;
+        choice: B;
+        amount: Nat;
+        dissent: Float;
+        consent: Timeline<Float>;
         ck_btc: DebtInfo;
         presence: DebtInfo;
         resonance: DebtInfo;
-    };
-
-    public type DepositInfo = {
         tx_id: Nat;
         from: Account;
-    };
-
-    public type HotInfo = {
-        var hotness: Float; // vote related WILL CHANGE
         decay: Float;
+        var hotness: Float;
+        var lock: ?LockInfo;
     };
 
-    public type DurationInfo = {
+    public type LockInfo = {
         duration_ns: Timeline<Nat>;
         var release_date: Time;
     };
-
-    public type Ballot<B> = BallotInfo<B> and DepositInfo and HotInfo and DurationInfo;
 
     public type Transfer = {
         args: Icrc1TransferArgs;

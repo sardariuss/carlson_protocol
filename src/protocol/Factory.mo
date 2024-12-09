@@ -89,9 +89,7 @@ module {
         let lock_scheduler = LockScheduler.LockScheduler({
             lock_register;
             update_lock_duration = func(ballot: YesNoBallot, time: Time) {
-                let duration_ns = duration_calculator.compute_duration_ns(ballot.hotness);
-                Timeline.add(ballot.duration_ns, time, duration_ns);
-                ballot.release_date := ballot.timestamp + duration_ns;
+                duration_calculator.update_lock_duration(ballot, ballot.hotness, time);
             };
             about_to_add = func (_: YesNoBallot, time: Time) {
                 presence_dispenser.dispense(time);

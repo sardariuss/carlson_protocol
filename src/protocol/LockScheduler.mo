@@ -5,6 +5,7 @@ import BTree "mo:stableheapbtreemap/BTree";
 import Order "mo:base/Order";
 import Text "mo:base/Text";
 import Int "mo:base/Int";
+import Debug "mo:base/Debug";
 
 module {
 
@@ -30,6 +31,11 @@ module {
         about_to_add: (YesNoBallot, Time) -> ();
         about_to_remove: (YesNoBallot, Time) -> ();
     }) {
+
+        // TODO: should not be public but it is required for ballot preview
+        public func refresh_lock_duration(ballot: YesNoBallot, time: Time) {
+            update_lock_duration(ballot, time);
+        };
 
         // add
         public func add(ballot: YesNoBallot, time: Time) {
@@ -71,14 +77,22 @@ module {
                         if (lock.release_date > time) { return; };
                         about_to_remove(ballot, lock.release_date);
                         ignore BTree.delete(locks, compare_locks, lock);
-                        Timeline.add(total_amount, lock.release_date, Timeline.current(total_amount) - ballot.amount);
+                        Timeline.add(total_amount, time, Timeline.current(total_amount) - ballot.amount);
                     };
                 };
             };
         };
 
         func get_lock(ballot: YesNoBallot) : Lock {
-            { release_date = ballot.release_date; id = ballot.ballot_id; };
+            switch(ballot.lock){
+                case(null) { Debug.trap("Ballot does not have a lock"); };
+                case(?lock) { 
+                    { 
+                        release_date = lock.release_date;
+                        id = ballot.ballot_id; 
+                    };
+                };
+            };
         };
 
     };

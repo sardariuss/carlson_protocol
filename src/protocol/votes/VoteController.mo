@@ -16,6 +16,7 @@ module {
     type UUID = Types.UUID;
     type Vote<A, B> = Types.Vote<A, B>;
     type Ballot<B> = Types.Ballot<B>;
+    type LockInfo = Types.LockInfo;
 
     type Time = Int;
     type Iter<T> = Iter.Iter<T>;
@@ -62,7 +63,7 @@ module {
             let { dissent; consent } = outcome.ballot;
 
             let ballot = init_ballot({vote_id; choice; args; dissent; consent; });
-            hot_map.add_new(vote_ballots(vote), ballot, false);
+            hot_map.add_new({ iter = vote_ballots(vote); elem = ballot; update_previous = false; });
 
             ballot;
         };
@@ -91,7 +92,7 @@ module {
 
             // Update the hotness
             let ballot = init_ballot({vote_id; choice; args; dissent; consent; });
-            hot_map.add_new(vote_ballots(vote), ballot, true);
+            hot_map.add_new({ iter = vote_ballots(vote); elem = ballot; update_previous = true; });
 
             // Add the ballot
             add_ballot(ballot_id, ballot);
@@ -137,10 +138,8 @@ module {
                 presence = DebtProcessor.init_debt_info(timestamp, from);
                 resonance = DebtProcessor.init_debt_info(timestamp, from);
                 decay = decay_model.compute_decay(timestamp);
-                // TODO: these three fields shall ideally be initialized to null
                 var hotness = 0.0;
-                duration_ns = Timeline.initialize<Nat>(timestamp, 0);
-                var release_date = -1;
+                var lock : ?LockInfo = null;
             };
             ballot;
         };

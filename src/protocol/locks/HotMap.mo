@@ -52,15 +52,18 @@ module {
         //  hotness_i = amount_i
         //            + (decay_0 / decay_i  ) * amount_0   + ... + (decay_i-1 / decay_i) * amount_i-1
         //            + (decay_i / decay_i+1) * amount_i+1 + ... + (decay_i  / decay_n ) * amount_n
-        public func add_new(
-            iter: Iter<HotItem>,
-            elem: HotItem,
-            update_map: Bool,
-        ) {
+        public func add_new({
+            iter: Iter<HotItem>;
+            elem: HotItem;
+            update_previous: Bool;
+        }) {
 
             if(elem.hotness > 0.0) {
                 Debug.trap("The hotness of the new elem should be 0.0");
             };
+
+            // Init with the ballot amount
+            elem.hotness := Float.fromInt(elem.amount);
 
             // Iterate over the previous elems
             for (prev_elem in iter) {
@@ -68,9 +71,10 @@ module {
                 // Compute the weight between the two elems
                 let weight = prev_elem.decay / elem.decay;
 
+                // Update the hotness of the new elem
                 elem.hotness += Float.fromInt(prev_elem.amount) * weight;
 
-                if (update_map) {                  
+                if (update_previous) {
                     // Update the hotness of the previous elem
                     prev_elem.hotness += Float.fromInt(elem.amount) * weight;
                 };

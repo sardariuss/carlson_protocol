@@ -9,6 +9,7 @@ import { formatBalanceE8s } from '../../utils/conversions/token';
 import { protocolActor } from '../../actors/ProtocolActor';
 import { formatDate, msToNs, nsToMs, timeToDate } from '../../utils/conversions/date';
 import { get_current, get_first } from '../../utils/timeline';
+import { unwrapLock } from '../../utils/conversions/ballot';
 
 interface LockChartProps {
   ballots: SBallotType[];
@@ -40,7 +41,8 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
     const segments : Segment[] = [];
 
     ballots.forEach((ballot, index) => {
-      const { YES_NO: { timestamp, duration_ns, amount } } = ballot;
+      const { YES_NO: { timestamp, amount } } = ballot;
+      const duration_ns = unwrapLock(ballot).duration_ns;
 
       // Compute timestamps
       const baseTimestamp = nsToMs(timestamp);

@@ -33,10 +33,7 @@ module {
     public type Timeline<T>        = Types.Current.Timeline<T>;
     public type TimedData<T>       = Types.Current.TimedData<T>;
     public type Vote<A, B>         = Types.Current.Vote<A, B>;
-    public type BallotInfo<B>      = Types.Current.BallotInfo<B>;
-    public type DepositInfo        = Types.Current.DepositInfo;
-    public type HotInfo            = Types.Current.HotInfo;
-    public type DurationInfo       = Types.Current.DurationInfo;
+    public type LockInfo           = Types.Current.LockInfo;
     public type Ballot<B>          = Types.Current.Ballot<B>;
     public type Duration           = Types.Current.Duration;
     public type State              = Types.Current.State;
@@ -105,7 +102,7 @@ module {
         history: [TimedData<T>];
     };
 
-    public type SBallotInfo<B> = {
+    public type SBallot<B> = {
         ballot_id: UUID;
         vote_id: UUID;
         timestamp: Time;
@@ -116,24 +113,17 @@ module {
         ck_btc: SDebtInfo;
         presence: SDebtInfo;
         resonance: SDebtInfo;
-    };
-
-    public type SDepositInfo = {
         tx_id: Nat;
         from: Account;
-    };
-
-    public type SHotInfo = {
-        hotness: Float;
         decay: Float;
+        hotness: Float;
+        lock: ?SLockInfo;
     };
 
-    public type SDurationInfo = {
+    public type SLockInfo = {
         duration_ns: STimeline<Nat>;
         release_date: Time;
     };
-
-    public type SBallot<B> = SBallotInfo<B> and SDepositInfo and SHotInfo and SDurationInfo;
 
     public type SVote<A, B> = {
         vote_id: UUID;

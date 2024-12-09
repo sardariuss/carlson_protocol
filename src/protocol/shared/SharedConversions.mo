@@ -1,5 +1,7 @@
 import Types "../Types";
 
+import Option "mo:base/Option";
+
 module {
 
     type VoteType = Types.VoteType;
@@ -14,6 +16,8 @@ module {
     type STimeline<T> = Types.STimeline<T>;
     type UUID = Types.UUID;
     type SDebtInfo = Types.SDebtInfo;
+    type LockInfo = Types.LockInfo;
+    type SLockInfo = Types.SLockInfo;
 
     public func shareVoteType(vote_type: VoteType) : SVoteType {
         switch(vote_type){
@@ -46,12 +50,16 @@ module {
             ck_btc = shareDebtInfo(ballot.ck_btc);
             presence = shareDebtInfo(ballot.presence);
             resonance = shareDebtInfo(ballot.resonance);
-            duration_ns = shareTimeline(ballot.duration_ns);
             tx_id = ballot.tx_id;
             from = ballot.from;
             hotness = ballot.hotness;
             decay = ballot.decay;
-            release_date = ballot.release_date;
+            lock = Option.map(ballot.lock, func(lock: LockInfo) : SLockInfo {
+                {
+                    duration_ns = shareTimeline(lock.duration_ns);
+                    release_date = lock.release_date;
+                }
+            });
         };
     };
 
